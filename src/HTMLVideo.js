@@ -122,7 +122,7 @@ function HTMLVideo(options) {
         }
     }
     function observeProp(propName) {
-        if (HTMLVideo.manifest.props.indexOf(propName) === -1) {
+        if (!observedProps.hasOwnProperty(propName)) {
             throw new Error('observeProp not supported: ' + propName);
         }
 
