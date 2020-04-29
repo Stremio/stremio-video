@@ -131,7 +131,7 @@ function withStreamingServer(Video) {
                 }
             }
 
-            video.dispatch(commandArgs);
+            video.dispatch(action);
         };
     }
 
