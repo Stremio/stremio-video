@@ -135,6 +135,10 @@ function withHTMLSubtitles(Video) {
         }
         function onError(error) {
             events.emit('error', error);
+            if (error.critical) {
+                command('unload');
+                video.dispatch({ type: 'command', commandName: 'unload' });
+            }
         }
         function onPropChanged(propName) {
             if (observedProps[propName]) {
