@@ -7,12 +7,12 @@ function HTMLVideo(options) {
     }
 
     var videoElement = document.createElement('video');
-    containerElement.appendChild(videoElement);
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
     videoElement.style.backgroundColor = 'black';
     videoElement.crossOrigin = 'anonymous';
     videoElement.controls = false;
+    containerElement.appendChild(videoElement);
     videoElement.onerror = function() {
         onError();
     };
