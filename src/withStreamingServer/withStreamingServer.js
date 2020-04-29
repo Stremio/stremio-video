@@ -1,3 +1,5 @@
+var EventEmitter = require('events');
+var UrlUtils = require('url');
 var createTorrent = require('./createTorrent');
 var guessFileIdx = require('./guessFileIdx');
 
