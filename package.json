@@ -5,6 +5,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"events": "1.1.1",
+		"magnet-uri": "5.2.4",
 		"url": "0.11.0",
 		"video-name-parser": "1.4.6",
 		"vtt.js": "0.13.0"
