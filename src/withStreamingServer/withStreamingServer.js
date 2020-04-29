@@ -67,7 +67,7 @@ function withStreamingServer(Video) {
                     video.dispatch({ type: 'command', commandName: 'unload' });
                     if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerUrl === 'string') {
                         stream = commandArgs.stream;
-                        convertStream()
+                        convertStream(commandArgs.streamingServerUrl, commandArgs.stream)
                             .then(function(url) {
                                 if (commandArgs.stream !== stream) {
                                     return;
