@@ -134,9 +134,7 @@ function withHTMLSubtitles(Video) {
             }
         }
         function onError(error) {
-            events.emit('error', Object.assign({}, error, {
-                critical: false
-            }));
+            events.emit('error', error);
         }
         function onPropChanged(propName) {
             if (observedProps[propName]) {
