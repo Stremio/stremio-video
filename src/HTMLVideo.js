@@ -166,14 +166,17 @@ function HTMLVideo(options) {
         switch (commandName) {
             case 'load': {
                 command('unload');
-                videoElement.autoplay = typeof args.autoplay === 'boolean' ? args.autoplay : true;
-                videoElement.currentTime = args.time !== null && isFinite(args.time) ? parseInt(args.time) / 1000 : 0;
-                videoElement.src = args.stream.url;
-                loaded = true;
-                onPropChanged('paused');
-                onPropChanged('time');
-                onPropChanged('duration');
-                onPropChanged('buffering');
+                if (args && args.stream && typeof args.stream.url === 'string') {
+                    videoElement.autoplay = typeof args.autoplay === 'boolean' ? args.autoplay : true;
+                    videoElement.currentTime = args.time !== null && isFinite(args.time) ? parseInt(args.time) / 1000 : 0;
+                    videoElement.src = args.stream.url;
+                    loaded = true;
+                    onPropChanged('paused');
+                    onPropChanged('time');
+                    onPropChanged('duration');
+                    onPropChanged('buffering');
+                }
+
                 break;
             }
             case 'unload': {
