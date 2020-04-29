@@ -37,6 +37,9 @@ function HTMLVideo(options) {
     videoElement.onplaying = function() {
         onPropChanged('buffering');
     };
+    videoElement.oncanplay = () => {
+        onPropChanged('buffering');
+    };
     videoElement.onloadeddata = function() {
         onPropChanged('buffering');
     };
