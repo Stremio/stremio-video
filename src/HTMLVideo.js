@@ -162,14 +162,14 @@ function HTMLVideo(options) {
             }
         }
     }
-    function command(commandName, args) {
+    function command(commandName, commandArgs) {
         switch (commandName) {
             case 'load': {
                 command('unload');
-                if (args && args.stream && typeof args.stream.url === 'string') {
-                    videoElement.autoplay = typeof args.autoplay === 'boolean' ? args.autoplay : true;
-                    videoElement.currentTime = args.time !== null && isFinite(args.time) ? parseInt(args.time) / 1000 : 0;
-                    videoElement.src = args.stream.url;
+                if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
+                    videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
+                    videoElement.src = commandArgs.stream.url;
                     loaded = true;
                     onPropChanged('paused');
                     onPropChanged('time');

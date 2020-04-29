@@ -241,11 +241,11 @@ function withHTMLSubtitles(Video) {
                 }
             }
         }
-        function command(commandName, args) {
+        function command(commandName, commandArgs) {
             switch (commandName) {
                 case 'addSubtitlesTracks': {
-                    if (args && Array.isArray(args.tracks)) {
-                        tracks = args.tracks
+                    if (commandArgs && Array.isArray(commandArgs.tracks)) {
+                        tracks = commandArgs.tracks
                             .filter(function(track) {
                                 return track &&
                                     typeof track.url === 'string' &&
