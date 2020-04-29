@@ -228,23 +228,24 @@ function HTMLVideo(options) {
             throw new Error('Video is destroyed');
         }
 
-        switch (action.type) {
-            case 'observeProp': {
-                observeProp(action.propName);
-                break;
-            }
-            case 'setProp': {
-                setProp(action.propName, action.propValue);
-                break;
-            }
-            case 'command': {
-                command(action.commandName, action.commandArgs);
-                break;
-            }
-            default: {
-                throw new Error('Invalid action dispatched: ' + JSON.stringify(action));
+        if (action) {
+            switch (action.type) {
+                case 'observeProp': {
+                    observeProp(action.propName);
+                    return;
+                }
+                case 'setProp': {
+                    setProp(action.propName, action.propValue);
+                    return;
+                }
+                case 'command': {
+                    command(action.commandName, action.commandArgs);
+                    return;
+                }
             }
         }
+
+        throw new Error('Invalid action dispatched: ' + JSON.stringify(action));
     };
 }
 
