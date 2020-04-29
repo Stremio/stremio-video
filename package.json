@@ -5,6 +5,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"events": "1.1.1",
+		"url": "0.11.0",
 		"vtt.js": "0.13.0"
 	}
 }
