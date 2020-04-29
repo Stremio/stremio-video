@@ -274,6 +274,10 @@ function withHTMLSubtitles(Video) {
 
                     return true;
                 }
+                case 'load': {
+                    command('unload');
+                    return false;
+                }
                 case 'unload': {
                     cuesByTime = null;
                     tracks = [];
@@ -283,10 +287,6 @@ function withHTMLSubtitles(Video) {
                     onPropChanged('tracks');
                     onPropChanged('selectedSubtitlesTrackId');
                     onPropChanged('delay');
-                    return false;
-                }
-                case 'load': {
-                    command('unload');
                     return false;
                 }
                 case 'destroy': {
