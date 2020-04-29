@@ -74,6 +74,7 @@ function withStreamingServer(Video) {
                                 }
 
                                 video.dispatch({
+                                    type: 'command',
                                     commandName: 'load',
                                     commandArgs: Object.assign({}, commandArgs, {
                                         stream: Object.assign({}, commandArgs.stream, {
