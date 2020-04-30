@@ -17,7 +17,7 @@ function guessFileIdx(files, seriesInfo) {
         return false;
     });
     var largestFile = (videoFilesForEpisode.length > 0 ? videoFilesForEpisode : files)
-        .reduce((result, file) => {
+        .reduce(function(result, file) {
             if (!result || file.length > result.length) {
                 return file;
             }
