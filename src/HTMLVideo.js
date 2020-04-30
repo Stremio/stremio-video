@@ -208,6 +208,7 @@ function HTMLVideo(options) {
                 videoElement.ondurationchange = null;
                 videoElement.onwaiting = null;
                 videoElement.onplaying = null;
+                videoElement.oncanplay = null;
                 videoElement.onloadeddata = null;
                 videoElement.onvolumechange = null;
                 containerElement.removeChild(videoElement);
