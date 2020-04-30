@@ -1,5 +1,6 @@
 var EventEmitter = require('events');
 var url = require('url');
+var magnet = require('magnet-uri')
 var createTorrent = require('./createTorrent');
 var guessFileIdx = require('./guessFileIdx');
 
@@ -18,8 +19,34 @@ function withStreamingServer(Video) {
         function convertStream(streamingServerURL, stream) {
             return new Promise(function(resolve, reject) {
                 if (typeof stream.url === 'string') {
-                    resolve(stream.url);
-                    return;
+                    if (stream.url.indexOf('magnet:') === 0) {
+                        var parsedMagnetURI
+                        try {
+                            parsedMagnetURI = magnet.decode(stream.url);
+                        } catch (e) { }
+                        if (parsedMagnetURI && typeof parsedMagnetURI.infoHash === 'string') {
+                            var sources = Array.isArray(parsedMagnetURI.announce) ?
+                                parsedMagnetURI.announce.map(function(source) {
+                                    return 'tracker:' + source;
+                                })
+                                :
+                                [];
+                            createTorrent(streamingServerURL, parsedMagnetURI.infoHash, sources)
+                                .then(function(resp) {
+                                    var fileIdx = guessFileIdx(resp.files, stream.seriesInfo);
+                                    resolve(url.resolve(streamingServerURL, `/${encodeURIComponent(stream.infoHash)}/${encodeURIComponent(fileIdx)}`));
+                                })
+                                .catch(function(error) {
+                                    reject(Object.assign({}, error, {
+                                        stream: stream
+                                    }));
+                                });
+                            return;
+                        }
+                    } else {
+                        resolve(stream.url);
+                        return;
+                    }
                 }
 
                 if (typeof stream.ytId === 'string') {
@@ -30,6 +57,7 @@ function withStreamingServer(Video) {
                 if (typeof stream.infoHash === 'string') {
                     if (stream.fileIdx !== null && isFinite(stream.fileIdx)) {
                         resolve(url.resolve(streamingServerURL, `/${encodeURIComponent(stream.infoHash)}/${encodeURIComponent(stream.fileIdx)}`));
+                        return;
                     } else {
                         createTorrent(streamingServerURL, stream.infoHash, stream.sources)
                             .then(function(resp) {
@@ -41,8 +69,8 @@ function withStreamingServer(Video) {
                                     stream: stream
                                 }));
                             });
+                        return;
                     }
-                    return;
                 }
 
                 reject({
