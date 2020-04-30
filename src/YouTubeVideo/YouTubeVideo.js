@@ -3,6 +3,7 @@ var EventEmitter = require('events');
 var API_LOAD_FAILED = 95;
 
 function YouTubeVideo(options) {
+    options = options || {};
     var containerElement = options.containerElement;
     if (!(containerElement instanceof HTMLElement)) {
         throw new Error('Container element required to be instance of HTMLElement');

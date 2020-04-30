@@ -1,6 +1,7 @@
 var EventEmitter = require('events');
 
 function HTMLVideo(options) {
+    options = options || {};
     var containerElement = options.containerElement;
     if (!(containerElement instanceof HTMLElement)) {
         throw new Error('Container element required to be instance of HTMLElement');

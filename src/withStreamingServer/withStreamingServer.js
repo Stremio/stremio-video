@@ -8,6 +8,7 @@ var CONVERT_FAILED_CODE = 85;
 
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
+        options = options || {};
         var video = new Video(options);
 
         var events = new EventEmitter();
