@@ -1,9 +1,9 @@
-var UrlUtils = require('url');
+var url = require('url');
 
 var FETCH_FAILED_CODE = 80;
 
-function createTorrent(streamingServerUrl, infoHash, sources) {
-    return fetch(UrlUtils.resolve(streamingServerUrl, `/${encodeURIComponent(infoHash)}/create`), {
+function createTorrent(streamingServerURL, infoHash, sources) {
+    return fetch(url.resolve(streamingServerURL, `/${encodeURIComponent(infoHash)}/create`), {
         method: 'POST',
         headers: {
             'content-type': 'application/json'

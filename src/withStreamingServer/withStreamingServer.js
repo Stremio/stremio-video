@@ -1,5 +1,5 @@
 var EventEmitter = require('events');
-var UrlUtils = require('url');
+var url = require('url');
 var createTorrent = require('./createTorrent');
 var guessFileIdx = require('./guessFileIdx');
 
@@ -15,7 +15,7 @@ function withStreamingServer(Video) {
         var destroyed = false;
         var stream = null;
 
-        function convertStream(streamingServerUrl, stream) {
+        function convertStream(streamingServerURL, stream) {
             return new Promise(function(resolve, reject) {
                 if (typeof stream.url === 'string') {
                     resolve(stream.url);
@@ -23,18 +23,18 @@ function withStreamingServer(Video) {
                 }
 
                 if (typeof stream.ytId === 'string') {
-                    resolve(UrlUtils.resolve(streamingServerUrl, `/yt/${encodeURIComponent(stream.ytId)}?${new URLSearchParams([['request', Date.now()]])}`));
+                    resolve(url.resolve(streamingServerURL, `/yt/${encodeURIComponent(stream.ytId)}?${new URLSearchParams([['request', Date.now()]])}`));
                     return;
                 }
 
                 if (typeof stream.infoHash === 'string') {
                     if (stream.fileIdx !== null && isFinite(stream.fileIdx)) {
-                        resolve(UrlUtils.resolve(streamingServerUrl, `/${encodeURIComponent(stream.infoHash)}/${encodeURIComponent(stream.fileIdx)}`));
+                        resolve(url.resolve(streamingServerURL, `/${encodeURIComponent(stream.infoHash)}/${encodeURIComponent(stream.fileIdx)}`));
                     } else {
-                        createTorrent(streamingServerUrl, stream.infoHash, stream.sources)
+                        createTorrent(streamingServerURL, stream.infoHash, stream.sources)
                             .then(function(resp) {
                                 var fileIdx = guessFileIdx(resp.files, stream.seriesInfo);
-                                resolve(UrlUtils.resolve(streamingServerUrl, `/${encodeURIComponent(stream.infoHash)}/${encodeURIComponent(fileIdx)}`));
+                                resolve(url.resolve(streamingServerURL, `/${encodeURIComponent(stream.infoHash)}/${encodeURIComponent(fileIdx)}`));
                             })
                             .catch(function(error) {
                                 reject(Object.assign({}, error, {
@@ -65,10 +65,10 @@ function withStreamingServer(Video) {
                 case 'load': {
                     command('unload');
                     video.dispatch({ type: 'command', commandName: 'unload' });
-                    if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerUrl === 'string') {
+                    if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerURL === 'string') {
                         stream = commandArgs.stream;
-                        convertStream(commandArgs.streamingServerUrl, commandArgs.stream)
-                            .then(function(url) {
+                        convertStream(commandArgs.streamingServerURL, commandArgs.stream)
+                            .then(function(convertedURL) {
                                 if (commandArgs.stream !== stream) {
                                     return;
                                 }
@@ -78,7 +78,7 @@ function withStreamingServer(Video) {
                                     commandName: 'load',
                                     commandArgs: Object.assign({}, commandArgs, {
                                         stream: Object.assign({}, commandArgs.stream, {
-                                            url: url
+                                            url: convertedURL
                                         })
                                     })
                                 });
