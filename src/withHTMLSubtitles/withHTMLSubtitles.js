@@ -25,6 +25,7 @@ function withHTMLSubtitles(Video) {
         video.on('propChanged', function(propName, propValue) {
             if (propName === 'time') {
                 time = propValue;
+                renderSubtitles();
             }
         });
 
