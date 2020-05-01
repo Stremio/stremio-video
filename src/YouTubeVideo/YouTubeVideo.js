@@ -4,6 +4,7 @@ var API_LOAD_FAILED = 95;
 
 function YouTubeVideo(options) {
     options = options || {};
+    var propChangedTimeout = !isNaN(options.propChangedTimeout) ? parseInt(options.propChangedTimeout) : 100;
     var containerElement = options.containerElement;
     if (!(containerElement instanceof HTMLElement)) {
         throw new Error('Container element required to be instance of HTMLElement');
@@ -45,7 +46,7 @@ function YouTubeVideo(options) {
         onPropChanged('duration');
         onPropChanged('volume');
         onPropChanged('muted');
-    }, 100);
+    }, propChangedTimeout);
 
     function onAPIError() {
         onError({
