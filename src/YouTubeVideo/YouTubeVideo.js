@@ -199,14 +199,14 @@ function YouTubeVideo(options) {
                 return video.getPlayerState() === YT.PlayerState.BUFFERING;
             }
             case 'volume': {
-                if (!ready || destroyed || video.getVolume() === null || !isFinite(video.getVolume())) {
+                if (!loaded || video.getVolume() === null || !isFinite(video.getVolume())) {
                     return null;
                 }
 
                 return video.getVolume();
             }
             case 'muted': {
-                if (!ready || destroyed) {
+                if (!loaded) {
                     return null;
                 }
 
@@ -274,30 +274,16 @@ function YouTubeVideo(options) {
                 break;
             }
             case 'volume': {
-                if (ready) {
-                    if (propValue !== null && isFinite(propValue)) {
-                        video.unMute();
-                        video.setVolume(Math.max(0, Math.min(100, parseInt(propValue))));
-                    }
-                } else {
-                    actionsQueue.push({
-                        type: 'setProp',
-                        propName: propName,
-                        propValue: propValue
-                    });
+                if (loaded && propValue !== null && isFinite(propValue)) {
+                    video.unMute();
+                    video.setVolume(Math.max(0, Math.min(100, parseInt(propValue))));
                 }
 
                 break;
             }
             case 'muted': {
-                if (ready) {
+                if (loaded) {
                     propValue ? video.mute() : video.unMute();
-                } else {
-                    actionsQueue.push({
-                        type: 'setProp',
-                        propName: propName,
-                        propValue: propValue
-                    });
                 }
 
                 break;
