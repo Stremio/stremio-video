@@ -32,13 +32,16 @@ function YouTubeVideo(options) {
     var loaded = false;
     var video = null;
     var actionsQueue = [];
+    var selectedSubtitlesTrackId = null;
     var observedProps = {
         paused: false,
         time: false,
         duration: false,
         buffering: false,
         volume: false,
-        muted: false
+        muted: false,
+        subtitlesTracks: false,
+        selectedSubtitlesTrackId: false
     };
 
     var propChangedIntervalId = window.setInterval(function() {
@@ -155,7 +158,9 @@ function YouTubeVideo(options) {
         }
     }
     function onVideoAPIChange() {
-        // video.loadModule('captions');
+        video.loadModule('captions');
+        onPropChanged('subtitlesTracks');
+        onPropChanged('selectedSubtitlesTrackId');
     }
     function flushActionsQueue() {
         while (actionsQueue.length > 0) {
@@ -206,6 +211,27 @@ function YouTubeVideo(options) {
                 }
 
                 return video.isMuted();
+            }
+            case 'subtitlesTracks': {
+                if (!loaded) {
+                    return [];
+                }
+
+                return (video.getOption('captions', 'tracklist') || [])
+                    .map(function(track) {
+                        return Object.freeze({
+                            id: track.languageCode,
+                            origin: 'VIDEO_EMBEDDED',
+                            lang: track.languageName
+                        });
+                    });
+            }
+            case 'selectedSubtitlesTrackId': {
+                if (!loaded) {
+                    return null;
+                }
+
+                return selectedSubtitlesTrackId;
             }
         }
     }
@@ -276,6 +302,24 @@ function YouTubeVideo(options) {
 
                 break;
             }
+            case 'selectedSubtitlesTrackId': {
+                if (loaded) {
+                    selectedSubtitlesTrackId = null;
+                    var subtitlesTrack = (video.getOption('captions', 'tracklist') || [])
+                        .find(function(track) {
+                            return track.languageCode === propValue;
+                        });
+                    if (subtitlesTrack) {
+                        selectedSubtitlesTrackId = subtitlesTrack.languageCode;
+                        video.setOption('captions', 'track', {
+                            languageCode: subtitlesTrack.languageCode
+                        });
+                    }
+                    onPropChanged('selectedSubtitlesTrackId');
+                }
+
+                break;
+            }
             default: {
                 throw new Error('setProp not supported: ' + propName);
             }
@@ -305,6 +349,8 @@ function YouTubeVideo(options) {
                         onPropChanged('time');
                         onPropChanged('duration');
                         onPropChanged('buffering');
+                        onPropChanged('subtitlesTracks');
+                        onPropChanged('selectedSubtitlesTrackId');
                     }
                 } else {
                     actionsQueue.push({
@@ -325,6 +371,8 @@ function YouTubeVideo(options) {
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
+                onPropChanged('subtitlesTracks');
+                onPropChanged('selectedSubtitlesTrackId');
                 break;
             }
             case 'destroy': {
@@ -384,7 +432,7 @@ function YouTubeVideo(options) {
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
     embedded: true,
-    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted']
+    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId']
 };
 
 module.exports = YouTubeVideo;
