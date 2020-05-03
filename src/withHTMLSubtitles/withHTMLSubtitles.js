@@ -148,13 +148,10 @@ function withHTMLSubtitles(Video) {
             }
         }
         function observeProp(propName) {
-            if (!observedProps.hasOwnProperty(propName)) {
-                return false;
+            if (observedProps.hasOwnProperty(propName)) {
+                events.emit('propValue', propName, getProp(propName));
+                observedProps[propName] = true;
             }
-
-            events.emit('propValue', propName, getProp(propName));
-            observedProps[propName] = true;
-            return true;
         }
         function setProp(propName, propValue) {
             switch (propName) {
@@ -316,11 +313,7 @@ function withHTMLSubtitles(Video) {
             if (!destroyed && action) {
                 switch (action.type) {
                     case 'observeProp': {
-                        var handled = observeProp(action.propName);
-                        if (handled) {
-                            return;
-                        }
-
+                        observeProp(action.propName);
                         break;
                     }
                     case 'setProp': {
