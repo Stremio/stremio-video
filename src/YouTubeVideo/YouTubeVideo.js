@@ -218,7 +218,7 @@ function YouTubeVideo(options) {
                     })
                     .map(function(track, index) {
                         return Object.freeze({
-                            id: 'yt' + index,
+                            id: 'emb' + index,
                             origin: 'VIDEO_EMBEDDED',
                             lang: track.languageCode
                         });
