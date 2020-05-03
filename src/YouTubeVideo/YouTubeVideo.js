@@ -209,9 +209,9 @@ function YouTubeVideo(options) {
                     .filter(function(track) {
                         return track && typeof track.languageCode === 'string';
                     })
-                    .map(function(track) {
+                    .map(function(track, index) {
                         return Object.freeze({
-                            id: track.languageCode,
+                            id: 'yt' + index,
                             origin: 'VIDEO_EMBEDDED',
                             lang: track.languageCode
                         });
@@ -295,14 +295,14 @@ function YouTubeVideo(options) {
             case 'selectedSubtitlesTrackId': {
                 if (loaded) {
                     selectedSubtitlesTrackId = null;
-                    var subtitlesTrack = (video.getOption('captions', 'tracklist') || [])
+                    var subtitlesTrack = getProp('subtitlesTracks')
                         .find(function(track) {
-                            return track && track.languageCode === propValue;
+                            return track.id === propValue;
                         });
                     if (subtitlesTrack) {
-                        selectedSubtitlesTrackId = subtitlesTrack.languageCode;
+                        selectedSubtitlesTrackId = subtitlesTrack.id;
                         video.setOption('captions', 'track', {
-                            languageCode: subtitlesTrack.languageCode
+                            languageCode: subtitlesTrack.lang
                         });
                     }
                     onPropChanged('selectedSubtitlesTrackId');
