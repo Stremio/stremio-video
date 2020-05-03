@@ -302,15 +302,16 @@ function YouTubeVideo(options) {
             case 'selectedSubtitlesTrackId': {
                 if (loaded) {
                     selectedSubtitlesTrackId = null;
-                    var subtitlesTrack = getProp('subtitlesTracks')
+                    var selecterdTrack = getProp('subtitlesTracks')
                         .find(function(track) {
                             return track.id === propValue;
                         });
-                    if (subtitlesTrack) {
-                        selectedSubtitlesTrackId = subtitlesTrack.id;
+                    if (selecterdTrack) {
+                        selectedSubtitlesTrackId = selecterdTrack.id;
                         video.setOption('captions', 'track', {
-                            languageCode: subtitlesTrack.lang
+                            languageCode: selecterdTrack.lang
                         });
+                        events.emit('subtitlesTrackLoaded', selecterdTrack);
                     }
                     onPropChanged('selectedSubtitlesTrackId');
                 }
