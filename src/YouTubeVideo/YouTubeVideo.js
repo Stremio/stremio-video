@@ -154,7 +154,14 @@ function YouTubeVideo(options) {
     }
     function onVideoAPIChange() {
         video.loadModule('captions');
+        onPropChanged('paused');
+        onPropChanged('time');
+        onPropChanged('duration');
+        onPropChanged('buffering');
+        onPropChanged('volume');
+        onPropChanged('muted');
         onPropChanged('subtitlesTracks');
+        onPropChanged('selectedSubtitlesTrackId');
     }
     function getProp(propName) {
         switch (propName) {
