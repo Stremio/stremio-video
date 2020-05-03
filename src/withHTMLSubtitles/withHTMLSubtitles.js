@@ -251,7 +251,8 @@ function withHTMLSubtitles(Video) {
             switch (commandName) {
                 case 'addSubtitlesTracks': {
                     if (commandArgs && Array.isArray(commandArgs.tracks)) {
-                        tracks = commandArgs.tracks
+                        tracks = tracks
+                            .concat(commandArgs.tracks)
                             .filter(function(track) {
                                 return track &&
                                     typeof track.url === 'string' &&
@@ -260,20 +261,10 @@ function withHTMLSubtitles(Video) {
                                     track.origin.length > 0 &&
                                     track.origin !== 'VIDEO_EMBEDDED';
                             })
-                            .map(function(track) {
+                            .map(function(track, index) {
                                 return Object.freeze(Object.assign({}, track, {
-                                    id: track.url
+                                    id: 'ext' + index
                                 }));
-                            })
-                            .concat(tracks)
-                            .filter(function(track, index, tracks) {
-                                for (var i = 0; i < tracks.length; i++) {
-                                    if (tracks[i].id === track.id) {
-                                        return i === index;
-                                    }
-                                }
-
-                                return false;
                             });
                         onPropChanged('subtitlesTracks');
                     }
