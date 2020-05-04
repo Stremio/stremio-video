@@ -1,6 +1,5 @@
 var EventEmitter = require('events');
-
-var API_LOAD_FAILED = 95;
+var ERROR = require('../error');
 
 function YouTubeVideo(options) {
     options = options || {};
@@ -48,11 +47,9 @@ function YouTubeVideo(options) {
     }, timeChangedTimeout);
 
     function onAPIError() {
-        onError({
-            code: API_LOAD_FAILED,
-            message: 'YouTube player iframe API failed to load',
+        onError(Object.extend({}, ERROR.YOUTUBE_VIDEO.API_LOAD_FAILED, {
             critical: true
-        });
+        }));
     }
     function onAPILoaded() {
         if (destroyed) {
@@ -95,37 +92,33 @@ function YouTubeVideo(options) {
         });
     }
     function onVideoError(error) {
-        var code = error.data;
-        var message;
+        var videoError;
         switch (error.data) {
             case 2: {
-                message = 'Invalid request';
+                videoError = ERROR.YOUTUBE_VIDEO.INVALID_VIDEO_REQUEST;
                 break;
             }
             case 5: {
-                message = 'The requested content cannot be played';
+                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_CANNOT_BE_PLAYED;
                 break;
             }
             case 100: {
-                message = 'The video has been removed or marked as private';
+                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_REMOVED;
                 break;
             }
             case 101:
             case 150: {
-                message = 'The video cannot be played in embedded players';
+                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_CANNOT_BE_EMBEDDED;
                 break;
             }
             default: {
-                code = 96;
-                message = 'Unknown video error';
+                videoError = ERROR.UNKNOWN_ERROR;
             }
         }
-        onError({
-            code: code,
-            message: message,
+        onError(Object.extend({}, videoError, {
             critical: true,
             error: error
-        });
+        }));
     }
     function onVideoReady() {
         ready = true;
