@@ -4,21 +4,21 @@ var ERROR = {
             code: 90,
             message: 'YouTube player iframe API failed to load',
         },
-        INVALID_VIDEO_REQUEST: {
+        INVALID_PARAMETER: {
             code: 91,
-            message: 'The video request is invalid'
+            message: 'The request contains an invalid parameter value'
         },
-        VIDEO_CANNOT_BE_PLAYED: {
+        HTML5_VIDEO: {
             code: 92,
-            message: 'The video cannot be played'
+            message: 'The requested content cannot be played in an HTML5 player'
         },
-        VIDEO_REMOVED: {
+        VIDEO_NOT_FOUND: {
             code: 93,
-            message: 'The video has been removed or marked as private'
+            message: 'The video requested was not found'
         },
-        VIDEO_CANNOT_BE_EMBEDDED: {
+        VIDEO_NOT_EMBEDDABLE: {
             code: 94,
-            message: 'The video cannot be played in embedded players'
+            message: 'The owner of the requested video does not allow it to be played in embedded players'
         }
     },
     HTML_VIDEO: {

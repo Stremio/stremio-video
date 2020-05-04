@@ -95,20 +95,20 @@ function YouTubeVideo(options) {
         var videoError;
         switch (error.data) {
             case 2: {
-                videoError = ERROR.YOUTUBE_VIDEO.INVALID_VIDEO_REQUEST;
+                videoError = ERROR.YOUTUBE_VIDEO.INVALID_PARAMETER;
                 break;
             }
             case 5: {
-                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_CANNOT_BE_PLAYED;
+                videoError = ERROR.YOUTUBE_VIDEO.HTML5_VIDEO;
                 break;
             }
             case 100: {
-                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_REMOVED;
+                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_NOT_FOUND;
                 break;
             }
             case 101:
             case 150: {
-                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_CANNOT_BE_EMBEDDED;
+                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_NOT_EMBEDDABLE;
                 break;
             }
             default: {
