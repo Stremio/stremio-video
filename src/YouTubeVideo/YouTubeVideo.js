@@ -31,7 +31,7 @@ function YouTubeVideo(options) {
     var loaded = false;
     var video = null;
     var pendingLoadArgs = null;
-    var selectedSubtitlesTrackId = null;
+    var selectedEmbeddedSubtitlesTrackId = null;
     var observedProps = {
         paused: false,
         time: false,
@@ -39,8 +39,8 @@ function YouTubeVideo(options) {
         buffering: false,
         volume: false,
         muted: false,
-        subtitlesTracks: false,
-        selectedSubtitlesTrackId: false
+        embeddedSubtitlesTracks: false,
+        selectedEmbeddedSubtitlesTrackId: false
     };
 
     var timeChangedIntervalId = window.setInterval(function() {
@@ -160,8 +160,8 @@ function YouTubeVideo(options) {
         onPropChanged('buffering');
         onPropChanged('volume');
         onPropChanged('muted');
-        onPropChanged('subtitlesTracks');
-        onPropChanged('selectedSubtitlesTrackId');
+        onPropChanged('embeddedSubtitlesTracks');
+        onPropChanged('selectedEmbeddedSubtitlesTrackId');
     }
     function getProp(propName) {
         switch (propName) {
@@ -207,7 +207,7 @@ function YouTubeVideo(options) {
 
                 return video.isMuted();
             }
-            case 'subtitlesTracks': {
+            case 'embeddedSubtitlesTracks': {
                 if (!loaded) {
                     return [];
                 }
@@ -219,17 +219,16 @@ function YouTubeVideo(options) {
                     .map(function(track, index) {
                         return Object.freeze({
                             id: 'emb' + index,
-                            origin: 'VIDEO_EMBEDDED',
                             lang: track.languageCode
                         });
                     });
             }
-            case 'selectedSubtitlesTrackId': {
+            case 'selectedEmbeddedSubtitlesTrackId': {
                 if (!loaded) {
                     return null;
                 }
 
-                return selectedSubtitlesTrackId;
+                return selectedEmbeddedSubtitlesTrackId;
             }
         }
     }
@@ -299,21 +298,21 @@ function YouTubeVideo(options) {
 
                 break;
             }
-            case 'selectedSubtitlesTrackId': {
+            case 'selectedEmbeddedSubtitlesTrackId': {
                 if (loaded) {
-                    selectedSubtitlesTrackId = null;
-                    var selecterdTrack = getProp('subtitlesTracks')
+                    selectedEmbeddedSubtitlesTrackId = null;
+                    var selecterdTrack = getProp('embeddedSubtitlesTracks')
                         .find(function(track) {
                             return track.id === propValue;
                         });
                     if (selecterdTrack) {
-                        selectedSubtitlesTrackId = selecterdTrack.id;
+                        selectedEmbeddedSubtitlesTrackId = selecterdTrack.id;
                         video.setOption('captions', 'track', {
                             languageCode: selecterdTrack.lang
                         });
                         events.emit('subtitlesTrackLoaded', selecterdTrack);
                     }
-                    onPropChanged('selectedSubtitlesTrackId');
+                    onPropChanged('selectedEmbeddedSubtitlesTrackId');
                 }
 
                 break;
@@ -349,8 +348,8 @@ function YouTubeVideo(options) {
                         onPropChanged('buffering');
                         onPropChanged('volume');
                         onPropChanged('muted');
-                        onPropChanged('subtitlesTracks');
-                        onPropChanged('selectedSubtitlesTrackId');
+                        onPropChanged('embeddedSubtitlesTracks');
+                        onPropChanged('selectedEmbeddedSubtitlesTrackId');
                     }
                 } else {
                     pendingLoadArgs = commandArgs;
@@ -360,7 +359,7 @@ function YouTubeVideo(options) {
             }
             case 'unload': {
                 loaded = false;
-                selectedSubtitlesTrackId = null;
+                selectedEmbeddedSubtitlesTrackId = null;
                 if (ready) {
                     video.stopVideo();
                 }
@@ -370,8 +369,8 @@ function YouTubeVideo(options) {
                 onPropChanged('buffering');
                 onPropChanged('volume');
                 onPropChanged('muted');
-                onPropChanged('subtitlesTracks');
-                onPropChanged('selectedSubtitlesTrackId');
+                onPropChanged('embeddedSubtitlesTracks');
+                onPropChanged('selectedEmbeddedSubtitlesTrackId');
                 break;
             }
             case 'destroy': {
@@ -429,7 +428,7 @@ function YouTubeVideo(options) {
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
     embedded: true,
-    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId']
+    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId']
 };
 
 module.exports = YouTubeVideo;
