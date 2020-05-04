@@ -49,6 +49,16 @@ var ERROR = {
             message: 'Failed to parse subtitles'
         }
     },
+    WITH_STREAMING_SERVER: {
+        TORRENT_FETCH_FAILED: {
+            code: 60,
+            message: 'Failed to fetch files from torrent'
+        },
+        STREAM_CONVERT_FAILED: {
+            code: 61,
+            message: 'Unable to convert stream',
+        }
+    },
     UNKNOWN_ERROR: {
         code: 1,
         message: 'Unknown error'

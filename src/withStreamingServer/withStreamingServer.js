@@ -1,10 +1,9 @@
 var EventEmitter = require('events');
 var url = require('url');
 var magnet = require('magnet-uri')
+var ERROR = require('../error');
 var createTorrent = require('./createTorrent');
 var guessFileIdx = require('./guessFileIdx');
-
-var CONVERT_FAILED_CODE = 85;
 
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
@@ -74,12 +73,10 @@ function withStreamingServer(Video) {
                     }
                 }
 
-                reject({
-                    code: CONVERT_FAILED_CODE,
-                    message: 'Unable to convert stream',
+                reject(Object.assign({}, ERROR.WITH_STREAMING_SERVER.STREAM_CONVERT_FAILED, {
                     critical: true,
                     stream: stream
-                });
+                }));
             });
         }
         function onError(error) {

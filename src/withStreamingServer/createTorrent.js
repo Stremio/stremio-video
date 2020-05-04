@@ -1,6 +1,5 @@
 var url = require('url');
-
-var FETCH_FAILED_CODE = 80;
+var ERROR = require('../error');
 
 function createTorrent(streamingServerURL, infoHash, sources) {
     return fetch(url.resolve(streamingServerURL, `/${encodeURIComponent(infoHash)}/create`), {
@@ -21,19 +20,15 @@ function createTorrent(streamingServerURL, infoHash, sources) {
     }).then(function(resp) {
         return resp.json();
     }).catch(function(error) {
-        throw {
-            code: FETCH_FAILED_CODE,
-            message: 'Failed to fetch files from torrent',
+        throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.TORRENT_FETCH_FAILED, {
             critical: true,
             error: error
-        };
+        });
     }).then(function(resp) {
         if (!resp || !Array.isArray(resp.files) || resp.files.length === 0) {
-            throw {
-                code: FETCH_FAILED_CODE,
-                message: 'Failed to fetch files from torrent',
+            throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.TORRENT_FETCH_FAILED, {
                 critical: true
-            };
+            });
         }
 
         return resp;
