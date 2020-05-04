@@ -1,5 +1,5 @@
+var ERROR = require('../error');
 var subtitlesParser = require('./subtitlesParser');
-var ERROR = require('./error');
 
 function fetchSubtitles(track) {
     return fetch(track.url)
