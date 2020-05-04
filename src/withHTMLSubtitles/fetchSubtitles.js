@@ -1,7 +1,5 @@
 var subtitlesParser = require('./subtitlesParser');
-
-var FETCH_FAILED_CODE = 70;
-var PARSE_FAILED_CODE = 71;
+var ERROR = require('./error');
 
 function fetchSubtitles(track) {
     return fetch(track.url)
@@ -9,24 +7,20 @@ function fetchSubtitles(track) {
             return resp.text();
         })
         .catch(function(error) {
-            throw {
-                code: FETCH_FAILED_CODE,
-                message: 'Failed to fetch subtitles from ' + track.origin,
+            throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.FETCH_FAILED, {
                 track: track,
                 error: error,
                 critical: false
-            };
+            });
         })
         .then(function(text) {
             var cuesByTime = subtitlesParser.parse(text);
             if (cuesByTime.times.length === 0) {
-                throw {
-                    code: PARSE_FAILED_CODE,
-                    message: 'Failed to parse subtitles from ' + track.origin,
+                throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.PARSE_FAILED, {
                     track: track,
                     error: error,
                     critical: false
-                };
+                });
             }
 
             return cuesByTime;

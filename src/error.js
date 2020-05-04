@@ -39,6 +39,16 @@ var ERROR = {
             message: 'Video is not supported'
         }
     },
+    WITH_HTML_SUBTITLES: {
+        FETCH_FAILED: {
+            code: 70,
+            message: 'Failed to fetch subtitles'
+        },
+        PARSE_FAILED: {
+            code: 71,
+            message: 'Failed to parse subtitles'
+        }
+    },
     UNKNOWN_ERROR: {
         code: 1,
         message: 'Unknown error'
