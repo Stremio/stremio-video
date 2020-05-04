@@ -1,4 +1,5 @@
 var EventEmitter = require('events');
+var ERROR = require('../error');
 
 function HTMLVideo(options) {
     options = options || {};
@@ -110,11 +111,32 @@ function HTMLVideo(options) {
         }
     }
     function onError() {
-        events.emit('error', {
-            code: videoElement.error.code,
-            message: videoElement.error.message,
-            critical: true
-        });
+        var videoError;
+        switch (videoElement.error.code) {
+            case 1: {
+                videoError = ERROR.HTML_VIDEO.MEDIA_ERR_ABORTED;
+                break;
+            }
+            case 2: {
+                videoError = ERROR.HTML_VIDEO.MEDIA_ERR_NETWORK;
+                break;
+            }
+            case 3: {
+                videoError = ERROR.HTML_VIDEO.MEDIA_ERR_DECODE;
+                break;
+            }
+            case 4: {
+                videoError = ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED;
+                break;
+            }
+            default: {
+                videoError = ERROR.UNKNOWN_ERROR;
+            }
+        }
+        events.emit('error', Object.assign({}, videoError, {
+            critical: true,
+            error: videoElement.error
+        }));
         command('unload');
     }
     function onEnded() {
