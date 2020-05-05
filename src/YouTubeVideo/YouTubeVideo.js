@@ -240,12 +240,10 @@ function YouTubeVideo(options) {
         }
     }
     function observeProp(propName) {
-        if (!observedProps.hasOwnProperty(propName)) {
-            throw new Error('observeProp not supported: ' + propName);
+        if (observedProps.hasOwnProperty(propName)) {
+            events.emit('propValue', propName, getProp(propName));
+            observedProps[propName] = true;
         }
-
-        events.emit('propValue', propName, getProp(propName));
-        observedProps[propName] = true;
     }
     function setProp(propName, propValue) {
         switch (propName) {
@@ -309,9 +307,6 @@ function YouTubeVideo(options) {
                 }
 
                 break;
-            }
-            default: {
-                throw new Error('setProp not supported: ' + propName);
             }
         }
     }
@@ -378,9 +373,6 @@ function YouTubeVideo(options) {
                 containerElement.removeChild(apiScriptElement);
                 containerElement.removeChild(videoContainerElement);
                 break;
-            }
-            default: {
-                throw new Error('command not supported: ' + commandName);
             }
         }
     }
