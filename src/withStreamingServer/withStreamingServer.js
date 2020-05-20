@@ -96,7 +96,14 @@ function withStreamingServer(Video) {
                     if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerURL === 'string') {
                         stream = commandArgs.stream;
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream)
-                            .then(function(convertedURL) {
+                            .then(function(videoURL) {
+                                if (commandArgs.transcode) {
+                                    return url.resolve(commandArgs.streamingServerURL, '/casting/transcode') + '?' + new URLSearchParams([['video', videoURL]]).toString();
+                                }
+
+                                return videoURL;
+                            })
+                            .then(function(videoURL) {
                                 if (commandArgs.stream !== stream) {
                                     return;
                                 }
@@ -106,7 +113,7 @@ function withStreamingServer(Video) {
                                     commandName: 'load',
                                     commandArgs: Object.assign({}, commandArgs, {
                                         stream: Object.assign({}, commandArgs.stream, {
-                                            url: convertedURL
+                                            url: videoURL
                                         })
                                     })
                                 });
