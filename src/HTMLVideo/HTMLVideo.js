@@ -36,6 +36,12 @@ function HTMLVideo(options) {
     videoElement.onwaiting = function() {
         onPropChanged('buffering');
     };
+    videoElement.onseeking = function() {
+        onPropChanged('buffering');
+    };
+    videoElement.onseeked = function() {
+        onPropChanged('buffering');
+    };
     videoElement.onplaying = function() {
         onPropChanged('buffering');
     };
