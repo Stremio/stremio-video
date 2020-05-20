@@ -21,14 +21,11 @@ function createTorrent(streamingServerURL, infoHash, sources) {
         return resp.json();
     }).catch(function(error) {
         throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.TORRENT_FETCH_FAILED, {
-            critical: true,
             error: error
         });
     }).then(function(resp) {
         if (!resp || !Array.isArray(resp.files) || resp.files.length === 0) {
-            throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.TORRENT_FETCH_FAILED, {
-                critical: true
-            });
+            throw ERROR.WITH_STREAMING_SERVER.TORRENT_FETCH_FAILED;
         }
 
         return resp;

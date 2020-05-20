@@ -38,6 +38,7 @@ function withStreamingServer(Video) {
                                 })
                                 .catch(function(error) {
                                     reject(Object.assign({}, error, {
+                                        critical: true,
                                         stream: stream
                                     }));
                                 });
@@ -66,6 +67,7 @@ function withStreamingServer(Video) {
                             })
                             .catch(function(error) {
                                 reject(Object.assign({}, error, {
+                                    critical: true,
                                     stream: stream
                                 }));
                             });
