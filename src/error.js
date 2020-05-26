@@ -1,4 +1,14 @@
 var ERROR = {
+    CAST_VIDEO: {
+        INVALID_MESSAGE_RECEIVED: {
+            code: 100,
+            message: 'Invalid message received'
+        },
+        MESSAGE_SEND_FAILED: {
+            code: 101,
+            message: 'Failed to send message'
+        }
+    },
     YOUTUBE_VIDEO: {
         API_LOAD_FAILED: {
             code: 90,
