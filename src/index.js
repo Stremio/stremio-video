@@ -5,9 +5,9 @@ var withHTMLSubtitles = require('./withHTMLSubtitles');
 var withStreamingServer = require('./withStreamingServer');
 
 module.exports = {
-    HTMLVideo,
-    YouTubeVideo,
-    ChromecastVideo,
-    withHTMLSubtitles,
-    withStreamingServer
+    HTMLVideo: HTMLVideo,
+    YouTubeVideo: YouTubeVideo,
+    ChromecastVideo: ChromecastVideo,
+    withHTMLSubtitles: withHTMLSubtitles,
+    withStreamingServer: withStreamingServer
 };

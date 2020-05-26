@@ -39,8 +39,8 @@ function parse(text) {
         }
     }
 
-    for (var i = 0; i < cuesByTime.times.length; i++) {
-        cuesByTime[cuesByTime.times[i]].sort(function(c1, c2) {
+    for (var k = 0; k < cuesByTime.times.length; k++) {
+        cuesByTime[cuesByTime.times[k]].sort(function(c1, c2) {
             return c1.startTime - c2.startTime ||
                 c1.endTime - c2.endTime;
         });

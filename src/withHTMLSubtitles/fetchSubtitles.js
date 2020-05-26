@@ -18,7 +18,6 @@ function fetchSubtitles(track) {
             if (cuesByTime.times.length === 0) {
                 throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.PARSE_FAILED, {
                     track: track,
-                    error: error,
                     critical: false
                 });
             }

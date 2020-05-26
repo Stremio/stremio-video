@@ -2,7 +2,7 @@ var url = require('url');
 var ERROR = require('../error');
 
 function createTorrent(streamingServerURL, infoHash, sources) {
-    return fetch(url.resolve(streamingServerURL, `/${encodeURIComponent(infoHash)}/create`), {
+    return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/create'), {
         method: 'POST',
         headers: {
             'content-type': 'application/json'
@@ -11,7 +11,7 @@ function createTorrent(streamingServerURL, infoHash, sources) {
             torrent: {
                 infoHash: infoHash,
                 peerSearch: {
-                    sources: [`dht:${infoHash}`].concat(Array.isArray(sources) ? sources : []),
+                    sources: ['dht:' + infoHash].concat(Array.isArray(sources) ? sources : []),
                     min: 40,
                     max: 150
                 }
