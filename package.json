@@ -3,11 +3,17 @@
 	"version": "0.0.1",
 	"main": "src/index.js",
 	"license": "MIT",
+	"scripts": {
+		"lint": "eslint src"
+	},
 	"dependencies": {
 		"events": "1.1.1",
 		"magnet-uri": "5.2.4",
 		"url": "0.11.0",
 		"video-name-parser": "1.4.6",
 		"vtt.js": "0.13.0"
+	},
+	"devDependencies": {
+		"eslint": "7.1.0"
 	}
 }
