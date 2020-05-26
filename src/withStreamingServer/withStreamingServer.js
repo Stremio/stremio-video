@@ -173,7 +173,6 @@ function withStreamingServer(Video) {
 
     VideoWithStreamingServer.manifest = {
         name: Video.manifest.name + 'WithStreamingServer',
-        embedded: Video.manifest.embedded,
         props: Video.manifest.props
     };
 

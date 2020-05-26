@@ -276,7 +276,6 @@ function HTMLVideo(options) {
 
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
-    embedded: true,
     props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted']
 };
 

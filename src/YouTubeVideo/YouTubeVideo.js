@@ -412,7 +412,6 @@ function YouTubeVideo(options) {
 
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
-    embedded: true,
     props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId']
 };
 

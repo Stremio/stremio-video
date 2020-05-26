@@ -165,7 +165,6 @@ function ChromecastVideo(options) {
 
 ChromecastVideo.manifest = {
     name: 'ChromecastVideo',
-    embedded: true,
     props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor']
 };
 
