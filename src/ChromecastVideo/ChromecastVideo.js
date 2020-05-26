@@ -33,7 +33,7 @@ function ChromecastVideo(options) {
     deviceNameLabelElement.style.maxHeight = '3.6em';
     deviceNameLabelElement.style.lineHeight = '1.2em';
     deviceNameLabelElement.style.color = '#FFFFFF90';
-    deviceNameLabelElement.innerText = device.friendlyName;
+    deviceNameLabelElement.innerText = 'Casting to ' + device.friendlyName;
     deviceNameContainerElement.appendChild(deviceNameLabelElement);
     containerElement.appendChild(deviceNameContainerElement);
 
