@@ -179,7 +179,9 @@ function withHTMLSubtitles(Video) {
                             })
                             .catch(function(error) {
                                 if (selecterdTrack.id === selectedTrackId) {
-                                    onError(error);
+                                    onError(Object.assign({}, error, {
+                                        critical: false
+                                    }));
                                 }
                             });
                     }
