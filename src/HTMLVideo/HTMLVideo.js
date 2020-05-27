@@ -15,7 +15,6 @@ function HTMLVideo(options) {
     videoElement.style.backgroundColor = 'black';
     videoElement.crossOrigin = 'anonymous';
     videoElement.controls = false;
-    containerElement.appendChild(videoElement);
     videoElement.onerror = function() {
         onError();
     };
@@ -56,6 +55,7 @@ function HTMLVideo(options) {
         onPropChanged('volume');
         onPropChanged('muted');
     };
+    containerElement.appendChild(videoElement);
 
     var events = new EventEmitter();
     events.on('error', function() { });
