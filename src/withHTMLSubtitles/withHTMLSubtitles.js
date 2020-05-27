@@ -276,9 +276,9 @@ function withHTMLSubtitles(Video) {
                     selectedTrackId = null;
                     delay = null;
                     renderSubtitles();
-                    onPropChanged('tracks');
+                    onPropChanged('subtitlesTracks');
                     onPropChanged('selectedSubtitlesTrackId');
-                    onPropChanged('delay');
+                    onPropChanged('subtitlesDelay');
                     break;
                 }
                 case 'destroy': {

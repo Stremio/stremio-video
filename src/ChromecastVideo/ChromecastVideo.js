@@ -112,9 +112,9 @@ function ChromecastVideo(options) {
                 onPropChanged('buffering', null);
                 onPropChanged('volume', null);
                 onPropChanged('muted', null);
-                onPropChanged('tracks', null);
+                onPropChanged('subtitlesTracks', null);
                 onPropChanged('selectedSubtitlesTrackId', null);
-                onPropChanged('delay', null);
+                onPropChanged('subtitlesDelay', null);
                 onPropChanged('subtitlesSize', null);
                 onPropChanged('subtitlesOffset', null);
                 onPropChanged('subtitlesTextColor', null);
