@@ -202,7 +202,7 @@ function YouTubeVideo(options) {
             }
             case 'embeddedSubtitlesTracks': {
                 if (!loaded) {
-                    return [];
+                    return null;
                 }
 
                 return (video.getOption('captions', 'tracklist') || [])

@@ -79,7 +79,7 @@ function withHTMLSubtitles(Video) {
             switch (propName) {
                 case 'subtitlesTracks': {
                     if (destroyed) {
-                        return [];
+                        return null;
                     }
 
                     return tracks.slice();
