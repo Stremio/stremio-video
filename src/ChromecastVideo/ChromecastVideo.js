@@ -9,12 +9,12 @@ function ChromecastVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
-    var transport = options.transport;
-    if (!transport) {
+    var chromecastTransport = options.chromecastTransport;
+    if (!chromecastTransport) {
         throw new Error('Chromecast transport required');
     }
 
-    var device = transport.getCastDevice();
+    var device = chromecastTransport.getCastDevice();
     if (device === null) {
         throw new Error('Chromecast session must be started');
     }
@@ -38,7 +38,7 @@ function ChromecastVideo(options) {
     deviceNameContainerElement.appendChild(deviceNameLabelElement);
     containerElement.appendChild(deviceNameContainerElement);
 
-    transport.on('message', onMessage);
+    chromecastTransport.on('message', onMessage);
 
     var events = new EventEmitter();
     events.on('error', function() { });
@@ -122,7 +122,7 @@ function ChromecastVideo(options) {
                 onPropChanged('subtitlesShadowColor', null);
                 events.removeAllListeners();
                 events.on('error', function() { });
-                transport.off('message', onMessage);
+                chromecastTransport.off('message', onMessage);
                 containerElement.removeChild(deviceNameContainerElement);
                 break;
             }
@@ -145,16 +145,16 @@ function ChromecastVideo(options) {
             switch (action.type) {
                 case 'observeProp': {
                     observeProp(action.propName);
-                    transport.sendMessage(action).catch(onTransportError);
+                    chromecastTransport.sendMessage(action).catch(onTransportError);
                     return;
                 }
                 case 'setProp': {
-                    transport.sendMessage(action).catch(onTransportError);
+                    chromecastTransport.sendMessage(action).catch(onTransportError);
                     return;
                 }
                 case 'command': {
                     command(action.commandName, action.commandArgs);
-                    transport.sendMessage(action).catch(onTransportError);
+                    chromecastTransport.sendMessage(action).catch(onTransportError);
                     return;
                 }
             }
