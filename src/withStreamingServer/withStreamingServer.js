@@ -8,6 +8,7 @@ var guessFileIdx = require('./guessFileIdx');
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
         options = options || {};
+
         var video = new Video(options);
 
         var events = new EventEmitter();

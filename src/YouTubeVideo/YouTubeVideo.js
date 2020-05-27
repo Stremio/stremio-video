@@ -3,6 +3,7 @@ var ERROR = require('../error');
 
 function YouTubeVideo(options) {
     options = options || {};
+
     var timeChangedTimeout = !isNaN(options.timeChangedTimeout) ? parseInt(options.timeChangedTimeout) : 100;
     var containerElement = options.containerElement;
     if (!(containerElement instanceof HTMLElement)) {

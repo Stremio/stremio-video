@@ -5,6 +5,7 @@ var fetchSubtitles = require('./fetchSubtitles');
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
         options = options || {};
+
         var video = new Video(options);
 
         var containerElement = options.containerElement;
