@@ -22,15 +22,11 @@ function withHTMLSubtitles(Video) {
         var events = new EventEmitter();
         events.on('error', function() { });
 
-        var time = null;
-        video.on('propChanged', function(propName, propValue) {
-            if (propName === 'time') {
-                time = propValue;
-                renderSubtitles();
-            }
-        });
+        video.on('propValue', onVideoPropChanged);
+        video.on('propChanged', onVideoPropChanged);
 
         var destroyed = false;
+        var time = null;
         var cuesByTime = null;
         var tracks = [];
         var selectedTrackId = null;
@@ -140,6 +136,12 @@ function withHTMLSubtitles(Video) {
             if (error.critical) {
                 command('unload');
                 video.dispatch({ type: 'command', commandName: 'unload' });
+            }
+        }
+        function onVideoPropChanged(propName, propValue) {
+            if (propName === 'time') {
+                time = propValue;
+                renderSubtitles();
             }
         }
         function onPropChanged(propName) {
