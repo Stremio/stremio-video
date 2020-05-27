@@ -229,7 +229,7 @@ function YouTubeVideo(options) {
     function onError(error) {
         events.emit('error', error);
         if (error.critical) {
-            command('stop');
+            command('unload');
         }
     }
     function onEnded() {
