@@ -15,7 +15,7 @@ function withStreamingServer(Video) {
         events.on('error', function() { });
 
         var destroyed = false;
-        var stream = null;
+        var loadCommandArgs = null;
 
         function convertStream(streamingServerURL, stream) {
             return new Promise(function(resolve, reject) {
@@ -95,7 +95,7 @@ function withStreamingServer(Video) {
                     command('unload');
                     video.dispatch({ type: 'command', commandName: 'unload' });
                     if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerURL === 'string') {
-                        stream = commandArgs.stream;
+                        loadCommandArgs = commandArgs;
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream)
                             .then(function(videoURL) {
                                 if (commandArgs.transcode) {
@@ -105,7 +105,7 @@ function withStreamingServer(Video) {
                                 return videoURL;
                             })
                             .then(function(videoURL) {
-                                if (commandArgs.stream !== stream) {
+                                if (commandArgs !== loadCommandArgs) {
                                     return;
                                 }
 
@@ -120,7 +120,7 @@ function withStreamingServer(Video) {
                                 });
                             })
                             .catch(function(error) {
-                                if (commandArgs.stream !== stream) {
+                                if (commandArgs !== loadCommandArgs) {
                                     return;
                                 }
 
@@ -131,7 +131,7 @@ function withStreamingServer(Video) {
                     return true;
                 }
                 case 'unload': {
-                    stream = null;
+                    loadCommandArgs = null;
                     return false;
                 }
                 case 'destroy': {
