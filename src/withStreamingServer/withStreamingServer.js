@@ -89,6 +89,24 @@ function withStreamingServer(Video) {
                 video.dispatch({ type: 'command', commandName: 'unload' });
             }
         }
+        function setProp(propName, propValue) {
+            switch (propName) {
+                case 'time': {
+                    if (loadCommandArgs && loadCommandArgs.transcode && propValue !== null && isFinite(propValue)) {
+                        var commandArgs = Object.assign({}, loadCommandArgs, {
+                            time: parseInt(propValue)
+                        });
+                        command('load', commandArgs);
+                        return true;
+                    }
+
+                    return false;
+                }
+                default: {
+                    return false;
+                }
+            }
+        }
         function command(commandName, commandArgs) {
             switch (commandName) {
                 case 'load': {
@@ -99,7 +117,8 @@ function withStreamingServer(Video) {
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream)
                             .then(function(videoURL) {
                                 if (commandArgs.transcode) {
-                                    return url.resolve(commandArgs.streamingServerURL, '/casting/transcode') + '?' + new URLSearchParams([['video', videoURL]]).toString();
+                                    var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
+                                    return url.resolve(commandArgs.streamingServerURL, '/casting/transcode') + '?' + new URLSearchParams([['video', videoURL], ['time', time]]).toString();
                                 }
 
                                 return videoURL;
@@ -157,6 +176,13 @@ function withStreamingServer(Video) {
         this.dispatch = function(action) {
             if (!destroyed && action) {
                 switch (action.type) {
+                    case 'setProp': {
+                        if (setProp(action.propName, action.propValue)) {
+                            return;
+                        }
+
+                        break;
+                    }
                     case 'command': {
                         if (command(action.commandName, action.commandArgs)) {
                             return;
