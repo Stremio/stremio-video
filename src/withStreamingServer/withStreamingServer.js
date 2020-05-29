@@ -158,8 +158,7 @@ function withStreamingServer(Video) {
             if (!destroyed && action) {
                 switch (action.type) {
                     case 'command': {
-                        var handled = command(action.commandName, action.commandArgs);
-                        if (handled) {
+                        if (command(action.commandName, action.commandArgs)) {
                             return;
                         }
 
