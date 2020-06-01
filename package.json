@@ -1,6 +1,7 @@
 {
 	"name": "@stremio/stremio-video",
 	"version": "0.0.3",
+	"publisher": "Smart Code Ltd.",
 	"main": "src/index.js",
 	"license": "MIT",
 	"scripts": {
