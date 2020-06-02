@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  lint:
+  publish:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
