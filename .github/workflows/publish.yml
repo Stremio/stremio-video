@@ -8,15 +8,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Install NPM Dependencies
-      run: npm install
     - name: Setup NodeJS
       uses: actions/setup-node@v1
       with:
         node-version: 10
         registry-url: https://registry.npmjs.org/
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install NPM Dependencies
+      run: npm install
     - name: Publish to NPM
       run: npm publish --access public
       env:
