@@ -1,6 +1,6 @@
 {
     "name": "@stremio/stremio-video",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Abstraction layer on top of different media players",
     "author": {
         "name": "Smart Code Ltd.",
