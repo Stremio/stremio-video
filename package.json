@@ -1,22 +1,25 @@
 {
-	"name": "@stremio/stremio-video",
-	"version": "0.0.3",
-	"description": "Abstraction layer on top of different media players",
-	"publisher": "Smart Code Ltd.",
-	"website": "www.stremio.com",
-	"main": "src/index.js",
-	"license": "MIT",
-	"scripts": {
-		"lint": "eslint src"
-	},
-	"dependencies": {
-		"events": "1.1.1",
-		"magnet-uri": "5.2.4",
-		"url": "0.11.0",
-		"video-name-parser": "1.4.6",
-		"vtt.js": "0.13.0"
-	},
-	"devDependencies": {
-		"eslint": "7.1.0"
-	}
+    "name": "@stremio/stremio-video",
+    "version": "0.0.3",
+    "description": "Abstraction layer on top of different media players",
+    "author": {
+        "name": "Smart Code Ltd.",
+        "email": "office@stremio.com",
+        "url": "https://stremio.com"
+    },
+    "main": "src/index.js",
+    "license": "MIT",
+    "scripts": {
+        "lint": "eslint src"
+    },
+    "dependencies": {
+        "events": "1.1.1",
+        "magnet-uri": "5.2.4",
+        "url": "0.11.0",
+        "video-name-parser": "1.4.6",
+        "vtt.js": "0.13.0"
+    },
+    "devDependencies": {
+        "eslint": "7.1.0"
+    }
 }
