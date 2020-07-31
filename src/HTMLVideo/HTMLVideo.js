@@ -62,6 +62,7 @@ function HTMLVideo(options) {
 
     var destroyed = false;
     var loaded = false;
+    var mediaSource = null;
     var observedProps = {
         paused: false,
         time: false,
@@ -197,7 +198,42 @@ function HTMLVideo(options) {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                     videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
-                    videoElement.src = commandArgs.stream.url;
+                    if (commandArgs.stream.behaviorHints && commandArgs.stream.behaviorHints.fragmented && typeof commandArgs.stream.behaviorHints.mimeType === 'string') {
+                        mediaSource = new MediaSource();
+                        mediaSource.onsourceopen = function() {
+                            var sourceBuffer = mediaSource.addSourceBuffer(commandArgs.stream.behaviorHints.mimeType);
+                            if (typeof commandArgs.stream.behaviorHints.duration === 'string') {
+                                mediaSource.duration = isFinite(commandArgs.stream.behaviorHints.duration) ? parseInt(commandArgs.stream.behaviorHints.duration) : Infinity;
+                            }
+                            fetch(commandArgs.stream.url)
+                                .then(function(resp) {
+                                    var reader = resp.body.getReader();
+                                    function readFragment() {
+                                        return reader.read().then(function(result) {
+                                            if (!result.done) {
+                                                return new Promise(function(resolve) {
+                                                    sourceBuffer.onupdateend = function() {
+                                                        resolve(readFragment());
+                                                    };
+
+                                                    sourceBuffer.appendBuffer(result.value.buffer);
+                                                });
+                                            }
+                                        });
+                                    }
+                                    return readFragment();
+                                })
+                                .then(function() {
+                                    //TODO
+                                })
+                                .catch(function(error) {
+                                    //TODO
+                                });
+                        };
+                        videoElement.src = URL.createObjectURL(mediaSource);
+                    } else {
+                        videoElement.src = commandArgs.stream.url;
+                    }
                     loaded = true;
                     onPropChanged('paused');
                     onPropChanged('time');
@@ -209,6 +245,14 @@ function HTMLVideo(options) {
             }
             case 'unload': {
                 loaded = false;
+                if (mediaSource !== null) {
+                    URL.revokeObjectURL(videoElement.src);
+                    mediaSource.onsourceopen = null;
+                    Array.from(mediaSource.sourceBuffers).forEach(function(sourceBuffer) {
+                        sourceBuffer.onupdateend = null;
+                    });
+                    mediaSource = null;
+                }
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
