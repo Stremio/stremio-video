@@ -210,6 +210,13 @@ function HTMLVideo(options) {
                                 return;
                             }
 
+                            if (!MediaSource.isTypeSupported(commandArgs.stream.behaviorHints.mimeType)) {
+                                onError(Object.assign({}, ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED, {
+                                    critical: true
+                                }));
+                                return;
+                            }
+
                             var sourceBuffer = mediaSource.addSourceBuffer(commandArgs.stream.behaviorHints.mimeType);
                             if (typeof commandArgs.stream.behaviorHints.duration === 'string') {
                                 mediaSource.duration = isFinite(commandArgs.stream.behaviorHints.duration) ? parseInt(commandArgs.stream.behaviorHints.duration) : Infinity;
