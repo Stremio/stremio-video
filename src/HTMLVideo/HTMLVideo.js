@@ -247,9 +247,10 @@ function HTMLVideo(options) {
                                                     sourceBuffer.onupdateend = function() {
                                                         resolve(readFragment());
                                                     };
-
                                                     sourceBuffer.appendBuffer(result.value.buffer);
                                                 });
+                                            } else if (mediaSource === event.target) {
+                                                mediaSource.endOfStream();
                                             }
                                         });
                                     }
