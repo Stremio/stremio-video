@@ -16,7 +16,7 @@ function HTMLVideo(options) {
     videoElement.crossOrigin = 'anonymous';
     videoElement.controls = false;
     videoElement.onerror = function() {
-        onError();
+        onVideoError();
     };
     videoElement.onended = function() {
         onEnded();
@@ -118,7 +118,7 @@ function HTMLVideo(options) {
             }
         }
     }
-    function onError() {
+    function onVideoError() {
         var videoError;
         switch (videoElement.error.code) {
             case 1: {
@@ -141,11 +141,16 @@ function HTMLVideo(options) {
                 videoError = ERROR.UNKNOWN_ERROR;
             }
         }
-        events.emit('error', Object.assign({}, videoError, {
+        onError(Object.assign({}, videoError, {
             critical: true,
             error: videoElement.error
         }));
-        command('unload');
+    }
+    function onError(error) {
+        events.emit('error', error);
+        if (error.critical) {
+            command('unload');
+        }
     }
     function onEnded() {
         events.emit('ended');
@@ -200,7 +205,11 @@ function HTMLVideo(options) {
                     videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
                     if (commandArgs.stream.behaviorHints && commandArgs.stream.behaviorHints.fragmented && typeof commandArgs.stream.behaviorHints.mimeType === 'string') {
                         mediaSource = new MediaSource();
-                        mediaSource.onsourceopen = function() {
+                        mediaSource.onsourceopen = function(event) {
+                            if (mediaSource !== event.target) {
+                                return;
+                            }
+
                             var sourceBuffer = mediaSource.addSourceBuffer(commandArgs.stream.behaviorHints.mimeType);
                             if (typeof commandArgs.stream.behaviorHints.duration === 'string') {
                                 mediaSource.duration = isFinite(commandArgs.stream.behaviorHints.duration) ? parseInt(commandArgs.stream.behaviorHints.duration) : Infinity;
@@ -209,9 +218,25 @@ function HTMLVideo(options) {
                                 .then(function(resp) {
                                     var reader = resp.body.getReader();
                                     function readFragment() {
+                                        if (mediaSource !== event.target) {
+                                            return;
+                                        }
+
                                         return reader.read().then(function(result) {
                                             if (!result.done) {
                                                 return new Promise(function(resolve) {
+                                                    if (mediaSource !== event.target) {
+                                                        resolve();
+                                                        return;
+                                                    }
+
+                                                    sourceBuffer.onerror = function(error) {
+                                                        onError(Object.assign({}, ERROR.HTML_VIDEO.MEDIA_ERR_FRAGMENTED, {
+                                                            critical: true,
+                                                            error: error
+                                                        }));
+                                                        resolve();
+                                                    };
                                                     sourceBuffer.onupdateend = function() {
                                                         resolve(readFragment());
                                                     };
@@ -223,11 +248,15 @@ function HTMLVideo(options) {
                                     }
                                     return readFragment();
                                 })
-                                .then(function() {
-                                    //TODO
-                                })
                                 .catch(function(error) {
-                                    //TODO
+                                    if (mediaSource !== event.target) {
+                                        return;
+                                    }
+
+                                    onError(Object.assign({}, ERROR.UNKNOWN_ERROR, {
+                                        critical: true,
+                                        error: error
+                                    }));
                                 });
                         };
                         videoElement.src = URL.createObjectURL(mediaSource);

@@ -47,6 +47,10 @@ var ERROR = {
         MEDIA_ERR_SRC_NOT_SUPPORTED: {
             code: 83,
             message: 'Video is not supported'
+        },
+        MEDIA_ERR_FRAGMENTED: {
+            code: 84,
+            message: 'Error occurred when appending media fragment'
         }
     },
     WITH_HTML_SUBTITLES: {
