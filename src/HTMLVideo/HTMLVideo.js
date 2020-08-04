@@ -203,7 +203,7 @@ function HTMLVideo(options) {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                     videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
-                    if (commandArgs.stream.behaviorHints && commandArgs.stream.behaviorHints.fragmented && typeof commandArgs.stream.behaviorHints.mimeType === 'string') {
+                    if ('MediaSource' in window && commandArgs.stream.behaviorHints && commandArgs.stream.behaviorHints.fragmented && typeof commandArgs.stream.behaviorHints.mimeType === 'string') {
                         mediaSource = new MediaSource();
                         mediaSource.onsourceopen = function(event) {
                             if (mediaSource !== event.target) {
