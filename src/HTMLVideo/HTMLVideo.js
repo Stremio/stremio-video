@@ -1,6 +1,8 @@
 var EventEmitter = require('events');
 var ERROR = require('../error');
 
+var BUFFER_SIZE = 10;
+
 function HTMLVideo(options) {
     options = options || {};
 
@@ -28,6 +30,17 @@ function HTMLVideo(options) {
         onPropChanged('paused');
     };
     videoElement.ontimeupdate = function() {
+        if (mediaSource !== null && inBufferedDataInsufficient()) {
+            if (typeof requestNextFragment === 'function') {
+                requestNextFragment();
+                nextFragmentRequested = false;
+                requestNextFragment = null;
+                cancelNextFragmentRequest = null;
+            } else {
+                nextFragmentRequested = true;
+            }
+        }
+
         onPropChanged('time');
     };
     videoElement.ondurationchange = function() {
@@ -63,6 +76,9 @@ function HTMLVideo(options) {
     var destroyed = false;
     var loaded = false;
     var mediaSource = null;
+    var nextFragmentRequested = false;
+    var requestNextFragment = null;
+    var cancelNextFragmentRequest = null;
     var observedProps = {
         paused: false,
         time: false,
@@ -72,6 +88,19 @@ function HTMLVideo(options) {
         muted: false
     };
 
+    function inBufferedDataInsufficient() {
+        if (videoElement.buffered.length === 0) {
+            return true;
+        }
+        for (var i = 0; i < videoElement.buffered.length; i++) {
+            if (videoElement.currentTime > videoElement.buffered.start(i) &&
+                videoElement.currentTime < videoElement.buffered.end(i) &&
+                videoElement.currentTime > videoElement.buffered.end(i) - BUFFER_SIZE) {
+                return true;
+            }
+        }
+        return false;
+    }
     function getProp(propName) {
         switch (propName) {
             case 'paused': {
@@ -224,37 +253,54 @@ function HTMLVideo(options) {
                             fetch(commandArgs.stream.url)
                                 .then(function(resp) {
                                     var reader = resp.body.getReader();
-                                    function readFragment() {
-                                        if (mediaSource !== event.target) {
-                                            return;
-                                        }
+                                    function waitForNextFragmentRequest() {
+                                        return new Promise(function(resolve, reject) {
+                                            if (mediaSource !== event.target) {
+                                                reject();
+                                                return;
+                                            }
 
+                                            if (nextFragmentRequested || inBufferedDataInsufficient()) {
+                                                nextFragmentRequested = false;
+                                                resolve();
+                                                return;
+                                            }
+
+                                            requestNextFragment = resolve;
+                                            cancelNextFragmentRequest = reject;
+                                        });
+                                    }
+                                    function fetchNextFragment() {
                                         return reader.read().then(function(result) {
                                             if (!result.done) {
                                                 return new Promise(function(resolve) {
-                                                    if (mediaSource !== event.target) {
-                                                        resolve();
-                                                        return;
-                                                    }
-
                                                     sourceBuffer.onerror = function(error) {
-                                                        onError(Object.assign({}, ERROR.HTML_VIDEO.MEDIA_ERR_FRAGMENTED, {
-                                                            critical: true,
-                                                            error: error
-                                                        }));
+                                                        if (mediaSource === event.target) {
+                                                            onError(Object.assign({}, ERROR.HTML_VIDEO.MEDIA_ERR_FRAGMENTED, {
+                                                                critical: true,
+                                                                error: error
+                                                            }));
+                                                        }
+
                                                         resolve();
                                                     };
                                                     sourceBuffer.onupdateend = function() {
-                                                        resolve(readFragment());
+                                                        waitForNextFragmentRequest()
+                                                            .then(function() {
+                                                                resolve(fetchNextFragment());
+                                                            })
+                                                            .catch(function() {
+                                                                resolve();
+                                                            });
                                                     };
                                                     sourceBuffer.appendBuffer(result.value.buffer);
                                                 });
-                                            } else if (mediaSource === event.target) {
-                                                mediaSource.endOfStream();
+                                            } else {
+                                                event.target.endOfStream();
                                             }
                                         });
                                     }
-                                    return readFragment();
+                                    return fetchNextFragment();
                                 })
                                 .catch(function(error) {
                                     if (mediaSource !== event.target) {
@@ -284,6 +330,12 @@ function HTMLVideo(options) {
                 loaded = false;
                 if (mediaSource !== null) {
                     URL.revokeObjectURL(videoElement.src);
+                    if (typeof cancelNextFragmentRequest === 'function') {
+                        cancelNextFragmentRequest();
+                    }
+                    nextFragmentRequested = false;
+                    cancelNextFragmentRequest = null;
+                    requestNextFragment = null;
                     mediaSource.onsourceopen = null;
                     Array.from(mediaSource.sourceBuffers).forEach(function(sourceBuffer) {
                         sourceBuffer.onupdateend = null;
