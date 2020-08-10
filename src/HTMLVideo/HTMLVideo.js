@@ -89,6 +89,9 @@ function HTMLVideo(options) {
     };
 
     function isBufferedDataInsufficient() {
+        if (mediaSource.readyState === 'ended') {
+            return false;
+        }
         if (videoElement.buffered.length === 0) {
             return true;
         }
