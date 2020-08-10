@@ -30,7 +30,7 @@ function HTMLVideo(options) {
         onPropChanged('paused');
     };
     videoElement.ontimeupdate = function() {
-        if (mediaSource !== null && inBufferedDataInsufficient()) {
+        if (mediaSource !== null && isBufferedDataInsufficient()) {
             if (typeof requestNextFragment === 'function') {
                 requestNextFragment();
                 nextFragmentRequested = false;
@@ -88,7 +88,7 @@ function HTMLVideo(options) {
         muted: false
     };
 
-    function inBufferedDataInsufficient() {
+    function isBufferedDataInsufficient() {
         if (videoElement.buffered.length === 0) {
             return true;
         }
@@ -250,68 +250,73 @@ function HTMLVideo(options) {
                             if (typeof commandArgs.stream.behaviorHints.duration === 'string') {
                                 mediaSource.duration = isFinite(commandArgs.stream.behaviorHints.duration) ? parseInt(commandArgs.stream.behaviorHints.duration) : Infinity;
                             }
-                            fetch(commandArgs.stream.url)
-                                .then(function(resp) {
-                                    var reader = resp.body.getReader();
-                                    function waitForNextFragmentRequest() {
-                                        return new Promise(function(resolve, reject) {
-                                            if (mediaSource !== event.target) {
-                                                reject();
-                                                return;
-                                            }
-
-                                            if (nextFragmentRequested || inBufferedDataInsufficient()) {
-                                                nextFragmentRequested = false;
-                                                resolve();
-                                                return;
-                                            }
-
-                                            requestNextFragment = resolve;
-                                            cancelNextFragmentRequest = reject;
-                                        });
-                                    }
-                                    function fetchNextFragment() {
-                                        return reader.read().then(function(result) {
-                                            if (!result.done) {
-                                                return new Promise(function(resolve) {
-                                                    sourceBuffer.onerror = function(error) {
-                                                        if (mediaSource === event.target) {
-                                                            onError(Object.assign({}, ERROR.HTML_VIDEO.MEDIA_ERR_FRAGMENTED, {
-                                                                critical: true,
-                                                                error: error
-                                                            }));
-                                                        }
-
-                                                        resolve();
-                                                    };
-                                                    sourceBuffer.onupdateend = function() {
-                                                        waitForNextFragmentRequest()
-                                                            .then(function() {
-                                                                resolve(fetchNextFragment());
-                                                            })
-                                                            .catch(function() {
-                                                                resolve();
-                                                            });
-                                                    };
-                                                    sourceBuffer.appendBuffer(result.value.buffer);
-                                                });
-                                            } else {
-                                                event.target.endOfStream();
-                                            }
-                                        });
-                                    }
-                                    return fetchNextFragment();
-                                })
-                                .catch(function(error) {
+                            function waitForNextFragmentRequest() {
+                                return new Promise(function(resolve, reject) {
                                     if (mediaSource !== event.target) {
+                                        reject();
                                         return;
                                     }
 
-                                    onError(Object.assign({}, ERROR.UNKNOWN_ERROR, {
-                                        critical: true,
-                                        error: error
-                                    }));
+                                    if (nextFragmentRequested || isBufferedDataInsufficient()) {
+                                        nextFragmentRequested = false;
+                                        resolve();
+                                        return;
+                                    }
+
+                                    requestNextFragment = resolve;
+                                    cancelNextFragmentRequest = reject;
                                 });
+                            }
+                            function fetchNextFragment() {
+                                return fetch(commandArgs.stream.url)
+                                    .then(function(resp) {
+                                        return resp.arrayBuffer();
+                                    })
+                                    .then(function(data) {
+                                        if (mediaSource !== event.target) {
+                                            return;
+                                        }
+
+                                        if (data.byteLength === 0) {
+                                            mediaSource.endOfStream();
+                                            return;
+                                        }
+
+                                        return new Promise(function(resolve) {
+                                            sourceBuffer.onerror = function(error) {
+                                                if (mediaSource === event.target) {
+                                                    onError(Object.assign({}, ERROR.HTML_VIDEO.MEDIA_ERR_FRAGMENTED, {
+                                                        critical: true,
+                                                        error: error
+                                                    }));
+                                                }
+
+                                                resolve();
+                                            };
+                                            sourceBuffer.onupdateend = function() {
+                                                waitForNextFragmentRequest()
+                                                    .then(function() {
+                                                        resolve(fetchNextFragment());
+                                                    })
+                                                    .catch(function() {
+                                                        resolve();
+                                                    });
+                                            };
+                                            sourceBuffer.appendBuffer(data);
+                                        });
+                                    })
+                                    .catch(function(error) {
+                                        if (mediaSource !== event.target) {
+                                            return;
+                                        }
+
+                                        onError(Object.assign({}, ERROR.UNKNOWN_ERROR, {
+                                            critical: true,
+                                            error: error
+                                        }));
+                                    });
+                            }
+                            return fetchNextFragment();
                         };
                         videoElement.src = URL.createObjectURL(mediaSource);
                     } else {
