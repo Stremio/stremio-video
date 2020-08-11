@@ -89,7 +89,7 @@ function HTMLVideo(options) {
     };
 
     function isBufferedDataInsufficient() {
-        if (mediaSource.readyState === 'ended') {
+        if (mediaSource.readyState === 'ended' || videoElement.currentTime === null || !isFinite(videoElement.currentTime)) {
             return false;
         }
         if (videoElement.buffered.length === 0) {
