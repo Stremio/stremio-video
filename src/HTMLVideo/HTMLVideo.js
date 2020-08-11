@@ -96,7 +96,7 @@ function HTMLVideo(options) {
             return true;
         }
         for (var i = 0; i < videoElement.buffered.length; i++) {
-            if (videoElement.currentTime > videoElement.buffered.start(i) &&
+            if (videoElement.currentTime >= videoElement.buffered.start(i) &&
                 videoElement.currentTime < videoElement.buffered.end(i) &&
                 videoElement.currentTime > videoElement.buffered.end(i) - BUFFERING_TIME) {
                 return true;
