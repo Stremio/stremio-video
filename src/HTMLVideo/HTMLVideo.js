@@ -320,7 +320,7 @@ function HTMLVideo(options) {
                                         }));
                                     });
                             }
-                            return fetchNextFragment();
+                            fetchNextFragment();
                         };
                         videoElement.src = URL.createObjectURL(mediaSource);
                     } else {
