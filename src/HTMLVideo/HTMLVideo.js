@@ -92,17 +92,12 @@ function HTMLVideo(options) {
         if (mediaSource.readyState === 'ended' || videoElement.currentTime === null || !isFinite(videoElement.currentTime)) {
             return false;
         }
-        if (videoElement.buffered.length === 0) {
-            return true;
-        }
         for (var i = 0; i < videoElement.buffered.length; i++) {
-            if (videoElement.currentTime >= videoElement.buffered.start(i) &&
-                videoElement.currentTime < videoElement.buffered.end(i) &&
-                videoElement.currentTime > videoElement.buffered.end(i) - BUFFERING_TIME) {
-                return true;
+            if (videoElement.currentTime >= videoElement.buffered.start(i) && videoElement.currentTime <= videoElement.buffered.end(i)) {
+                return videoElement.currentTime > videoElement.buffered.end(i) - BUFFERING_TIME;
             }
         }
-        return false;
+        return true;
     }
     function getProp(propName) {
         switch (propName) {
