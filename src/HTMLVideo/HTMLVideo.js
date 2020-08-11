@@ -1,7 +1,7 @@
 var EventEmitter = require('events');
 var ERROR = require('../error');
 
-var BUFFER_SIZE = 10;
+var BUFFERING_TIME = 10;
 
 function HTMLVideo(options) {
     options = options || {};
@@ -98,7 +98,7 @@ function HTMLVideo(options) {
         for (var i = 0; i < videoElement.buffered.length; i++) {
             if (videoElement.currentTime > videoElement.buffered.start(i) &&
                 videoElement.currentTime < videoElement.buffered.end(i) &&
-                videoElement.currentTime > videoElement.buffered.end(i) - BUFFER_SIZE) {
+                videoElement.currentTime > videoElement.buffered.end(i) - BUFFERING_TIME) {
                 return true;
             }
         }
