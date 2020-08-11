@@ -242,6 +242,7 @@ function HTMLVideo(options) {
                                 return;
                             }
 
+                            URL.revokeObjectURL(videoElement.src);
                             if (!MediaSource.isTypeSupported(commandArgs.stream.behaviorHints.mimeType)) {
                                 onError(Object.assign({}, ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED, {
                                     critical: true
