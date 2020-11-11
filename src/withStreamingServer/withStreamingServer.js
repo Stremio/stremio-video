@@ -132,7 +132,6 @@ function withStreamingServer(Video) {
                                     type: 'command',
                                     commandName: 'load',
                                     commandArgs: Object.assign({}, commandArgs, {
-                                        time: !commandArgs.transcode ? commandArgs.time : 0,
                                         stream: Object.assign({}, commandArgs.stream, {
                                             url: videoURL
                                         })
