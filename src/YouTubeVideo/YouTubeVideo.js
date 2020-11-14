@@ -411,6 +411,10 @@ function YouTubeVideo(options) {
     };
 }
 
+YouTubeVideo.canPlayStream = function(stream) {
+    return Promise.resolve(stream && typeof stream.ytId === 'string');
+};
+
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
     props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId']
