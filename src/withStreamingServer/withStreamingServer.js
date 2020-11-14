@@ -198,6 +198,10 @@ function withStreamingServer(Video) {
         };
     }
 
+    VideoWithStreamingServer.canPlayStream = function(stream) {
+        return Video.canPlayStream(stream);
+    };
+
     VideoWithStreamingServer.manifest = {
         name: Video.manifest.name + 'WithStreamingServer',
         props: Video.manifest.props
