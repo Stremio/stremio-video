@@ -331,6 +331,10 @@ function withHTMLSubtitles(Video) {
         };
     }
 
+    VideoWithHTMLSubtitles.canPlayStream = function(stream) {
+        return Video.canPlayStream(stream);
+    };
+
     VideoWithHTMLSubtitles.manifest = {
         name: Video.manifest.name + 'WithHTMLSubtitles',
         props: Video.manifest.props.concat(['subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor'])
