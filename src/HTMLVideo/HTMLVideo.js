@@ -1,4 +1,5 @@
 var EventEmitter = require('events');
+var Hls = require('hls.js');
 var ERROR = require('../error');
 
 function HTMLVideo(options) {
@@ -60,6 +61,7 @@ function HTMLVideo(options) {
     var events = new EventEmitter();
     events.on('error', function() { });
 
+    var hls = null;
     var destroyed = false;
     var loaded = false;
     var observedProps = {
@@ -197,7 +199,14 @@ function HTMLVideo(options) {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                     videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
-                    videoElement.src = commandArgs.stream.url;
+                    if (commandArgs.stream.url.endsWith('.m3u8') && Hls.isSupported()) {
+                        hls = new Hls();
+                        hls.loadSource(commandArgs.stream.url);
+                        hls.attachMedia(videoElement);
+                    } else {
+                        videoElement.src = commandArgs.stream.url;
+                    }
+
                     loaded = true;
                     onPropChanged('paused');
                     onPropChanged('time');
@@ -209,6 +218,11 @@ function HTMLVideo(options) {
             }
             case 'unload': {
                 loaded = false;
+                if (hls !== null) {
+                    hls.destroy();
+                    hls = null;
+                }
+
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
