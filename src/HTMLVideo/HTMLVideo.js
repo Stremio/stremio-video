@@ -289,6 +289,26 @@ function HTMLVideo(options) {
     };
 }
 
+HTMLVideo.canPlayStream = function(stream) {
+    if (!stream || typeof stream.url !== 'string') {
+        return Promise.resolve(false);
+    }
+
+    if (stream.url.endsWith('.m3u8') && Hls.isSupported()) {
+        return Promise.resolve(true);
+    }
+
+    return fetch(stream.url, { method: 'HEAD' })
+        .then(function(resp) {
+            var video = document.createElement('video');
+            var type = resp.headers.get('content-type');
+            return !!video.canPlayType(type);
+        })
+        .catch(function() {
+            return false;
+        });
+};
+
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted']
