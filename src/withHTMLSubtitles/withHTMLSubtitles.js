@@ -337,7 +337,8 @@ function withHTMLSubtitles(Video) {
 
     VideoWithHTMLSubtitles.manifest = {
         name: Video.manifest.name + 'WithHTMLSubtitles',
-        props: Video.manifest.props.concat(['subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor'])
+        props: Video.manifest.props.concat(['subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor']),
+        events: Video.manifest.events.concat(['propChanged', 'propValue', 'error', 'subtitlesTrackLoaded'])
     };
 
     return VideoWithHTMLSubtitles;
