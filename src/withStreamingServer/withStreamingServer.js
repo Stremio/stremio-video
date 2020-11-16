@@ -1,9 +1,7 @@
 var EventEmitter = require('events');
 var url = require('url');
-var magnet = require('magnet-uri');
+var convertStream = require('./convertStream');
 var ERROR = require('../error');
-var createTorrent = require('./createTorrent');
-var guessFileIdx = require('./guessFileIdx');
 
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
@@ -16,72 +14,8 @@ function withStreamingServer(Video) {
 
         var destroyed = false;
         var loadCommandArgs = null;
+        var transcodingHash = null;
 
-        function convertStream(streamingServerURL, stream) {
-            return new Promise(function(resolve, reject) {
-                if (typeof stream.url === 'string') {
-                    if (stream.url.indexOf('magnet:') === 0) {
-                        var parsedMagnetURI;
-                        try {
-                            parsedMagnetURI = magnet.decode(stream.url);
-                        } catch (e) { }
-                        if (parsedMagnetURI && typeof parsedMagnetURI.infoHash === 'string') {
-                            var sources = Array.isArray(parsedMagnetURI.announce) ?
-                                parsedMagnetURI.announce.map(function(source) {
-                                    return 'tracker:' + source;
-                                })
-                                :
-                                [];
-                            createTorrent(streamingServerURL, parsedMagnetURI.infoHash, sources)
-                                .then(function(resp) {
-                                    var fileIdx = guessFileIdx(resp.files, stream.seriesInfo);
-                                    resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
-                                })
-                                .catch(function(error) {
-                                    reject(Object.assign({}, error, {
-                                        critical: true,
-                                        stream: stream
-                                    }));
-                                });
-                            return;
-                        }
-                    } else {
-                        resolve(stream.url);
-                        return;
-                    }
-                }
-
-                if (typeof stream.ytId === 'string') {
-                    resolve(url.resolve(streamingServerURL, '/yt/' + encodeURIComponent(stream.ytId) + '?' + new URLSearchParams([['request', Date.now()]]).toString()));
-                    return;
-                }
-
-                if (typeof stream.infoHash === 'string') {
-                    if (stream.fileIdx !== null && isFinite(stream.fileIdx)) {
-                        resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(stream.fileIdx)));
-                        return;
-                    } else {
-                        createTorrent(streamingServerURL, stream.infoHash, stream.sources)
-                            .then(function(resp) {
-                                var fileIdx = guessFileIdx(resp.files, stream.seriesInfo);
-                                resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
-                            })
-                            .catch(function(error) {
-                                reject(Object.assign({}, error, {
-                                    critical: true,
-                                    stream: stream
-                                }));
-                            });
-                        return;
-                    }
-                }
-
-                reject(Object.assign({}, ERROR.WITH_STREAMING_SERVER.STREAM_CONVERT_FAILED, {
-                    critical: true,
-                    stream: stream
-                }));
-            });
-        }
         function onError(error) {
             events.emit('error', error);
             if (error.critical) {
@@ -116,27 +50,54 @@ function withStreamingServer(Video) {
                         loadCommandArgs = commandArgs;
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream)
                             .then(function(videoURL) {
-                                if (commandArgs.transcode) {
-                                    var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
-                                    return url.resolve(commandArgs.streamingServerURL, '/casting/transcode') + '?' + new URLSearchParams([['video', videoURL], ['time', time]]).toString();
-                                }
+                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: videoURL }))
+                                    .then(function(canPlay) {
+                                        if (canPlay) {
+                                            return {
+                                                loadCommandArgsExt: {
+                                                    time: commandArgs.time,
+                                                    stream: {
+                                                        url: videoURL
+                                                    }
+                                                }
+                                            };
+                                        }
 
-                                return videoURL;
+                                        var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
+                                        return fetch(url.resolve(commandArgs.streamingServerURL, '/transcode/create') + '?' + new URLSearchParams([['url', videoURL], ['time', time]]).toString())
+                                            .then(function(resp) {
+                                                return resp.json();
+                                            })
+                                            .then(function(resp) {
+                                                return {
+                                                    hash: resp.hash,
+                                                    loadCommandArgsExt: {
+                                                        time: 0,
+                                                        duration: resp.duration,
+                                                        stream: {
+                                                            url: url.resolve(commandArgs.streamingServerURL, 'transcode/' + resp.hash + '/playlist.m3u8')
+                                                        }
+                                                    }
+                                                };
+                                            });
+                                    })
+                                    .catch(function(error) {
+                                        throw Object.assign({}, ERROR.UNKNOWN_ERROR, {
+                                            critical: true,
+                                            error: error
+                                        });
+                                    });
                             })
-                            .then(function(videoURL) {
+                            .then(function(result) {
                                 if (commandArgs !== loadCommandArgs) {
                                     return;
                                 }
 
+                                transcodingHash = result.hash;
                                 video.dispatch({
                                     type: 'command',
                                     commandName: 'load',
-                                    commandArgs: Object.assign({}, commandArgs, {
-                                        time: !commandArgs.transcode ? commandArgs.time : 0,
-                                        stream: Object.assign({}, commandArgs.stream, {
-                                            url: videoURL
-                                        })
-                                    })
+                                    commandArgs: Object.assign({}, commandArgs, result.loadCommandArgsExt)
                                 });
                             })
                             .catch(function(error) {
@@ -152,6 +113,7 @@ function withStreamingServer(Video) {
                 }
                 case 'unload': {
                     loadCommandArgs = null;
+                    transcodingHash = null;
                     return false;
                 }
                 case 'destroy': {
