@@ -417,7 +417,8 @@ YouTubeVideo.canPlayStream = function(stream) {
 
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
-    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId']
+    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId'],
+    events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded']
 };
 
 module.exports = YouTubeVideo;
