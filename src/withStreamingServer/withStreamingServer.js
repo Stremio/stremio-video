@@ -26,7 +26,7 @@ function withStreamingServer(Video) {
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'time': {
-                    if (loadCommandArgs && loadCommandArgs.transcode && propValue !== null && isFinite(propValue)) {
+                    if (loadCommandArgs && transcodingHash !== null && propValue !== null && isFinite(propValue)) {
                         var commandArgs = Object.assign({}, loadCommandArgs, {
                             time: parseInt(propValue)
                         });
