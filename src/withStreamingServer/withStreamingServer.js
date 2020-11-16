@@ -55,7 +55,6 @@ function withStreamingServer(Video) {
                                         if (canPlay) {
                                             return {
                                                 loadCommandArgsExt: {
-                                                    time: commandArgs.time,
                                                     stream: {
                                                         url: videoURL
                                                     }
