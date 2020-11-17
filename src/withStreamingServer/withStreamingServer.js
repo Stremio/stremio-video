@@ -165,7 +165,9 @@ function withStreamingServer(Video) {
 
     VideoWithStreamingServer.manifest = {
         name: Video.manifest.name + 'WithStreamingServer',
-        props: Video.manifest.props
+        props: Video.manifest.props,
+        events: Video.manifest.events.concat(['error'])
+            .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };
 
     return VideoWithStreamingServer;
