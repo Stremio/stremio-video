@@ -3,6 +3,8 @@ var url = require('url');
 var convertStream = require('./convertStream');
 var ERROR = require('../error');
 
+var BUFFERING_OFFSET = 15000;
+
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
         options = options || {};
@@ -24,12 +26,65 @@ function withStreamingServer(Video) {
         var destroyed = false;
         var loadCommandArgs = null;
         var transcodingParams = null;
+        var time = null;
+        var duration = null;
 
+        function nextSegment() {
+            if (transcodingParams !== null && !transcodingParams.ended && transcodingParams.loadingDuration !== duration && time !== null && duration !== null && time + BUFFERING_OFFSET > duration) {
+                transcodingParams.loadingDuration = duration;
+                var loadingTranscodingParams = transcodingParams;
+                fetch(url.resolve(transcodingParams.streamingServerURL, '/transcode/next') + '?' + new URLSearchParams([['hash', transcodingParams.hash]]).toString())
+                    .then(function(resp) {
+                        return resp.json();
+                    })
+                    .then(function(resp) {
+                        if (loadingTranscodingParams !== transcodingParams) {
+                            return;
+                        }
+
+                        transcodingParams.ended = !!resp.ended;
+                    })
+                    .catch(function(error) {
+                        if (loadingTranscodingParams !== transcodingParams) {
+                            return;
+                        }
+
+                        onError(Object.assign({}, ERROR.WITH_STREAMING_SERVER.TRANSCODING_FAILED, {
+                            critical: false,
+                            error: error
+                        }));
+                    });
+            }
+        }
         function onPropChanged(propName, propValue) {
             events.emit('propChanged', propName, getProp(propName, propValue));
+            switch (propName) {
+                case 'time': {
+                    time = propValue;
+                    nextSegment();
+                    break;
+                }
+                case 'duration': {
+                    duration = propValue;
+                    nextSegment();
+                    break;
+                }
+            }
         }
         function onPropValue(propName, propValue) {
             events.emit('propValue', propName, getProp(propName, propValue));
+            switch (propName) {
+                case 'time': {
+                    time = propValue;
+                    nextSegment();
+                    break;
+                }
+                case 'duration': {
+                    duration = propValue;
+                    nextSegment();
+                    break;
+                }
+            }
         }
         function onOtherEvent(eventName) {
             return function() {
@@ -109,9 +164,10 @@ function withStreamingServer(Video) {
                                             .then(function(resp) {
                                                 return {
                                                     transcodingParams: {
-                                                        hash: resp.hash,
                                                         time: time,
+                                                        hash: resp.hash,
                                                         duration: resp.duration,
+                                                        streamingServerURL: commandArgs.streamingServerURL
                                                     },
                                                     loadCommandArgsExt: {
                                                         time: 0,
@@ -155,6 +211,8 @@ function withStreamingServer(Video) {
                 case 'unload': {
                     loadCommandArgs = null;
                     transcodingParams = null;
+                    time = null;
+                    duration = null;
                     return false;
                 }
                 case 'destroy': {
