@@ -3,7 +3,7 @@ var url = require('url');
 var convertStream = require('./convertStream');
 var ERROR = require('../error');
 
-var BUFFERING_OFFSET = 15000;
+var BUFFERING_OFFSET = 25000;
 
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
