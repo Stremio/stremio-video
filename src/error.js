@@ -67,6 +67,10 @@ var ERROR = {
         STREAM_CONVERT_FAILED: {
             code: 61,
             message: 'Unable to convert stream',
+        },
+        TRANSCODING_FAILED: {
+            code: 62,
+            message: 'Unable to transcode next segment of the stream',
         }
     },
     UNKNOWN_ERROR: {
