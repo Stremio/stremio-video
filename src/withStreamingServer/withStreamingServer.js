@@ -8,6 +8,15 @@ function withStreamingServer(Video) {
         options = options || {};
 
         var video = new Video(options);
+        video.on('propChanged', onPropChanged);
+        video.on('propValue', onPropValue);
+        Video.manifest.events
+            .filter(function(eventName) {
+                return !['propChanged', 'propValue'].includes(eventName);
+            })
+            .forEach(function(eventName) {
+                video.on(eventName, onOtherEvent(eventName));
+            });
 
         var events = new EventEmitter();
         events.on('error', function() { });
@@ -16,11 +25,41 @@ function withStreamingServer(Video) {
         var loadCommandArgs = null;
         var transcodingParams = null;
 
+        function onPropChanged(propName, propValue) {
+            events.emit('propChanged', propName, getProp(propName, propValue));
+        }
+        function onPropValue(propName, propValue) {
+            events.emit('propValue', propName, getProp(propName, propValue));
+        }
+        function onOtherEvent(eventName) {
+            return function() {
+                events.emit.apply(events, [eventName].concat(Array.from(arguments)));
+            };
+        }
         function onError(error) {
             events.emit('error', error);
             if (error.critical) {
                 command('unload');
                 video.dispatch({ type: 'command', commandName: 'unload' });
+            }
+        }
+        function getProp(propName, propValue) {
+            switch (propName) {
+                case 'time': {
+                    return propValue !== null && transcodingParams !== null ?
+                        propValue + transcodingParams.time
+                        :
+                        propValue;
+                }
+                case 'duration': {
+                    return propValue !== null && transcodingParams !== null ?
+                        transcodingParams.duration
+                        :
+                        propValue;
+                }
+                default: {
+                    return propValue;
+                }
             }
         }
         function setProp(propName, propValue) {
@@ -135,8 +174,6 @@ function withStreamingServer(Video) {
             if (!destroyed) {
                 events.on(eventName, listener);
             }
-
-            video.on(eventName, listener);
         };
         this.dispatch = function(action) {
             if (!destroyed && action) {
