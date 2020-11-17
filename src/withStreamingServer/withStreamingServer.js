@@ -62,7 +62,7 @@ function withStreamingServer(Video) {
                                             };
                                         }
 
-                                        var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
+                                        var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) : 0;
                                         return fetch(url.resolve(commandArgs.streamingServerURL, '/transcode/create') + '?' + new URLSearchParams([['url', videoURL], ['time', time]]).toString())
                                             .then(function(resp) {
                                                 return resp.json();
