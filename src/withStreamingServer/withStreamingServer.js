@@ -14,7 +14,7 @@ function withStreamingServer(Video) {
 
         var destroyed = false;
         var loadCommandArgs = null;
-        var transcodingHash = null;
+        var transcodingParams = null;
 
         function onError(error) {
             events.emit('error', error);
@@ -26,7 +26,7 @@ function withStreamingServer(Video) {
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'time': {
-                    if (loadCommandArgs && transcodingHash !== null && propValue !== null && isFinite(propValue)) {
+                    if (loadCommandArgs && transcodingParams !== null && propValue !== null && isFinite(propValue)) {
                         var commandArgs = Object.assign({}, loadCommandArgs, {
                             time: parseInt(propValue)
                         });
@@ -69,10 +69,13 @@ function withStreamingServer(Video) {
                                             })
                                             .then(function(resp) {
                                                 return {
-                                                    hash: resp.hash,
+                                                    transcodingParams: {
+                                                        hash: resp.hash,
+                                                        time: time,
+                                                        duration: resp.duration,
+                                                    },
                                                     loadCommandArgsExt: {
                                                         time: 0,
-                                                        duration: resp.duration,
                                                         stream: {
                                                             url: url.resolve(commandArgs.streamingServerURL, 'transcode/' + resp.hash + '/playlist.m3u8')
                                                         }
@@ -92,7 +95,7 @@ function withStreamingServer(Video) {
                                     return;
                                 }
 
-                                transcodingHash = result.hash;
+                                transcodingParams = result.transcodingParams;
                                 video.dispatch({
                                     type: 'command',
                                     commandName: 'load',
@@ -112,7 +115,7 @@ function withStreamingServer(Video) {
                 }
                 case 'unload': {
                     loadCommandArgs = null;
-                    transcodingHash = null;
+                    transcodingParams = null;
                     return false;
                 }
                 case 'destroy': {
