@@ -2,11 +2,7 @@
     "name": "@stremio/stremio-video",
     "version": "0.0.5",
     "description": "Abstraction layer on top of different media players",
-    "author": {
-        "name": "Smart Code Ltd.",
-        "email": "office@stremio.com",
-        "url": "https://stremio.com"
-    },
+    "author": "Smart Code OOD",
     "main": "src/index.js",
     "license": "MIT",
     "repository": {
