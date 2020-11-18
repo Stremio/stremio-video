@@ -76,6 +76,10 @@ var ERROR = {
     UNKNOWN_ERROR: {
         code: 1,
         message: 'Unknown error'
+    },
+    UNSUPPORTED_STREAM: {
+        code: 2,
+        message: 'Stream is not supported'
     }
 };
 
