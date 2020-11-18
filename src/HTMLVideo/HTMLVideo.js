@@ -1,7 +1,6 @@
 var EventEmitter = require('events');
+var Hls = require('hls.js');
 var ERROR = require('../error');
-
-var BUFFERING_TIME = 10;
 
 function HTMLVideo(options) {
     options = options || {};
@@ -30,39 +29,47 @@ function HTMLVideo(options) {
         onPropChanged('paused');
     };
     videoElement.ontimeupdate = function() {
-        if (mediaSource !== null && isBufferedDataInsufficient()) {
-            if (typeof requestNextFragment === 'function') {
-                requestNextFragment();
-                nextFragmentRequested = false;
-                requestNextFragment = null;
-                cancelNextFragmentRequest = null;
-            } else {
-                nextFragmentRequested = true;
-            }
-        }
-
         onPropChanged('time');
+        onPropChanged('buffered');
     };
     videoElement.ondurationchange = function() {
         onPropChanged('duration');
     };
+    videoElement.onplaying = function() {
+        onPropChanged('buffering');
+        onPropChanged('buffered');
+    };
     videoElement.onwaiting = function() {
         onPropChanged('buffering');
+        onPropChanged('buffered');
     };
     videoElement.onseeking = function() {
         onPropChanged('buffering');
+        onPropChanged('buffered');
     };
     videoElement.onseeked = function() {
         onPropChanged('buffering');
+        onPropChanged('buffered');
+    };
+    videoElement.onstalled = function() {
+        onPropChanged('buffering');
+        onPropChanged('buffered');
     };
     videoElement.onplaying = function() {
         onPropChanged('buffering');
+        onPropChanged('buffered');
     };
     videoElement.oncanplay = function() {
         onPropChanged('buffering');
+        onPropChanged('buffered');
+    };
+    videoElement.canplaythrough = function() {
+        onPropChanged('buffering');
+        onPropChanged('buffered');
     };
     videoElement.onloadeddata = function() {
         onPropChanged('buffering');
+        onPropChanged('buffered');
     };
     videoElement.onvolumechange = function() {
         onPropChanged('volume');
@@ -73,32 +80,19 @@ function HTMLVideo(options) {
     var events = new EventEmitter();
     events.on('error', function() { });
 
+    var hls = null;
     var destroyed = false;
     var loaded = false;
-    var mediaSource = null;
-    var nextFragmentRequested = false;
-    var requestNextFragment = null;
-    var cancelNextFragmentRequest = null;
     var observedProps = {
         paused: false,
         time: false,
         duration: false,
         buffering: false,
+        buffered: false,
         volume: false,
         muted: false
     };
 
-    function isBufferedDataInsufficient() {
-        if (mediaSource.readyState === 'ended' || videoElement.currentTime === null || !isFinite(videoElement.currentTime)) {
-            return false;
-        }
-        for (var i = 0; i < videoElement.buffered.length; i++) {
-            if (videoElement.currentTime >= videoElement.buffered.start(i) && videoElement.currentTime <= videoElement.buffered.end(i)) {
-                return videoElement.currentTime > videoElement.buffered.end(i) - BUFFERING_TIME;
-            }
-        }
-        return true;
-    }
     function getProp(propName) {
         switch (propName) {
             case 'paused': {
@@ -128,6 +122,20 @@ function HTMLVideo(options) {
                 }
 
                 return videoElement.readyState < videoElement.HAVE_FUTURE_DATA;
+            }
+            case 'buffered': {
+                if (!loaded) {
+                    return null;
+                }
+
+                var time = videoElement.currentTime !== null && isFinite(videoElement.currentTime) ? videoElement.currentTime : 0;
+                for (var i = 0; i < videoElement.buffered.length; i++) {
+                    if (videoElement.buffered.start(i) <= time && time <= videoElement.buffered.end(i)) {
+                        return Math.floor(videoElement.buffered.end(i) * 1000);
+                    }
+                }
+
+                return Math.floor(time * 1000);
             }
             case 'volume': {
                 if (destroyed || videoElement.volume === null || !isFinite(videoElement.volume)) {
@@ -230,122 +238,36 @@ function HTMLVideo(options) {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                     videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
-                    if ('MediaSource' in window && commandArgs.stream.behaviorHints && commandArgs.stream.behaviorHints.fragmented && typeof commandArgs.stream.behaviorHints.mimeType === 'string') {
-                        mediaSource = new MediaSource();
-                        mediaSource.onsourceopen = function(event) {
-                            if (mediaSource !== event.target) {
-                                return;
-                            }
-
-                            URL.revokeObjectURL(videoElement.src);
-                            if (!MediaSource.isTypeSupported(commandArgs.stream.behaviorHints.mimeType)) {
-                                onError(Object.assign({}, ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED, {
-                                    critical: true
-                                }));
-                                return;
-                            }
-
-                            var sourceBuffer = mediaSource.addSourceBuffer(commandArgs.stream.behaviorHints.mimeType);
-                            if (typeof commandArgs.stream.behaviorHints.duration === 'string') {
-                                mediaSource.duration = isFinite(commandArgs.stream.behaviorHints.duration) ? parseInt(commandArgs.stream.behaviorHints.duration) : Infinity;
-                            }
-                            function waitForNextFragmentRequest() {
-                                return new Promise(function(resolve, reject) {
-                                    if (mediaSource !== event.target) {
-                                        reject();
-                                        return;
-                                    }
-
-                                    if (nextFragmentRequested || isBufferedDataInsufficient()) {
-                                        nextFragmentRequested = false;
-                                        resolve();
-                                        return;
-                                    }
-
-                                    requestNextFragment = resolve;
-                                    cancelNextFragmentRequest = reject;
-                                });
-                            }
-                            function fetchNextFragment() {
-                                return fetch(commandArgs.stream.url)
-                                    .then(function(resp) {
-                                        return resp.arrayBuffer();
-                                    })
-                                    .then(function(data) {
-                                        if (mediaSource !== event.target) {
-                                            return;
-                                        }
-
-                                        if (data.byteLength === 0) {
-                                            mediaSource.endOfStream();
-                                            return;
-                                        }
-
-                                        return new Promise(function(resolve) {
-                                            sourceBuffer.onerror = function(error) {
-                                                if (mediaSource === event.target) {
-                                                    onError(Object.assign({}, ERROR.HTML_VIDEO.MEDIA_ERR_FRAGMENTED, {
-                                                        critical: true,
-                                                        error: error
-                                                    }));
-                                                }
-
-                                                resolve();
-                                            };
-                                            sourceBuffer.onupdateend = function() {
-                                                waitForNextFragmentRequest()
-                                                    .then(function() {
-                                                        resolve(fetchNextFragment());
-                                                    })
-                                                    .catch(function() {
-                                                        resolve();
-                                                    });
-                                            };
-                                            sourceBuffer.appendBuffer(data);
-                                        });
-                                    })
-                                    .catch(function(error) {
-                                        if (mediaSource !== event.target) {
-                                            return;
-                                        }
-
-                                        onError(Object.assign({}, ERROR.UNKNOWN_ERROR, {
-                                            critical: true,
-                                            error: error
-                                        }));
-                                    });
-                            }
-                            fetchNextFragment();
-                        };
-                        videoElement.src = URL.createObjectURL(mediaSource);
+                    if (commandArgs.stream.url.endsWith('.m3u8') && Hls.isSupported()) {
+                        hls = new Hls();
+                        hls.loadSource(commandArgs.stream.url);
+                        hls.attachMedia(videoElement);
                     } else {
                         videoElement.src = commandArgs.stream.url;
                     }
+
                     loaded = true;
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
                     onPropChanged('buffering');
+                    onPropChanged('buffered');
+                } else {
+                    onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                        critical: true,
+                        stream: commandArgs && commandArgs.stream ? commandArgs.stream : null
+                    }));
                 }
 
                 break;
             }
             case 'unload': {
                 loaded = false;
-                if (mediaSource !== null) {
-                    URL.revokeObjectURL(videoElement.src);
-                    if (typeof cancelNextFragmentRequest === 'function') {
-                        cancelNextFragmentRequest();
-                    }
-                    nextFragmentRequested = false;
-                    cancelNextFragmentRequest = null;
-                    requestNextFragment = null;
-                    mediaSource.onsourceopen = null;
-                    Array.from(mediaSource.sourceBuffers).forEach(function(sourceBuffer) {
-                        sourceBuffer.onupdateend = null;
-                    });
-                    mediaSource = null;
+                if (hls !== null) {
+                    hls.destroy();
+                    hls = null;
                 }
+
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
@@ -353,6 +275,7 @@ function HTMLVideo(options) {
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
+                onPropChanged('buffered');
                 break;
             }
             case 'destroy': {
@@ -412,9 +335,30 @@ function HTMLVideo(options) {
     };
 }
 
+HTMLVideo.canPlayStream = function(stream) {
+    if (!stream || typeof stream.url !== 'string') {
+        return Promise.resolve(false);
+    }
+
+    if (stream.url.endsWith('.m3u8') && Hls.isSupported()) {
+        return Promise.resolve(true);
+    }
+
+    return fetch(stream.url, { method: 'HEAD' })
+        .then(function(resp) {
+            var video = document.createElement('video');
+            var type = resp.headers.get('content-type');
+            return !!video.canPlayType(type);
+        })
+        .catch(function() {
+            return false;
+        });
+};
+
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
-    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted']
+    props: ['paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted'],
+    events: ['propChanged', 'propValue', 'ended', 'error']
 };
 
 module.exports = HTMLVideo;

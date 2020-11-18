@@ -339,6 +339,11 @@ function YouTubeVideo(options) {
                         onPropChanged('muted');
                         onPropChanged('embeddedSubtitlesTracks');
                         onPropChanged('selectedEmbeddedSubtitlesTrackId');
+                    } else {
+                        onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                            critical: true,
+                            stream: commandArgs && commandArgs.stream ? commandArgs.stream : null
+                        }));
                     }
                 } else {
                     pendingLoadArgs = commandArgs;
@@ -411,9 +416,14 @@ function YouTubeVideo(options) {
     };
 }
 
+YouTubeVideo.canPlayStream = function(stream) {
+    return Promise.resolve(stream && typeof stream.ytId === 'string');
+};
+
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
-    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId']
+    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId'],
+    events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded']
 };
 
 module.exports = YouTubeVideo;

@@ -47,10 +47,6 @@ var ERROR = {
         MEDIA_ERR_SRC_NOT_SUPPORTED: {
             code: 83,
             message: 'Video is not supported'
-        },
-        MEDIA_ERR_FRAGMENTED: {
-            code: 84,
-            message: 'Error occurred when appending media fragment'
         }
     },
     WITH_HTML_SUBTITLES: {
@@ -71,11 +67,19 @@ var ERROR = {
         STREAM_CONVERT_FAILED: {
             code: 61,
             message: 'Unable to convert stream',
+        },
+        TRANSCODING_FAILED: {
+            code: 62,
+            message: 'Unable to transcode next segment of the stream',
         }
     },
     UNKNOWN_ERROR: {
         code: 1,
         message: 'Unknown error'
+    },
+    UNSUPPORTED_STREAM: {
+        code: 2,
+        message: 'Stream is not supported'
     }
 };
 

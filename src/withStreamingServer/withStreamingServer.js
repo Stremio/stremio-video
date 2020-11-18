@@ -1,86 +1,95 @@
 var EventEmitter = require('events');
 var url = require('url');
-var magnet = require('magnet-uri');
+var convertStream = require('./convertStream');
 var ERROR = require('../error');
-var createTorrent = require('./createTorrent');
-var guessFileIdx = require('./guessFileIdx');
+
+var BUFFERING_OFFSET = 25000;
 
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
         options = options || {};
 
         var video = new Video(options);
+        video.on('propChanged', onPropChanged);
+        video.on('propValue', onPropValue);
+        Video.manifest.events
+            .filter(function(eventName) {
+                return !['propChanged', 'propValue'].includes(eventName);
+            })
+            .forEach(function(eventName) {
+                video.on(eventName, onOtherEvent(eventName));
+            });
 
         var events = new EventEmitter();
         events.on('error', function() { });
 
         var destroyed = false;
-        var loadCommandArgs = null;
+        var loadArgs = null;
+        var transcodingParams = null;
+        var time = null;
+        var duration = null;
 
-        function convertStream(streamingServerURL, stream) {
-            return new Promise(function(resolve, reject) {
-                if (typeof stream.url === 'string') {
-                    if (stream.url.indexOf('magnet:') === 0) {
-                        var parsedMagnetURI;
-                        try {
-                            parsedMagnetURI = magnet.decode(stream.url);
-                        } catch (e) { }
-                        if (parsedMagnetURI && typeof parsedMagnetURI.infoHash === 'string') {
-                            var sources = Array.isArray(parsedMagnetURI.announce) ?
-                                parsedMagnetURI.announce.map(function(source) {
-                                    return 'tracker:' + source;
-                                })
-                                :
-                                [];
-                            createTorrent(streamingServerURL, parsedMagnetURI.infoHash, sources)
-                                .then(function(resp) {
-                                    var fileIdx = guessFileIdx(resp.files, stream.seriesInfo);
-                                    resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
-                                })
-                                .catch(function(error) {
-                                    reject(Object.assign({}, error, {
-                                        critical: true,
-                                        stream: stream
-                                    }));
-                                });
+        function nextSegment() {
+            if (transcodingParams !== null && !transcodingParams.ended && transcodingParams.loadingDuration !== duration && time !== null && duration !== null && time + BUFFERING_OFFSET > duration) {
+                transcodingParams.loadingDuration = duration;
+                var loadingTranscodingParams = transcodingParams;
+                fetch(url.resolve(transcodingParams.streamingServerURL, '/transcode/next') + '?' + new URLSearchParams([['hash', transcodingParams.hash]]).toString())
+                    .then(function(resp) {
+                        return resp.json();
+                    })
+                    .then(function(resp) {
+                        if (loadingTranscodingParams !== transcodingParams) {
                             return;
                         }
-                    } else {
-                        resolve(stream.url);
-                        return;
-                    }
-                }
 
-                if (typeof stream.ytId === 'string') {
-                    resolve(url.resolve(streamingServerURL, '/yt/' + encodeURIComponent(stream.ytId) + '?' + new URLSearchParams([['request', Date.now()]]).toString()));
-                    return;
-                }
+                        transcodingParams.ended = !!resp.ended;
+                    })
+                    .catch(function(error) {
+                        if (loadingTranscodingParams !== transcodingParams) {
+                            return;
+                        }
 
-                if (typeof stream.infoHash === 'string') {
-                    if (stream.fileIdx !== null && isFinite(stream.fileIdx)) {
-                        resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(stream.fileIdx)));
-                        return;
-                    } else {
-                        createTorrent(streamingServerURL, stream.infoHash, stream.sources)
-                            .then(function(resp) {
-                                var fileIdx = guessFileIdx(resp.files, stream.seriesInfo);
-                                resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
-                            })
-                            .catch(function(error) {
-                                reject(Object.assign({}, error, {
-                                    critical: true,
-                                    stream: stream
-                                }));
-                            });
-                        return;
-                    }
+                        onError(Object.assign({}, ERROR.WITH_STREAMING_SERVER.TRANSCODING_FAILED, {
+                            critical: false,
+                            error: error
+                        }));
+                    });
+            }
+        }
+        function onPropChanged(propName, propValue) {
+            events.emit('propChanged', propName, getProp(propName, propValue));
+            switch (propName) {
+                case 'time': {
+                    time = propValue;
+                    nextSegment();
+                    break;
                 }
-
-                reject(Object.assign({}, ERROR.WITH_STREAMING_SERVER.STREAM_CONVERT_FAILED, {
-                    critical: true,
-                    stream: stream
-                }));
-            });
+                case 'duration': {
+                    duration = propValue;
+                    nextSegment();
+                    break;
+                }
+            }
+        }
+        function onPropValue(propName, propValue) {
+            events.emit('propValue', propName, getProp(propName, propValue));
+            switch (propName) {
+                case 'time': {
+                    time = propValue;
+                    nextSegment();
+                    break;
+                }
+                case 'duration': {
+                    duration = propValue;
+                    nextSegment();
+                    break;
+                }
+            }
+        }
+        function onOtherEvent(eventName) {
+            return function() {
+                events.emit.apply(events, [eventName].concat(Array.from(arguments)));
+            };
         }
         function onError(error) {
             events.emit('error', error);
@@ -89,11 +98,30 @@ function withStreamingServer(Video) {
                 video.dispatch({ type: 'command', commandName: 'unload' });
             }
         }
+        function getProp(propName, propValue) {
+            switch (propName) {
+                case 'time': {
+                    return propValue !== null && transcodingParams !== null ?
+                        propValue + transcodingParams.time
+                        :
+                        propValue;
+                }
+                case 'duration': {
+                    return propValue !== null && transcodingParams !== null ?
+                        transcodingParams.duration
+                        :
+                        propValue;
+                }
+                default: {
+                    return propValue;
+                }
+            }
+        }
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'time': {
-                    if (loadCommandArgs && loadCommandArgs.transcode && propValue !== null && isFinite(propValue)) {
-                        var commandArgs = Object.assign({}, loadCommandArgs, {
+                    if (loadArgs && transcodingParams !== null && propValue !== null && isFinite(propValue)) {
+                        var commandArgs = Object.assign({}, loadArgs, {
                             time: parseInt(propValue)
                         });
                         command('load', commandArgs);
@@ -113,34 +141,64 @@ function withStreamingServer(Video) {
                     command('unload');
                     video.dispatch({ type: 'command', commandName: 'unload' });
                     if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerURL === 'string') {
-                        loadCommandArgs = commandArgs;
+                        loadArgs = commandArgs;
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream)
                             .then(function(videoURL) {
-                                if (commandArgs.transcode) {
-                                    var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
-                                    return url.resolve(commandArgs.streamingServerURL, '/casting/transcode') + '?' + new URLSearchParams([['video', videoURL], ['time', time]]).toString();
-                                }
+                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: videoURL }))
+                                    .then(function(canPlay) {
+                                        if (canPlay) {
+                                            return {
+                                                loadArgsExt: {
+                                                    stream: {
+                                                        url: videoURL
+                                                    }
+                                                }
+                                            };
+                                        }
 
-                                return videoURL;
+                                        var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) : 0;
+                                        return fetch(url.resolve(commandArgs.streamingServerURL, '/transcode/create') + '?' + new URLSearchParams([['url', videoURL], ['time', time]]).toString())
+                                            .then(function(resp) {
+                                                return resp.json();
+                                            })
+                                            .then(function(resp) {
+                                                return {
+                                                    transcodingParams: {
+                                                        time: time,
+                                                        hash: resp.hash,
+                                                        duration: resp.duration,
+                                                        streamingServerURL: commandArgs.streamingServerURL
+                                                    },
+                                                    loadArgsExt: {
+                                                        time: 0,
+                                                        stream: {
+                                                            url: url.resolve(commandArgs.streamingServerURL, 'transcode/' + resp.hash + '/playlist.m3u8')
+                                                        }
+                                                    }
+                                                };
+                                            });
+                                    })
+                                    .catch(function(error) {
+                                        throw Object.assign({}, ERROR.UNKNOWN_ERROR, {
+                                            critical: true,
+                                            error: error
+                                        });
+                                    });
                             })
-                            .then(function(videoURL) {
-                                if (commandArgs !== loadCommandArgs) {
+                            .then(function(result) {
+                                if (commandArgs !== loadArgs) {
                                     return;
                                 }
 
+                                transcodingParams = result.transcodingParams;
                                 video.dispatch({
                                     type: 'command',
                                     commandName: 'load',
-                                    commandArgs: Object.assign({}, commandArgs, {
-                                        time: !commandArgs.transcode ? commandArgs.time : 0,
-                                        stream: Object.assign({}, commandArgs.stream, {
-                                            url: videoURL
-                                        })
-                                    })
+                                    commandArgs: Object.assign({}, commandArgs, result.loadArgsExt)
                                 });
                             })
                             .catch(function(error) {
-                                if (commandArgs !== loadCommandArgs) {
+                                if (commandArgs !== loadArgs) {
                                     return;
                                 }
 
@@ -151,7 +209,10 @@ function withStreamingServer(Video) {
                     return true;
                 }
                 case 'unload': {
-                    loadCommandArgs = null;
+                    loadArgs = null;
+                    transcodingParams = null;
+                    time = null;
+                    duration = null;
                     return false;
                 }
                 case 'destroy': {
@@ -171,8 +232,6 @@ function withStreamingServer(Video) {
             if (!destroyed) {
                 events.on(eventName, listener);
             }
-
-            video.on(eventName, listener);
         };
         this.dispatch = function(action) {
             if (!destroyed && action) {
@@ -198,9 +257,15 @@ function withStreamingServer(Video) {
         };
     }
 
+    VideoWithStreamingServer.canPlayStream = function(stream) {
+        return Video.canPlayStream(stream);
+    };
+
     VideoWithStreamingServer.manifest = {
         name: Video.manifest.name + 'WithStreamingServer',
-        props: Video.manifest.props
+        props: Video.manifest.props,
+        events: Video.manifest.events.concat(['error'])
+            .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };
 
     return VideoWithStreamingServer;

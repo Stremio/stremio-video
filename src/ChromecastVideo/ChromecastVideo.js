@@ -165,9 +165,14 @@ function ChromecastVideo(options) {
     };
 }
 
+ChromecastVideo.canPlayStream = function() {
+    return Promise.resolve(true);
+};
+
 ChromecastVideo.manifest = {
     name: 'ChromecastVideo',
-    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor']
+    props: ['paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor'],
+    events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded']
 };
 
 module.exports = ChromecastVideo;
