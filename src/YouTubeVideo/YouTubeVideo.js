@@ -339,6 +339,11 @@ function YouTubeVideo(options) {
                         onPropChanged('muted');
                         onPropChanged('embeddedSubtitlesTracks');
                         onPropChanged('selectedEmbeddedSubtitlesTrackId');
+                    } else {
+                        onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                            critical: true,
+                            stream: commandArgs && commandArgs.stream ? commandArgs.stream : null
+                        }));
                     }
                 } else {
                     pendingLoadArgs = commandArgs;
