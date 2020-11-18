@@ -24,7 +24,7 @@ function withStreamingServer(Video) {
         events.on('error', function() { });
 
         var destroyed = false;
-        var loadCommandArgs = null;
+        var loadArgs = null;
         var transcodingParams = null;
         var time = null;
         var duration = null;
@@ -120,8 +120,8 @@ function withStreamingServer(Video) {
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'time': {
-                    if (loadCommandArgs && transcodingParams !== null && propValue !== null && isFinite(propValue)) {
-                        var commandArgs = Object.assign({}, loadCommandArgs, {
+                    if (loadArgs && transcodingParams !== null && propValue !== null && isFinite(propValue)) {
+                        var commandArgs = Object.assign({}, loadArgs, {
                             time: parseInt(propValue)
                         });
                         command('load', commandArgs);
@@ -141,14 +141,14 @@ function withStreamingServer(Video) {
                     command('unload');
                     video.dispatch({ type: 'command', commandName: 'unload' });
                     if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerURL === 'string') {
-                        loadCommandArgs = commandArgs;
+                        loadArgs = commandArgs;
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream)
                             .then(function(videoURL) {
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: videoURL }))
                                     .then(function(canPlay) {
                                         if (canPlay) {
                                             return {
-                                                loadCommandArgsExt: {
+                                                loadArgsExt: {
                                                     stream: {
                                                         url: videoURL
                                                     }
@@ -169,7 +169,7 @@ function withStreamingServer(Video) {
                                                         duration: resp.duration,
                                                         streamingServerURL: commandArgs.streamingServerURL
                                                     },
-                                                    loadCommandArgsExt: {
+                                                    loadArgsExt: {
                                                         time: 0,
                                                         stream: {
                                                             url: url.resolve(commandArgs.streamingServerURL, 'transcode/' + resp.hash + '/playlist.m3u8')
@@ -186,7 +186,7 @@ function withStreamingServer(Video) {
                                     });
                             })
                             .then(function(result) {
-                                if (commandArgs !== loadCommandArgs) {
+                                if (commandArgs !== loadArgs) {
                                     return;
                                 }
 
@@ -194,11 +194,11 @@ function withStreamingServer(Video) {
                                 video.dispatch({
                                     type: 'command',
                                     commandName: 'load',
-                                    commandArgs: Object.assign({}, commandArgs, result.loadCommandArgsExt)
+                                    commandArgs: Object.assign({}, commandArgs, result.loadArgsExt)
                                 });
                             })
                             .catch(function(error) {
-                                if (commandArgs !== loadCommandArgs) {
+                                if (commandArgs !== loadArgs) {
                                     return;
                                 }
 
@@ -209,7 +209,7 @@ function withStreamingServer(Video) {
                     return true;
                 }
                 case 'unload': {
-                    loadCommandArgs = null;
+                    loadArgs = null;
                     transcodingParams = null;
                     time = null;
                     duration = null;
