@@ -70,7 +70,7 @@ var ERROR = {
         },
         TRANSCODING_FAILED: {
             code: 62,
-            message: 'Unable to transcode next segment of the stream',
+            message: 'Unable to transcode the next segment of the stream',
         }
     },
     UNKNOWN_ERROR: {
