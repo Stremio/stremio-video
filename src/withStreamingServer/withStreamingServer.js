@@ -38,6 +38,10 @@ function withStreamingServer(Video) {
                         return resp.json();
                     })
                     .then(function(resp) {
+                        if (resp.error) {
+                            throw resp.error;
+                        }
+
                         if (loadingTranscodingParams !== transcodingParams) {
                             return;
                         }
@@ -162,6 +166,10 @@ function withStreamingServer(Video) {
                                                 return resp.json();
                                             })
                                             .then(function(resp) {
+                                                if (resp.error) {
+                                                    throw resp.error;
+                                                }
+
                                                 return {
                                                     transcodingParams: {
                                                         time: time,
