@@ -50,7 +50,7 @@ function withStreamingServer(Video) {
                         }
 
                         onError(Object.assign({}, ERROR.WITH_STREAMING_SERVER.TRANSCODING_FAILED, {
-                            critical: false,
+                            critical: true,
                             error: error
                         }));
                     });
