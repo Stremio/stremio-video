@@ -32,17 +32,25 @@ function withStreamingServer(Video) {
         function nextSegment() {
             if (transcodingParams !== null && !transcodingParams.ended && transcodingParams.loadingDuration !== duration && time !== null && duration !== null && time + BUFFERING_OFFSET > duration) {
                 transcodingParams.loadingDuration = duration;
+                transcodingParams.loadingTime = time;
                 var loadingTranscodingParams = transcodingParams;
                 fetch(url.resolve(transcodingParams.streamingServerURL, '/transcode/next') + '?' + new URLSearchParams([['hash', transcodingParams.hash]]).toString())
                     .then(function(resp) {
                         return resp.json();
                     })
                     .then(function(resp) {
-                        if (resp.error) {
-                            throw resp.error;
+                        if (loadingTranscodingParams !== transcodingParams) {
+                            return;
                         }
 
-                        if (loadingTranscodingParams !== transcodingParams) {
+                        if (resp.error) {
+                            if (resp.error.code !== 6) {
+                                throw resp.error;
+                            }
+
+                            command('load', Object.assign({}, loadArgs, {
+                                time: transcodingParams.loadingTime
+                            }));
                             return;
                         }
 
