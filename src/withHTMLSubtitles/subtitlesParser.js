@@ -22,7 +22,7 @@ function parse(text) {
     window.VTTCue = nativeVTTCue;
     cuesByTime.times = Object.keys(cuesByTime)
         .map(function(time) {
-            return parseInt(time);
+            return parseInt(time, 10);
         })
         .sort(function(t1, t2) {
             return t1 - t2;

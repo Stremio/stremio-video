@@ -193,7 +193,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'subtitlesDelay': {
                     if (selectedTrackId !== null && propValue !== null && isFinite(propValue)) {
-                        delay = parseInt(propValue);
+                        delay = parseInt(propValue, 10);
                         renderSubtitles();
                         onPropChanged('subtitlesDelay');
                     }
@@ -202,7 +202,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'subtitlesSize': {
                     if (propValue !== null && isFinite(propValue)) {
-                        size = parseInt(propValue);
+                        size = parseInt(propValue, 10);
                         renderSubtitles();
                         onPropChanged('subtitlesSize');
                     }
@@ -211,7 +211,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'subtitlesOffset': {
                     if (propValue !== null && isFinite(propValue)) {
-                        offset = Math.max(0, Math.min(100, parseInt(propValue)));
+                        offset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
                         renderSubtitles();
                         onPropChanged('subtitlesOffset');
                     }

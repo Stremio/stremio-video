@@ -212,7 +212,7 @@ function HTMLVideo(options) {
             }
             case 'time': {
                 if (loaded && propValue !== null && isFinite(propValue)) {
-                    videoElement.currentTime = parseInt(propValue) / 1000;
+                    videoElement.currentTime = parseInt(propValue, 10) / 1000;
                 }
 
                 break;
@@ -220,7 +220,7 @@ function HTMLVideo(options) {
             case 'volume': {
                 if (propValue !== null && isFinite(propValue)) {
                     videoElement.muted = false;
-                    videoElement.volume = Math.max(0, Math.min(100, parseInt(propValue))) / 100;
+                    videoElement.volume = Math.max(0, Math.min(100, parseInt(propValue, 10))) / 100;
                 }
 
                 break;
@@ -237,7 +237,7 @@ function HTMLVideo(options) {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
-                    videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
+                    videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
                     if (commandArgs.stream.url.endsWith('.m3u8') && Hls.isSupported()) {
                         hls = new Hls();
                         hls.loadSource(commandArgs.stream.url);

@@ -4,7 +4,7 @@ var ERROR = require('../error');
 function YouTubeVideo(options) {
     options = options || {};
 
-    var timeChangedTimeout = !isNaN(options.timeChangedTimeout) ? parseInt(options.timeChangedTimeout) : 100;
+    var timeChangedTimeout = !isNaN(options.timeChangedTimeout) ? parseInt(options.timeChangedTimeout, 10) : 100;
     var containerElement = options.containerElement;
     if (!(containerElement instanceof HTMLElement)) {
         throw new Error('Container element required to be instance of HTMLElement');
@@ -260,7 +260,7 @@ function YouTubeVideo(options) {
             }
             case 'time': {
                 if (loaded && typeof video.seekTo === 'function' && propValue !== null && isFinite(propValue)) {
-                    video.seekTo(parseInt(propValue) / 1000);
+                    video.seekTo(parseInt(propValue, 10) / 1000);
                 }
 
                 break;
@@ -271,7 +271,7 @@ function YouTubeVideo(options) {
                         video.unMute();
                     }
                     if (typeof video.setVolume === 'function') {
-                        video.setVolume(Math.max(0, Math.min(100, parseInt(propValue))));
+                        video.setVolume(Math.max(0, Math.min(100, parseInt(propValue, 10))));
                     }
                     onPropChanged('muted');
                     onPropChanged('volume');
@@ -318,7 +318,7 @@ function YouTubeVideo(options) {
                     command('unload');
                     if (commandArgs && commandArgs.stream && typeof commandArgs.stream.ytId === 'string') {
                         var autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
-                        var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) / 1000 : 0;
+                        var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
                         if (autoplay) {
                             video.loadVideoById({
                                 videoId: commandArgs.stream.ytId,

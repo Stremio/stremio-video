@@ -153,7 +153,7 @@ function withStreamingServer(Video) {
                 case 'time': {
                     if (loadArgs && transcoder !== null && propValue !== null && isFinite(propValue)) {
                         var commandArgs = Object.assign({}, loadArgs, {
-                            time: parseInt(propValue)
+                            time: parseInt(propValue, 10)
                         });
                         command('load', commandArgs);
                         return true;
@@ -193,7 +193,7 @@ function withStreamingServer(Video) {
                                             };
                                         }
 
-                                        var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) : 0;
+                                        var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0;
                                         return createTranscoder(commandArgs.streamingServerURL, videoURL, time)
                                             .then(function(transcoder) {
                                                 return {
