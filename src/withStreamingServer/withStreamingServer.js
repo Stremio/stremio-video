@@ -1,17 +1,19 @@
 var EventEmitter = require('events');
-var url = require('url');
-var convertStream = require('./convertStream');
+var convertStreamToURL = require('./convertStreamToURL');
+var createTranscoder = require('./createTranscoder');
+var transcodeNextSegment = require('./transcodeNextSegment');
 var ERROR = require('../error');
 
 var BUFFERING_OFFSET = 25000;
+var STARVATION_TIMEOUT = 1000;
 
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
         options = options || {};
 
         var video = new Video(options);
-        video.on('propChanged', onPropChanged);
-        video.on('propValue', onPropValue);
+        video.on('propChanged', onPropEvent.bind(null, 'propChanged'));
+        video.on('propValue', onPropEvent.bind(null, 'propValue'));
         Video.manifest.events
             .filter(function(eventName) {
                 return !['propChanged', 'propValue'].includes(eventName);
@@ -24,79 +26,90 @@ function withStreamingServer(Video) {
         events.on('error', function() { });
 
         var destroyed = false;
+        var videoState = {
+            time: null,
+            duration: null
+        };
         var loadArgs = null;
-        var transcodingParams = null;
-        var time = null;
-        var duration = null;
+        var transcoder = null;
+        var transcodingNextSegment = false;
+        var lastStarvationDuration = null;
+        var starvationHandlerTimeoutId = null;
 
-        function nextSegment() {
-            if (transcodingParams !== null && !transcodingParams.ended && transcodingParams.loadingDuration !== duration && time !== null && duration !== null && time + BUFFERING_OFFSET > duration) {
-                transcodingParams.loadingDuration = duration;
-                transcodingParams.loadingTime = time;
-                var loadingTranscodingParams = transcodingParams;
-                fetch(url.resolve(transcodingParams.streamingServerURL, '/transcode/next') + '?' + new URLSearchParams([['hash', transcodingParams.hash]]).toString())
-                    .then(function(resp) {
-                        return resp.json();
-                    })
-                    .then(function(resp) {
-                        if (loadingTranscodingParams !== transcodingParams) {
-                            return;
+        function isStarving() {
+            return transcoder !== null &&
+                !transcoder.ended &&
+                !transcodingNextSegment &&
+                starvationHandlerTimeoutId === null &&
+                videoState.time !== null &&
+                videoState.duration !== null &&
+                videoState.duration !== lastStarvationDuration &&
+                videoState.time + BUFFERING_OFFSET > videoState.duration;
+        }
+        function onStarving() {
+            transcodingNextSegment = true;
+            lastStarvationDuration = videoState.duration;
+            var loadingТranscoder = transcoder;
+            transcodeNextSegment(transcoder.streamingServerURL, transcoder.hash)
+                .then(function(resp) {
+                    if (loadingТranscoder !== transcoder) {
+                        return;
+                    }
+
+                    if (resp.error) {
+                        if (resp.error.code !== 6) {
+                            throw resp.error;
                         }
 
-                        if (resp.error) {
-                            if (resp.error.code !== 6) {
-                                throw resp.error;
-                            }
-
-                            command('load', Object.assign({}, loadArgs, {
-                                time: transcodingParams.loadingTime
-                            }));
-                            return;
-                        }
-
-                        transcodingParams.ended = !!resp.ended;
-                    })
-                    .catch(function(error) {
-                        if (loadingTranscodingParams !== transcodingParams) {
-                            return;
-                        }
-
-                        onError(Object.assign({}, ERROR.WITH_STREAMING_SERVER.TRANSCODING_FAILED, {
-                            critical: true,
-                            error: error
+                        command('load', Object.assign({}, loadArgs, {
+                            time: videoState.time
                         }));
-                    });
-            }
+                        return;
+                    }
+
+                    transcoder.ended = resp.ended;
+                    transcodingNextSegment = false;
+                    if (isStarving()) {
+                        onStarving();
+                    }
+                })
+                .catch(function(error) {
+                    if (loadingТranscoder !== transcoder) {
+                        return;
+                    }
+
+                    onError(Object.assign({}, ERROR.WITH_STREAMING_SERVER.TRANSCODING_FAILED, {
+                        critical: true,
+                        error: error
+                    }));
+                });
         }
-        function onPropChanged(propName, propValue) {
-            events.emit('propChanged', propName, getProp(propName, propValue));
+        function onPropEvent(eventName, propName, propValue) {
             switch (propName) {
                 case 'time': {
-                    time = propValue;
-                    nextSegment();
+                    videoState.time = propValue;
+                    if (isStarving()) {
+                        onStarving();
+                    }
                     break;
                 }
                 case 'duration': {
-                    duration = propValue;
-                    nextSegment();
+                    videoState.duration = propValue;
+                    clearTimeout(starvationHandlerTimeoutId);
+                    starvationHandlerTimeoutId = !transcodingNextSegment ?
+                        setTimeout(function() {
+                            starvationHandlerTimeoutId = null;
+                            if (isStarving()) {
+                                onStarving();
+                            }
+                        }, STARVATION_TIMEOUT)
+                        :
+                        null;
                     break;
                 }
             }
-        }
-        function onPropValue(propName, propValue) {
-            events.emit('propValue', propName, getProp(propName, propValue));
-            switch (propName) {
-                case 'time': {
-                    time = propValue;
-                    nextSegment();
-                    break;
-                }
-                case 'duration': {
-                    duration = propValue;
-                    nextSegment();
-                    break;
-                }
-            }
+
+            events.emit(eventName, propName, getProp(propName, propValue));
         }
         function onOtherEvent(eventName) {
             return function() {
@@ -113,14 +126,14 @@ function withStreamingServer(Video) {
         function getProp(propName, propValue) {
             switch (propName) {
                 case 'time': {
-                    return propValue !== null && transcodingParams !== null ?
-                        propValue + transcodingParams.time
+                    return propValue !== null && transcoder !== null ?
+                        propValue + transcoder.time
                         :
                         propValue;
                 }
                 case 'duration': {
-                    return propValue !== null && transcodingParams !== null ?
-                        transcodingParams.duration
+                    return transcoder !== null ?
+                        transcoder.duration
                         :
                         propValue;
                 }
@@ -132,7 +145,7 @@ function withStreamingServer(Video) {
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'time': {
-                    if (loadArgs && transcodingParams !== null && propValue !== null && isFinite(propValue)) {
+                    if (loadArgs && transcoder !== null && propValue !== null && isFinite(propValue)) {
                         var commandArgs = Object.assign({}, loadArgs, {
                             time: parseInt(propValue)
                         });
@@ -150,16 +163,22 @@ function withStreamingServer(Video) {
         function command(commandName, commandArgs) {
             switch (commandName) {
                 case 'load': {
-                    command('unload');
-                    video.dispatch({ type: 'command', commandName: 'unload' });
                     if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerURL === 'string') {
+                        command('unload');
+                        video.dispatch({ type: 'command', commandName: 'unload' });
                         loadArgs = commandArgs;
-                        convertStream(commandArgs.streamingServerURL, commandArgs.stream)
+                        convertStreamToURL(commandArgs.streamingServerURL, commandArgs.stream)
                             .then(function(videoURL) {
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: videoURL }))
+                                    .catch(function(error) {
+                                        throw Object.assign({}, ERROR.UNKNOWN_ERROR, {
+                                            error: error
+                                        });
+                                    })
                                     .then(function(canPlay) {
                                         if (canPlay) {
                                             return {
+                                                transcoder: null,
                                                 loadArgsExt: {
                                                     stream: {
                                                         url: videoURL
@@ -169,36 +188,18 @@ function withStreamingServer(Video) {
                                         }
 
                                         var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time) : 0;
-                                        return fetch(url.resolve(commandArgs.streamingServerURL, '/transcode/create') + '?' + new URLSearchParams([['url', videoURL], ['time', time]]).toString())
-                                            .then(function(resp) {
-                                                return resp.json();
-                                            })
-                                            .then(function(resp) {
-                                                if (resp.error) {
-                                                    throw resp.error;
-                                                }
-
+                                        return createTranscoder(commandArgs.streamingServerURL, videoURL, time)
+                                            .then(function(transcoder) {
                                                 return {
-                                                    transcodingParams: {
-                                                        time: time,
-                                                        hash: resp.hash,
-                                                        duration: resp.duration,
-                                                        streamingServerURL: commandArgs.streamingServerURL
-                                                    },
+                                                    transcoder: transcoder,
                                                     loadArgsExt: {
                                                         time: 0,
                                                         stream: {
-                                                            url: url.resolve(commandArgs.streamingServerURL, 'transcode/' + resp.hash + '/playlist.m3u8')
+                                                            url: transcoder.url
                                                         }
                                                     }
                                                 };
                                             });
-                                    })
-                                    .catch(function(error) {
-                                        throw Object.assign({}, ERROR.UNKNOWN_ERROR, {
-                                            critical: true,
-                                            error: error
-                                        });
                                     });
                             })
                             .then(function(result) {
@@ -206,7 +207,7 @@ function withStreamingServer(Video) {
                                     return;
                                 }
 
-                                transcodingParams = result.transcodingParams;
+                                transcoder = result.transcoder;
                                 video.dispatch({
                                     type: 'command',
                                     commandName: 'load',
@@ -218,17 +219,30 @@ function withStreamingServer(Video) {
                                     return;
                                 }
 
-                                onError(error);
+                                onError(Object.assign({}, error, {
+                                    critical: true
+                                }));
                             });
+                    } else {
+                        onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                            critical: true,
+                            stream: commandArgs && commandArgs.stream ? commandArgs.stream : null
+                        }));
                     }
 
                     return true;
                 }
                 case 'unload': {
+                    clearTimeout(starvationHandlerTimeoutId);
+                    videoState = {
+                        time: null,
+                        duration: null
+                    };
                     loadArgs = null;
-                    transcodingParams = null;
-                    time = null;
-                    duration = null;
+                    transcoder = null;
+                    transcodingNextSegment = false;
+                    lastStarvationDuration = null;
+                    starvationHandlerTimeoutId = null;
                     return false;
                 }
                 case 'destroy': {
@@ -245,12 +259,18 @@ function withStreamingServer(Video) {
         }
 
         this.on = function(eventName, listener) {
-            if (!destroyed) {
-                events.on(eventName, listener);
+            if (destroyed) {
+                throw new Error('Video is destroyed');
             }
+
+            events.on(eventName, listener);
         };
         this.dispatch = function(action) {
-            if (!destroyed && action) {
+            if (destroyed) {
+                throw new Error('Video is destroyed');
+            }
+
+            if (action) {
                 switch (action.type) {
                     case 'setProp': {
                         if (setProp(action.propName, action.propValue)) {
