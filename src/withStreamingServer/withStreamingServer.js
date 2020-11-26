@@ -137,6 +137,12 @@ function withStreamingServer(Video) {
                         :
                         propValue;
                 }
+                case 'buffered': {
+                    return propValue !== null && transcoder !== null ?
+                        propValue + transcoder.time
+                        :
+                        propValue;
+                }
                 default: {
                     return propValue;
                 }
