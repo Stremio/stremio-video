@@ -57,7 +57,7 @@ function withStreamingServer(Video) {
                     }
 
                     if (resp.error) {
-                        if (resp.error.code !== 6) {
+                        if (resp.error.code !== 21) {
                             throw resp.error;
                         }
 
