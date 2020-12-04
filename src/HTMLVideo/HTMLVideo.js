@@ -260,7 +260,7 @@ function HTMLVideo(options) {
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
-                        stream: commandArgs && commandArgs.stream ? commandArgs.stream : null
+                        stream: commandArgs ? commandArgs.stream : null
                     }));
                 }
 
