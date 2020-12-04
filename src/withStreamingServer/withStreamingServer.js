@@ -120,7 +120,9 @@ function withStreamingServer(Video) {
             };
         }
         function onPropChanged(propName) {
-            events.emit('propChanged', propName, getProp(propName));
+            if (observedProps[propName]) {
+                events.emit('propChanged', propName, getProp(propName));
+            }
         }
         function onError(error) {
             events.emit('error', error);
