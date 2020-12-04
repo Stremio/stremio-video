@@ -17,7 +17,13 @@ function createTranscoder(streamingServerURL, videoURL, time) {
 
             return Object.assign({}, resp, {
                 streamingServerURL: streamingServerURL,
-                time: time,
+                timeOffset: resp.videoTimeOffset !== null && isFinite(resp.videoTimeOffset) ?
+                    resp.videoTimeOffset
+                    :
+                    resp.audioTimeOffset !== null && isFinite(resp.audioTimeOffset) ?
+                        resp.audioTimeOffset
+                        :
+                        0,
                 url: url.resolve(streamingServerURL, '/transcode/' + encodeURIComponent(resp.hash) + '/playlist.m3u8')
             });
         })

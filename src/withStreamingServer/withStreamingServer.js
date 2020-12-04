@@ -127,7 +127,7 @@ function withStreamingServer(Video) {
             switch (propName) {
                 case 'time': {
                     return propValue !== null && transcoder !== null ?
-                        propValue + transcoder.time
+                        propValue + transcoder.timeOffset
                         :
                         propValue;
                 }
@@ -139,7 +139,7 @@ function withStreamingServer(Video) {
                 }
                 case 'buffered': {
                     return propValue !== null && transcoder !== null ?
-                        propValue + transcoder.time
+                        propValue + transcoder.timeOffset
                         :
                         propValue;
                 }
