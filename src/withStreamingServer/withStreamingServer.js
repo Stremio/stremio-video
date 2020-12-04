@@ -4,7 +4,7 @@ var createTranscoder = require('./createTranscoder');
 var transcodeNextSegment = require('./transcodeNextSegment');
 var ERROR = require('../error');
 
-var BUFFERING_OFFSET = 25000;
+var STARVATION_THRESHOLD = 25000;
 var STARVATION_TIMEOUT = 1000;
 
 function withStreamingServer(Video) {
@@ -44,7 +44,7 @@ function withStreamingServer(Video) {
                 videoState.time !== null &&
                 videoState.duration !== null &&
                 videoState.duration !== lastStarvationDuration &&
-                videoState.time + BUFFERING_OFFSET > videoState.duration;
+                videoState.time + STARVATION_THRESHOLD > videoState.duration;
         }
         function onStarving() {
             transcodingNextSegment = true;
