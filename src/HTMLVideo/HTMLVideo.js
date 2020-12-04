@@ -240,6 +240,8 @@ function HTMLVideo(options) {
             case 'load': {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    stream = commandArgs.stream;
+                    onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                     videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
                     if (commandArgs.stream.url.endsWith('.m3u8') && Hls.isSupported()) {
@@ -250,8 +252,6 @@ function HTMLVideo(options) {
                         videoElement.src = commandArgs.stream.url;
                     }
 
-                    stream = commandArgs.stream;
-                    onPropChanged('stream');
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
