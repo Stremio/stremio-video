@@ -26,6 +26,9 @@ function withStreamingServer(Video) {
         events.on('error', function() { });
 
         var destroyed = false;
+        var observedProps = {
+            stream: false
+        };
         var videoState = {
             time: null,
             duration: null
@@ -116,6 +119,9 @@ function withStreamingServer(Video) {
                 events.emit.apply(events, [eventName].concat(Array.from(arguments)));
             };
         }
+        function onPropChanged(propName) {
+            events.emit('propChanged', propName, getProp(propName));
+        }
         function onError(error) {
             events.emit('error', error);
             if (error.critical) {
@@ -125,6 +131,9 @@ function withStreamingServer(Video) {
         }
         function getProp(propName, propValue) {
             switch (propName) {
+                case 'stream': {
+                    return loadArgs !== null ? loadArgs.stream : null;
+                }
                 case 'time': {
                     return propValue !== null && transcoder !== null ?
                         propValue + transcoder.timeOffset
@@ -145,6 +154,18 @@ function withStreamingServer(Video) {
                 }
                 default: {
                     return propValue;
+                }
+            }
+        }
+        function observeProp(propName) {
+            switch (propName) {
+                case 'stream': {
+                    events.emit('propValue', propName, getProp(propName));
+                    observedProps[propName] = true;
+                    return true;
+                }
+                default: {
+                    return false;
                 }
             }
         }
@@ -173,6 +194,7 @@ function withStreamingServer(Video) {
                         command('unload');
                         video.dispatch({ type: 'command', commandName: 'unload' });
                         loadArgs = commandArgs;
+                        onPropChanged('stream');
                         convertStreamToURL(commandArgs.streamingServerURL, commandArgs.stream)
                             .then(function(videoURL) {
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: videoURL }))
@@ -249,6 +271,7 @@ function withStreamingServer(Video) {
                     transcodingNextSegment = false;
                     lastStarvationDuration = null;
                     starvationHandlerTimeoutId = null;
+                    onPropChanged('stream');
                     return false;
                 }
                 case 'destroy': {
@@ -278,6 +301,13 @@ function withStreamingServer(Video) {
 
             if (action) {
                 switch (action.type) {
+                    case 'observeProp': {
+                        if (observeProp(action.propName)) {
+                            return;
+                        }
+
+                        break;
+                    }
                     case 'setProp': {
                         if (setProp(action.propName, action.propValue)) {
                             return;
@@ -305,7 +335,8 @@ function withStreamingServer(Video) {
 
     VideoWithStreamingServer.manifest = {
         name: Video.manifest.name + 'WithStreamingServer',
-        props: Video.manifest.props,
+        props: Video.manifest.props.concat(['stream'])
+            .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         events: Video.manifest.events.concat(['error'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };
