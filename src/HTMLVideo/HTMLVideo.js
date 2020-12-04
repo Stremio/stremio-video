@@ -82,8 +82,9 @@ function HTMLVideo(options) {
 
     var hls = null;
     var destroyed = false;
-    var loaded = false;
+    var stream = null;
     var observedProps = {
+        stream: false,
         paused: false,
         time: false,
         duration: false,
@@ -95,36 +96,39 @@ function HTMLVideo(options) {
 
     function getProp(propName) {
         switch (propName) {
+            case 'stream': {
+                return stream;
+            }
             case 'paused': {
-                if (!loaded) {
+                if (stream === null) {
                     return null;
                 }
 
                 return !!videoElement.paused;
             }
             case 'time': {
-                if (!loaded || videoElement.currentTime === null || !isFinite(videoElement.currentTime)) {
+                if (stream === null || videoElement.currentTime === null || !isFinite(videoElement.currentTime)) {
                     return null;
                 }
 
                 return Math.floor(videoElement.currentTime * 1000);
             }
             case 'duration': {
-                if (!loaded || videoElement.duration === null || !isFinite(videoElement.duration)) {
+                if (stream === null || videoElement.duration === null || !isFinite(videoElement.duration)) {
                     return null;
                 }
 
                 return Math.floor(videoElement.duration * 1000);
             }
             case 'buffering': {
-                if (!loaded) {
+                if (stream === null) {
                     return null;
                 }
 
                 return videoElement.readyState < videoElement.HAVE_FUTURE_DATA;
             }
             case 'buffered': {
-                if (!loaded) {
+                if (stream === null) {
                     return null;
                 }
 
@@ -204,14 +208,14 @@ function HTMLVideo(options) {
     function setProp(propName, propValue) {
         switch (propName) {
             case 'paused': {
-                if (loaded) {
+                if (stream !== null) {
                     propValue ? videoElement.pause() : videoElement.play();
                 }
 
                 break;
             }
             case 'time': {
-                if (loaded && propValue !== null && isFinite(propValue)) {
+                if (stream !== null && propValue !== null && isFinite(propValue)) {
                     videoElement.currentTime = parseInt(propValue, 10) / 1000;
                 }
 
@@ -246,7 +250,8 @@ function HTMLVideo(options) {
                         videoElement.src = commandArgs.stream.url;
                     }
 
-                    loaded = true;
+                    stream = commandArgs.stream;
+                    onPropChanged('stream');
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
@@ -262,7 +267,7 @@ function HTMLVideo(options) {
                 break;
             }
             case 'unload': {
-                loaded = false;
+                stream = null;
                 if (hls !== null) {
                     hls.destroy();
                     hls = null;
@@ -271,6 +276,7 @@ function HTMLVideo(options) {
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
+                onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
@@ -357,7 +363,7 @@ HTMLVideo.canPlayStream = function(stream) {
 
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
-    props: ['paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted'],
     events: ['propChanged', 'propValue', 'ended', 'error']
 };
 
