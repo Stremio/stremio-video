@@ -46,6 +46,7 @@ function ChromecastVideo(options) {
 
     var destroyed = false;
     var observedProps = {
+        stream: false,
         paused: false,
         time: false,
         duration: false,
@@ -107,6 +108,7 @@ function ChromecastVideo(options) {
         switch (commandName) {
             case 'destroy': {
                 destroyed = true;
+                onPropChanged('stream', null);
                 onPropChanged('paused', null);
                 onPropChanged('time', null);
                 onPropChanged('duration', null);
@@ -171,7 +173,7 @@ ChromecastVideo.canPlayStream = function() {
 
 ChromecastVideo.manifest = {
     name: 'ChromecastVideo',
-    props: ['paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor'],
     events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded']
 };
 
