@@ -28,11 +28,12 @@ function YouTubeVideo(options) {
 
     var destroyed = false;
     var ready = false;
-    var loaded = false;
+    var stream = null;
     var video = null;
     var pendingLoadArgs = null;
     var selectedEmbeddedSubtitlesTrackId = null;
     var observedProps = {
+        stream: false,
         paused: false,
         time: false,
         duration: false,
@@ -159,50 +160,53 @@ function YouTubeVideo(options) {
     }
     function getProp(propName) {
         switch (propName) {
+            case 'stream': {
+                return stream;
+            }
             case 'paused': {
-                if (!loaded || typeof video.getPlayerState !== 'function') {
+                if (stream === null || typeof video.getPlayerState !== 'function') {
                     return null;
                 }
 
                 return video.getPlayerState() !== YT.PlayerState.PLAYING;
             }
             case 'time': {
-                if (!loaded || typeof video.getCurrentTime !== 'function' || video.getCurrentTime() === null || !isFinite(video.getCurrentTime())) {
+                if (stream === null || typeof video.getCurrentTime !== 'function' || video.getCurrentTime() === null || !isFinite(video.getCurrentTime())) {
                     return null;
                 }
 
                 return Math.floor(video.getCurrentTime() * 1000);
             }
             case 'duration': {
-                if (!loaded || typeof video.getDuration !== 'function' || video.getDuration() === null || !isFinite(video.getDuration())) {
+                if (stream === null || typeof video.getDuration !== 'function' || video.getDuration() === null || !isFinite(video.getDuration())) {
                     return null;
                 }
 
                 return Math.floor(video.getDuration() * 1000);
             }
             case 'buffering': {
-                if (!loaded || typeof video.getPlayerState !== 'function') {
+                if (stream === null || typeof video.getPlayerState !== 'function') {
                     return null;
                 }
 
                 return video.getPlayerState() === YT.PlayerState.BUFFERING;
             }
             case 'volume': {
-                if (!loaded || typeof video.getVolume !== 'function' || video.getVolume() === null || !isFinite(video.getVolume())) {
+                if (stream === null || typeof video.getVolume !== 'function' || video.getVolume() === null || !isFinite(video.getVolume())) {
                     return null;
                 }
 
                 return video.getVolume();
             }
             case 'muted': {
-                if (!loaded || typeof video.isMuted !== 'function') {
+                if (stream === null || typeof video.isMuted !== 'function') {
                     return null;
                 }
 
                 return video.isMuted();
             }
             case 'embeddedSubtitlesTracks': {
-                if (!loaded) {
+                if (stream === null) {
                     return null;
                 }
 
@@ -218,7 +222,7 @@ function YouTubeVideo(options) {
                     });
             }
             case 'selectedEmbeddedSubtitlesTrackId': {
-                if (!loaded) {
+                if (stream === null) {
                     return null;
                 }
 
@@ -249,7 +253,7 @@ function YouTubeVideo(options) {
     function setProp(propName, propValue) {
         switch (propName) {
             case 'paused': {
-                if (loaded) {
+                if (stream !== null) {
                     propValue ?
                         typeof video.pauseVideo === 'function' && video.pauseVideo()
                         :
@@ -259,14 +263,14 @@ function YouTubeVideo(options) {
                 break;
             }
             case 'time': {
-                if (loaded && typeof video.seekTo === 'function' && propValue !== null && isFinite(propValue)) {
+                if (stream !== null && typeof video.seekTo === 'function' && propValue !== null && isFinite(propValue)) {
                     video.seekTo(parseInt(propValue, 10) / 1000);
                 }
 
                 break;
             }
             case 'volume': {
-                if (loaded && propValue !== null && isFinite(propValue)) {
+                if (stream !== null && propValue !== null && isFinite(propValue)) {
                     if (typeof video.unMute === 'function') {
                         video.unMute();
                     }
@@ -280,7 +284,7 @@ function YouTubeVideo(options) {
                 break;
             }
             case 'muted': {
-                if (loaded) {
+                if (stream !== null) {
                     propValue ?
                         typeof video.mute === 'function' && video.mute()
                         :
@@ -291,7 +295,7 @@ function YouTubeVideo(options) {
                 break;
             }
             case 'selectedEmbeddedSubtitlesTrackId': {
-                if (loaded) {
+                if (stream !== null) {
                     selectedEmbeddedSubtitlesTrackId = null;
                     var selecterdTrack = getProp('embeddedSubtitlesTracks')
                         .find(function(track) {
@@ -330,7 +334,8 @@ function YouTubeVideo(options) {
                                 startSeconds: time
                             });
                         }
-                        loaded = true;
+                        stream = commandArgs.stream;
+                        onPropChanged('stream');
                         onPropChanged('paused');
                         onPropChanged('time');
                         onPropChanged('duration');
@@ -352,11 +357,12 @@ function YouTubeVideo(options) {
                 break;
             }
             case 'unload': {
-                loaded = false;
+                stream = null;
                 selectedEmbeddedSubtitlesTrackId = null;
                 if (ready) {
                     video.stopVideo();
                 }
+                onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
@@ -422,7 +428,7 @@ YouTubeVideo.canPlayStream = function(stream) {
 
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
-    props: ['paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId'],
     events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded']
 };
 
