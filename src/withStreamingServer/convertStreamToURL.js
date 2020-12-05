@@ -99,11 +99,6 @@ function convertStreamToURL(streamingServerURL, stream) {
             }
         }
 
-        if (typeof stream.ytId === 'string') {
-            resolve(url.resolve(streamingServerURL, '/yt/' + encodeURIComponent(stream.ytId) + '?' + new URLSearchParams([['request', Date.now()]]).toString()));
-            return;
-        }
-
         if (typeof stream.infoHash === 'string') {
             if (stream.fileIdx !== null && isFinite(stream.fileIdx)) {
                 resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(stream.fileIdx)));
