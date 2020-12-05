@@ -321,6 +321,8 @@ function YouTubeVideo(options) {
                 if (ready) {
                     command('unload');
                     if (commandArgs && commandArgs.stream && typeof commandArgs.stream.ytId === 'string') {
+                        stream = commandArgs.stream;
+                        onPropChanged('stream');
                         var autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                         var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
                         if (autoplay) {
@@ -334,8 +336,6 @@ function YouTubeVideo(options) {
                                 startSeconds: time
                             });
                         }
-                        stream = commandArgs.stream;
-                        onPropChanged('stream');
                         onPropChanged('paused');
                         onPropChanged('time');
                         onPropChanged('duration');
@@ -358,11 +358,11 @@ function YouTubeVideo(options) {
             }
             case 'unload': {
                 stream = null;
+                onPropChanged('stream');
                 selectedEmbeddedSubtitlesTrackId = null;
                 if (ready) {
                     video.stopVideo();
                 }
-                onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
