@@ -51,6 +51,7 @@ function ChromecastVideo(options) {
         time: false,
         duration: false,
         buffering: false,
+        buffered: false,
         volume: false,
         muted: false,
         subtitlesTracks: false,
@@ -113,6 +114,7 @@ function ChromecastVideo(options) {
                 onPropChanged('time', null);
                 onPropChanged('duration', null);
                 onPropChanged('buffering', null);
+                onPropChanged('buffered', null);
                 onPropChanged('volume', null);
                 onPropChanged('muted', null);
                 onPropChanged('subtitlesTracks', null);
