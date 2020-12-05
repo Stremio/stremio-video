@@ -174,11 +174,14 @@ function withStreamingServer(Video) {
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'time': {
-                    if (loadArgs && transcoder !== null && propValue !== null && isFinite(propValue)) {
-                        var commandArgs = Object.assign({}, loadArgs, {
-                            time: parseInt(propValue, 10)
-                        });
-                        command('load', commandArgs);
+                    if (transcoder !== null) {
+                        if (propValue !== null && isFinite(propValue)) {
+                            var commandArgs = Object.assign({}, loadArgs, {
+                                time: parseInt(propValue, 10)
+                            });
+                            command('load', commandArgs);
+                        }
+
                         return true;
                     }
 
