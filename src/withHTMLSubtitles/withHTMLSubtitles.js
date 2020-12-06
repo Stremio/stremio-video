@@ -23,11 +23,20 @@ function withHTMLSubtitles(Video) {
         var events = new EventEmitter();
         events.on('error', function() { });
 
-        video.on('propValue', onVideoPropChanged);
-        video.on('propChanged', onVideoPropChanged);
+        video.on('propValue', onVideoPropEvent.bind(null, 'propValue'));
+        video.on('propChanged', onVideoPropEvent.bind(null, 'propChanged'));
+        Video.manifest.events
+            .filter(function(eventName) {
+                return !['propChanged', 'propValue'].includes(eventName);
+            })
+            .forEach(function(eventName) {
+                video.on(eventName, onVideoOtherEvent(eventName));
+            });
 
         var destroyed = false;
-        var time = null;
+        var videoState = {
+            time: null
+        };
         var cuesByTime = null;
         var tracks = [];
         var selectedTrackId = null;
@@ -45,7 +54,7 @@ function withHTMLSubtitles(Video) {
             subtitlesOffset: false,
             subtitlesTextColor: false,
             subtitlesBackgroundColor: false,
-            subtitlesShadowColor: false,
+            subtitlesShadowColor: false
         };
 
         function renderSubtitles() {
@@ -53,12 +62,12 @@ function withHTMLSubtitles(Video) {
                 subtitlesElement.removeChild(subtitlesElement.lastChild);
             }
 
-            if (cuesByTime === null || time === null || !isFinite(time)) {
+            if (cuesByTime === null || videoState.time === null || !isFinite(videoState.time)) {
                 return;
             }
 
             subtitlesElement.style.bottom = offset + '%';
-            subtitlesRenderer.render(cuesByTime, time + delay)
+            subtitlesRenderer.render(cuesByTime, videoState.time + delay)
                 .map(function(cueNode) {
                     cueNode.style.display = 'inline-block';
                     cueNode.style.padding = '0.2em';
@@ -72,7 +81,7 @@ function withHTMLSubtitles(Video) {
                     subtitlesElement.append(cueNode, document.createElement('br'));
                 });
         }
-        function getProp(propName) {
+        function getProp(propName, videoPropValue) {
             switch (propName) {
                 case 'subtitlesTracks': {
                     if (destroyed) {
@@ -89,7 +98,7 @@ function withHTMLSubtitles(Video) {
                     return selectedTrackId;
                 }
                 case 'subtitlesDelay': {
-                    if (destroyed || selectedTrackId === null) {
+                    if (destroyed) {
                         return null;
                     }
 
@@ -130,6 +139,9 @@ function withHTMLSubtitles(Video) {
 
                     return shadowColor;
                 }
+                default: {
+                    return videoPropValue;
+                }
             }
         }
         function onError(error) {
@@ -139,11 +151,21 @@ function withHTMLSubtitles(Video) {
                 video.dispatch({ type: 'command', commandName: 'unload' });
             }
         }
-        function onVideoPropChanged(propName, propValue) {
-            if (propName === 'time') {
-                time = propValue;
-                renderSubtitles();
+        function onVideoPropEvent(eventName, propName, propValue) {
+            switch (propName) {
+                case 'time': {
+                    videoState.time = propValue;
+                    renderSubtitles();
+                    break;
+                }
             }
+
+            events.emit(eventName, propName, getProp(propName, propValue));
+        }
+        function onVideoOtherEvent(eventName) {
+            return function() {
+                events.emit.apply(events, [eventName].concat(Array.from(arguments)));
+            };
         }
         function onPropChanged(propName) {
             if (observedProps[propName]) {
@@ -151,9 +173,22 @@ function withHTMLSubtitles(Video) {
             }
         }
         function observeProp(propName) {
-            if (observedProps.hasOwnProperty(propName)) {
-                events.emit('propValue', propName, getProp(propName));
-                observedProps[propName] = true;
+            switch (propName) {
+                case 'subtitlesTracks':
+                case 'selectedSubtitlesTrackId':
+                case 'subtitlesDelay':
+                case 'subtitlesSize':
+                case 'subtitlesOffset':
+                case 'subtitlesTextColor':
+                case 'subtitlesBackgroundColor':
+                case 'subtitlesShadowColor': {
+                    events.emit('propValue', propName, getProp(propName));
+                    observedProps[propName] = true;
+                    return true;
+                }
+                default: {
+                    return false;
+                }
             }
         }
         function setProp(propName, propValue) {
@@ -171,25 +206,29 @@ function withHTMLSubtitles(Video) {
                         cuesByTime = null;
                         fetchSubtitles(selecterdTrack)
                             .then(function(resp) {
-                                if (selecterdTrack.id === selectedTrackId) {
-                                    cuesByTime = resp;
-                                    renderSubtitles();
-                                    events.emit('subtitlesTrackLoaded', selecterdTrack);
+                                if (selectedTrackId !== selecterdTrack.id) {
+                                    return;
                                 }
+
+                                cuesByTime = resp;
+                                renderSubtitles();
+                                events.emit('subtitlesTrackLoaded', selecterdTrack);
                             })
                             .catch(function(error) {
-                                if (selecterdTrack.id === selectedTrackId) {
-                                    onError(Object.assign({}, error, {
-                                        critical: false
-                                    }));
+                                if (selectedTrackId !== selecterdTrack.id) {
+                                    return;
                                 }
+
+                                onError(Object.assign({}, error, {
+                                    critical: false
+                                }));
                             });
                     }
 
                     renderSubtitles();
                     onPropChanged('selectedSubtitlesTrackId');
                     onPropChanged('subtitlesDelay');
-                    break;
+                    return true;
                 }
                 case 'subtitlesDelay': {
                     if (selectedTrackId !== null && propValue !== null && isFinite(propValue)) {
@@ -198,16 +237,16 @@ function withHTMLSubtitles(Video) {
                         onPropChanged('subtitlesDelay');
                     }
 
-                    break;
+                    return true;
                 }
                 case 'subtitlesSize': {
                     if (propValue !== null && isFinite(propValue)) {
-                        size = parseInt(propValue, 10);
+                        size = Math.max(0, parseInt(propValue, 10));
                         renderSubtitles();
                         onPropChanged('subtitlesSize');
                     }
 
-                    break;
+                    return true;
                 }
                 case 'subtitlesOffset': {
                     if (propValue !== null && isFinite(propValue)) {
@@ -216,7 +255,7 @@ function withHTMLSubtitles(Video) {
                         onPropChanged('subtitlesOffset');
                     }
 
-                    break;
+                    return true;
                 }
                 case 'subtitlesTextColor': {
                     if (typeof propValue === 'string') {
@@ -225,7 +264,7 @@ function withHTMLSubtitles(Video) {
                         onPropChanged('subtitlesTextColor');
                     }
 
-                    break;
+                    return true;
                 }
                 case 'subtitlesBackgroundColor': {
                     if (typeof propValue === 'string') {
@@ -234,7 +273,7 @@ function withHTMLSubtitles(Video) {
                         onPropChanged('subtitlesBackgroundColor');
                     }
 
-                    break;
+                    return true;
                 }
                 case 'subtitlesShadowColor': {
                     if (typeof propValue === 'string') {
@@ -243,7 +282,10 @@ function withHTMLSubtitles(Video) {
                         onPropChanged('subtitlesShadowColor');
                     }
 
-                    break;
+                    return true;
+                }
+                default: {
+                    return false;
                 }
             }
         }
@@ -257,9 +299,8 @@ function withHTMLSubtitles(Video) {
                                 return track &&
                                     typeof track.url === 'string' &&
                                     track.url.length > 0 &&
-                                    typeof track.origin === 'string' &&
-                                    track.origin.length > 0 &&
-                                    track.origin !== 'VIDEO_EMBEDDED';
+                                    typeof track.lang === 'string' &&
+                                    track.lang.length > 0;
                             })
                             .map(function(track, index) {
                                 return Object.freeze(Object.assign({}, track, {
@@ -269,11 +310,11 @@ function withHTMLSubtitles(Video) {
                         onPropChanged('subtitlesTracks');
                     }
 
-                    break;
+                    return true;
                 }
                 case 'load': {
                     command('unload');
-                    break;
+                    return false;
                 }
                 case 'unload': {
                     cuesByTime = null;
@@ -284,7 +325,7 @@ function withHTMLSubtitles(Video) {
                     onPropChanged('subtitlesTracks');
                     onPropChanged('selectedSubtitlesTrackId');
                     onPropChanged('subtitlesDelay');
-                    break;
+                    return false;
                 }
                 case 'destroy': {
                     command('unload');
@@ -297,31 +338,47 @@ function withHTMLSubtitles(Video) {
                     events.removeAllListeners();
                     events.on('error', function() { });
                     containerElement.removeChild(subtitlesElement);
-                    break;
+                    return false;
+                }
+                default: {
+                    return false;
                 }
             }
         }
 
         this.on = function(eventName, listener) {
-            if (!destroyed) {
-                events.on(eventName, listener);
+            if (destroyed) {
+                throw new Error('Video is destroyed');
             }
 
-            video.on(eventName, listener);
+            events.on(eventName, listener);
         };
         this.dispatch = function(action) {
-            if (!destroyed && action) {
+            if (destroyed) {
+                throw new Error('Video is destroyed');
+            }
+
+            if (action) {
                 switch (action.type) {
                     case 'observeProp': {
-                        observeProp(action.propName);
+                        if (observeProp(action.propName)) {
+                            return;
+                        }
+
                         break;
                     }
                     case 'setProp': {
-                        setProp(action.propName, action.propValue);
+                        if (setProp(action.propName, action.propValue)) {
+                            return;
+                        }
+
                         break;
                     }
                     case 'command': {
-                        command(action.commandName, action.commandArgs);
+                        if (command(action.commandName, action.commandArgs)) {
+                            return;
+                        }
+
                         break;
                     }
                 }
