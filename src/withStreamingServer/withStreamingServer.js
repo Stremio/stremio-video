@@ -131,31 +131,31 @@ function withStreamingServer(Video) {
                 video.dispatch({ type: 'command', commandName: 'unload' });
             }
         }
-        function getProp(propName, propValue) {
+        function getProp(propName, videoPropValue) {
             switch (propName) {
                 case 'stream': {
                     return loadArgs !== null ? loadArgs.stream : null;
                 }
                 case 'time': {
-                    return propValue !== null && transcoder !== null ?
-                        propValue + transcoder.timeOffset
+                    return videoPropValue !== null && transcoder !== null ?
+                        videoPropValue + transcoder.timeOffset
                         :
-                        propValue;
+                        videoPropValue;
                 }
                 case 'duration': {
                     return transcoder !== null ?
                         transcoder.duration
                         :
-                        propValue;
+                        videoPropValue;
                 }
                 case 'buffered': {
-                    return propValue !== null && transcoder !== null ?
-                        propValue + transcoder.timeOffset
+                    return videoPropValue !== null && transcoder !== null ?
+                        videoPropValue + transcoder.timeOffset
                         :
-                        propValue;
+                        videoPropValue;
                 }
                 default: {
-                    return propValue;
+                    return videoPropValue;
                 }
             }
         }
