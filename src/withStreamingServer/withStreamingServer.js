@@ -267,10 +267,6 @@ function withStreamingServer(Video) {
                 }
                 case 'unload': {
                     clearTimeout(starvationHandlerTimeoutId);
-                    videoState = {
-                        time: null,
-                        duration: null
-                    };
                     loadArgs = null;
                     transcoder = null;
                     transcodingNextSegment = false;
