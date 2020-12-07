@@ -6,7 +6,7 @@ var ERROR = require('../error');
 // TODO add audio files extentions
 var MEDIA_FILE_EXTENTIONS = /.mkv$|.avi$|.mp4$|.wmv$|.vp8$|.mov$|.mpg$|.ts$|.webm$/i;
 
-function guessTorrentFileIdx(streamingServerURL, infoHash, sources, seriesInfo) {
+function inferTorrentFileIdx(streamingServerURL, infoHash, sources, seriesInfo) {
     return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/create'), {
         method: 'POST',
         headers: {
@@ -82,7 +82,7 @@ function convertStreamToURL(streamingServerURL, stream) {
                         })
                         :
                         [];
-                    guessTorrentFileIdx(streamingServerURL, parsedMagnetURI.infoHash, sources, stream.seriesInfo)
+                    inferTorrentFileIdx(streamingServerURL, parsedMagnetURI.infoHash, sources, stream.seriesInfo)
                         .then(function(fileIdx) {
                             resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
                         })
@@ -104,7 +104,7 @@ function convertStreamToURL(streamingServerURL, stream) {
                 resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(stream.fileIdx)));
                 return;
             } else {
-                guessTorrentFileIdx(streamingServerURL, stream.infoHash, stream.sources, stream.seriesInfo)
+                inferTorrentFileIdx(streamingServerURL, stream.infoHash, stream.sources, stream.seriesInfo)
                     .then(function(fileIdx) {
                         resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
                     })
