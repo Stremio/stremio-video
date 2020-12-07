@@ -346,20 +346,14 @@ HTMLVideo.canPlayStream = function(stream) {
         return Promise.resolve(false);
     }
 
-    if (stream.url.endsWith('.m3u8') && Hls.isSupported()) {
-        return Promise.resolve(true);
-    }
-
-    var video = document.createElement('video');
-    if (stream.behaviorHints && stream.behaviorHints.headers) {
-        var type = stream.behaviorHints.headers['content-type'];
-        return Promise.resolve(!!video.canPlayType(type));
-    }
-
-    return fetch(stream.url, { method: 'HEAD' })
-        .then(function(resp) {
-            var type = resp.headers.get('content-type');
-            return !!video.canPlayType(type);
+    var contentTypePromise = stream.behaviorHints && stream.behaviorHints.headers ?
+        Promise.resolve(stream.behaviorHints.headers['content-type'])
+        :
+        fetch(stream.url, { method: 'HEAD' }).then(function(resp) { return resp.headers.get('content-type'); });
+    return contentTypePromise
+        .then(function(type) {
+            var video = document.createElement('video');
+            return !!video.canPlayType(type) || (type === 'application/vnd.apple.mpegurl' && Hls.isSupported());
         })
         .catch(function() {
             return false;
