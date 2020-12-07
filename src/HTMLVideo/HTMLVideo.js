@@ -342,7 +342,7 @@ function HTMLVideo(options) {
 }
 
 HTMLVideo.canPlayStream = function(stream) {
-    if (!stream || typeof stream.url !== 'string') {
+    if (!stream || typeof stream.url !== 'string' || (stream.behaviorHints && stream.behaviorHints.notWebReady)) {
         return Promise.resolve(false);
     }
 
