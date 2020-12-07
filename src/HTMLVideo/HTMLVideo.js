@@ -350,9 +350,14 @@ HTMLVideo.canPlayStream = function(stream) {
         return Promise.resolve(true);
     }
 
+    var video = document.createElement('video');
+    if (stream.behaviorHints && stream.behaviorHints.headers) {
+        var type = stream.behaviorHints.headers['content-type'];
+        return Promise.resolve(!!video.canPlayType(type));
+    }
+
     return fetch(stream.url, { method: 'HEAD' })
         .then(function(resp) {
-            var video = document.createElement('video');
             var type = resp.headers.get('content-type');
             return !!video.canPlayType(type);
         })
