@@ -364,6 +364,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted'],
+    commands: ['load', 'unload', 'destroy'],
     events: ['propChanged', 'propValue', 'ended', 'error']
 };
 

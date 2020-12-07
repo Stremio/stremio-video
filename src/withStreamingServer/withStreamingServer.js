@@ -338,6 +338,8 @@ function withStreamingServer(Video) {
         name: Video.manifest.name + 'WithStreamingServer',
         props: Video.manifest.props.concat(['stream'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
+        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy'])
+            .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         events: Video.manifest.events.concat(['error'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };

@@ -429,6 +429,7 @@ YouTubeVideo.canPlayStream = function(stream) {
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
     props: ['stream', 'paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId'],
+    commands: ['load', 'unload', 'destroy'],
     events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded']
 };
 

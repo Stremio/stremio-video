@@ -176,6 +176,7 @@ ChromecastVideo.canPlayStream = function() {
 ChromecastVideo.manifest = {
     name: 'ChromecastVideo',
     props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'embeddedSubtitlesTracks', 'selectedEmbeddedSubtitlesTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor'],
+    commands: ['load', 'unload', 'destroy', 'addSubtitlesTracks'],
     events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded']
 };
 

@@ -396,6 +396,8 @@ function withHTMLSubtitles(Video) {
         name: Video.manifest.name + 'WithHTMLSubtitles',
         props: Video.manifest.props.concat(['subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
+        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addSubtitlesTracks'])
+            .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         events: Video.manifest.events.concat(['propChanged', 'propValue', 'error', 'subtitlesTrackLoaded'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };
