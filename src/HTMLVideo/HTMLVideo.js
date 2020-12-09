@@ -244,26 +244,38 @@ function HTMLVideo(options) {
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                     videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
-                    if (commandArgs.stream.url.endsWith('.m3u8') && Hls.isSupported()) {
-                        hls = new Hls();
-                        hls.loadSource(commandArgs.stream.url);
-                        hls.attachMedia(videoElement);
-                    } else {
-                        videoElement.src = commandArgs.stream.url;
-                    }
-
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
                     onPropChanged('buffering');
                     onPropChanged('buffered');
+                    getContentType(stream)
+                        .then(function(contentType) {
+                            if (stream !== commandArgs.stream) {
+                                return;
+                            }
+
+                            if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
+                                hls = new Hls();
+                                hls.loadSource(stream.url);
+                                hls.attachMedia(videoElement);
+                            } else {
+                                videoElement.src = stream.url;
+                            }
+                        })
+                        .catch(function() {
+                            if (stream !== commandArgs.stream) {
+                                return;
+                            }
+
+                            videoElement.src = stream.url;
+                        });
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
                         stream: commandArgs ? commandArgs.stream : null
                     }));
                 }
-
                 break;
             }
             case 'unload': {
@@ -272,7 +284,6 @@ function HTMLVideo(options) {
                     hls.destroy();
                     hls = null;
                 }
-
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
@@ -341,19 +352,30 @@ function HTMLVideo(options) {
     };
 }
 
+function getContentType(stream) {
+    if (!stream || typeof stream.url !== 'string') {
+        return Promise.reject(new Error('Invalid stream parameter!'));
+    }
+
+    if (stream.behaviorHints && stream.behaviorHints.headers && typeof stream.behaviorHints.headers['content-type'] === 'string') {
+        return Promise.resolve(stream.behaviorHints.headers['content-type']);
+    }
+
+    return fetch(stream.url, { method: 'HEAD' })
+        .then(function(resp) {
+            return resp.headers.get('content-type');
+        });
+}
+
 HTMLVideo.canPlayStream = function(stream) {
-    if (!stream || typeof stream.url !== 'string' || (stream.behaviorHints && stream.behaviorHints.notWebReady)) {
+    if (!stream || (stream.behaviorHints && stream.behaviorHints.notWebReady)) {
         return Promise.resolve(false);
     }
 
-    var contentTypePromise = stream.behaviorHints && stream.behaviorHints.headers ?
-        Promise.resolve(stream.behaviorHints.headers['content-type'])
-        :
-        fetch(stream.url, { method: 'HEAD' }).then(function(resp) { return resp.headers.get('content-type'); });
-    return contentTypePromise
-        .then(function(type) {
+    return getContentType(stream)
+        .then(function(contentType) {
             var video = document.createElement('video');
-            return !!video.canPlayType(type) || (type === 'application/vnd.apple.mpegurl' && Hls.isSupported());
+            return !!video.canPlayType(contentType) || (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported());
         })
         .catch(function() {
             return false;
