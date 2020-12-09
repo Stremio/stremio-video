@@ -311,6 +311,7 @@ function HTMLVideo(options) {
                 videoElement.onwaiting = null;
                 videoElement.onplaying = null;
                 videoElement.oncanplay = null;
+                videoElement.canplaythrough = null;
                 videoElement.onloadeddata = null;
                 videoElement.onvolumechange = null;
                 containerElement.removeChild(videoElement);
