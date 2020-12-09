@@ -305,6 +305,9 @@ function HTMLVideo(options) {
                 videoElement.ontimeupdate = null;
                 videoElement.ondurationchange = null;
                 videoElement.onwaiting = null;
+                videoElement.onseeking = null;
+                videoElement.onseeked = null;
+                videoElement.onstalled = null;
                 videoElement.onplaying = null;
                 videoElement.oncanplay = null;
                 videoElement.canplaythrough = null;
