@@ -35,10 +35,6 @@ function HTMLVideo(options) {
     videoElement.ondurationchange = function() {
         onPropChanged('duration');
     };
-    videoElement.onplaying = function() {
-        onPropChanged('buffering');
-        onPropChanged('buffered');
-    };
     videoElement.onwaiting = function() {
         onPropChanged('buffering');
         onPropChanged('buffered');
