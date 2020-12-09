@@ -158,29 +158,29 @@ function HTMLVideo(options) {
         }
     }
     function onVideoError() {
-        var videoError;
+        var error;
         switch (videoElement.error.code) {
             case 1: {
-                videoError = ERROR.HTML_VIDEO.MEDIA_ERR_ABORTED;
+                error = ERROR.HTML_VIDEO.MEDIA_ERR_ABORTED;
                 break;
             }
             case 2: {
-                videoError = ERROR.HTML_VIDEO.MEDIA_ERR_NETWORK;
+                error = ERROR.HTML_VIDEO.MEDIA_ERR_NETWORK;
                 break;
             }
             case 3: {
-                videoError = ERROR.HTML_VIDEO.MEDIA_ERR_DECODE;
+                error = ERROR.HTML_VIDEO.MEDIA_ERR_DECODE;
                 break;
             }
             case 4: {
-                videoError = ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED;
+                error = ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED;
                 break;
             }
             default: {
-                videoError = ERROR.UNKNOWN_ERROR;
+                error = ERROR.UNKNOWN_ERROR;
             }
         }
-        onError(Object.assign({}, videoError, {
+        onError(Object.assign({}, error, {
             critical: true,
             error: videoElement.error
         }));
