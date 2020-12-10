@@ -93,33 +93,33 @@ function YouTubeVideo(options) {
             });
         });
     }
-    function onVideoError(error) {
-        var videoError;
-        switch (error.data) {
+    function onVideoError(videoError) {
+        var error;
+        switch (videoError.data) {
             case 2: {
-                videoError = ERROR.YOUTUBE_VIDEO.INVALID_PARAMETER;
+                error = ERROR.YOUTUBE_VIDEO.INVALID_PARAMETER;
                 break;
             }
             case 5: {
-                videoError = ERROR.YOUTUBE_VIDEO.HTML5_VIDEO;
+                error = ERROR.YOUTUBE_VIDEO.HTML5_VIDEO;
                 break;
             }
             case 100: {
-                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_NOT_FOUND;
+                error = ERROR.YOUTUBE_VIDEO.VIDEO_NOT_FOUND;
                 break;
             }
             case 101:
             case 150: {
-                videoError = ERROR.YOUTUBE_VIDEO.VIDEO_NOT_EMBEDDABLE;
+                error = ERROR.YOUTUBE_VIDEO.VIDEO_NOT_EMBEDDABLE;
                 break;
             }
             default: {
-                videoError = ERROR.UNKNOWN_ERROR;
+                error = ERROR.UNKNOWN_ERROR;
             }
         }
-        onError(Object.extend({}, videoError, {
+        onError(Object.extend({}, error, {
             critical: true,
-            error: error
+            error: videoError
         }));
     }
     function onVideoReady() {
