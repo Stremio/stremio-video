@@ -201,8 +201,8 @@ function withStreamingServer(Video) {
                         loadArgs = commandArgs;
                         onPropChanged('stream');
                         convertStreamToURL(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
-                            .then(function(videoURL) {
-                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: videoURL }))
+                            .then(function(mediaURL) {
+                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: mediaURL }))
                                     .catch(function(error) {
                                         throw Object.assign({}, ERROR.UNKNOWN_ERROR, {
                                             error: error
@@ -214,14 +214,14 @@ function withStreamingServer(Video) {
                                                 transcoder: null,
                                                 loadArgsExt: {
                                                     stream: {
-                                                        url: videoURL
+                                                        url: mediaURL
                                                     }
                                                 }
                                             };
                                         }
 
                                         var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0;
-                                        return createTranscoder(commandArgs.streamingServerURL, videoURL, time)
+                                        return createTranscoder(commandArgs.streamingServerURL, mediaURL, time)
                                             .then(function(transcoder) {
                                                 return {
                                                     transcoder: transcoder,
