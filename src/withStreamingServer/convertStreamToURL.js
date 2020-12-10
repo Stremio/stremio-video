@@ -3,8 +3,7 @@ var magnet = require('magnet-uri');
 var parseVideoName = require('video-name-parser');
 var ERROR = require('../error');
 
-// TODO add audio files extentions
-var MEDIA_FILE_EXTENTIONS = /.mkv$|.avi$|.mp4$|.wmv$|.vp8$|.mov$|.mpg$|.ts$|.webm$/i;
+var MEDIA_FILE_EXTENTIONS = /.mkv$|.avi$|.mp4$|.wmv$|.vp8$|.mov$|.mpg$|.ts$|.m3u8$|.webm$|.flac$|.mp3$|.wav$|.wma$|.aac$|.ogg$/i;
 
 function inferTorrentFileIdx(streamingServerURL, infoHash, sources, seriesInfo) {
     return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/create'), {
