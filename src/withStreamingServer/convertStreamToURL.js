@@ -114,7 +114,7 @@ function convertStreamToURL(streamingServerURL, stream, seriesInfo) {
                 resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(stream.fileIdx)));
                 return;
             } else {
-                inferTorrentFileIdx(streamingServerURL, stream.infoHash, stream.sources, seriesInfo)
+                inferTorrentFileIdx(streamingServerURL, stream.infoHash, stream.announce, seriesInfo)
                     .then(function(fileIdx) {
                         resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
                     })
