@@ -29,7 +29,9 @@ function createTranscoder(streamingServerURL, mediaURL, time) {
         })
         .catch(function(error) {
             throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.TRANSCODER_CREATE_FAILED, {
-                error: error
+                error: error,
+                mediaURL: mediaURL,
+                time: time
             });
         });
 }
