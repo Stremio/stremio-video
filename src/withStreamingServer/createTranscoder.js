@@ -1,8 +1,8 @@
 var url = require('url');
 var ERROR = require('../error');
 
-function createTranscoder(streamingServerURL, videoURL, time) {
-    return fetch(url.resolve(streamingServerURL, '/transcode/create') + '?' + new URLSearchParams([['url', videoURL], ['time', time]]).toString())
+function createTranscoder(streamingServerURL, mediaURL, time) {
+    return fetch(url.resolve(streamingServerURL, '/transcode/create') + '?' + new URLSearchParams([['url', mediaURL], ['time', time]]).toString())
         .then(function(resp) {
             return resp.json();
         })
