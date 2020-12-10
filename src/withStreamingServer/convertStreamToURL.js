@@ -66,7 +66,7 @@ function inferTorrentFileIdx(streamingServerURL, infoHash, sources, seriesInfo) 
     });
 }
 
-function convertStreamToURL(streamingServerURL, stream) {
+function convertStreamToURL(streamingServerURL, stream, seriesInfo) {
     return new Promise(function(resolve, reject) {
         if (typeof stream.url === 'string') {
             if (stream.url.indexOf('magnet:') === 0) {
@@ -81,7 +81,7 @@ function convertStreamToURL(streamingServerURL, stream) {
                         })
                         :
                         [];
-                    inferTorrentFileIdx(streamingServerURL, parsedMagnetURI.infoHash, sources, stream.seriesInfo)
+                    inferTorrentFileIdx(streamingServerURL, parsedMagnetURI.infoHash, sources, seriesInfo)
                         .then(function(fileIdx) {
                             resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
                         })

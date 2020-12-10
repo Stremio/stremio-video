@@ -200,7 +200,7 @@ function withStreamingServer(Video) {
                         video.dispatch({ type: 'command', commandName: 'unload' });
                         loadArgs = commandArgs;
                         onPropChanged('stream');
-                        convertStreamToURL(commandArgs.streamingServerURL, commandArgs.stream)
+                        convertStreamToURL(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
                             .then(function(videoURL) {
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: videoURL }))
                                     .catch(function(error) {
