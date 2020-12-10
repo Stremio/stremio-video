@@ -25,11 +25,18 @@ function inferTorrentFileIdx(streamingServerURL, infoHash, sources, seriesInfo) 
         return resp.json();
     }).catch(function(error) {
         throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.TORRENT_CREATE_FAILED, {
+            infoHash: infoHash,
+            sources: sources,
             error: error
         });
     }).then(function(resp) {
         if (!resp || !Array.isArray(resp.files) || resp.files.some(function(file) { return !file || typeof file.path !== 'string' || file.length === null || !isFinite(file.length); })) {
-            throw ERROR.WITH_STREAMING_SERVER.TORRENT_CREATE_FAILED;
+            throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.TORRENT_CREATE_FAILED, {
+                infoHash: infoHash,
+                sources: sources,
+                files: resp.files,
+                error: new Error('Invalid files')
+            });
         }
 
         var mediaFiles = resp.files.filter(function(file) {
