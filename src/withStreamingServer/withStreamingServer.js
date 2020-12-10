@@ -205,7 +205,8 @@ function withStreamingServer(Video) {
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: mediaURL }))
                                     .catch(function(error) {
                                         throw Object.assign({}, ERROR.UNKNOWN_ERROR, {
-                                            error: error
+                                            error: error,
+                                            stream: commandArgs.stream
                                         });
                                     })
                                     .then(function(canPlay) {
