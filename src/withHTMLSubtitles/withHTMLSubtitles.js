@@ -314,6 +314,18 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'load': {
                     command('unload');
+                    if (commandArgs.stream && Array.isArray(commandArgs.stream.subtitles)) {
+                        command('addExtraSubtitlesTracks', {
+                            tracks: commandArgs.stream.subtitles.map(function(subtitles, index) {
+                                return Object.assign({}, subtitles, {
+                                    id: 'exclusive_' + index,
+                                    label: typeof subtitles.label === 'string' ? subtitles.label : subtitles.lang,
+                                    origin: typeof subtitles.origin === 'string' ? subtitles.origin : 'EXCLUSIVE'
+                                });
+                            })
+                        });
+                    }
+
                     return false;
                 }
                 case 'unload': {
