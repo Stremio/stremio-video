@@ -13,6 +13,7 @@
         "lint": "eslint src"
     },
     "dependencies": {
+        "deep-freeze": "0.0.1",
         "events": "1.1.1",
         "hls.js": "0.14.16",
         "lodash.clonedeep": "4.5.0",
