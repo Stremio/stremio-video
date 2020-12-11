@@ -311,6 +311,8 @@ function YouTubeVideo(options) {
                             languageCode: selecterdTrack.lang
                         });
                         events.emit('subtitlesTrackLoaded', selecterdTrack);
+                    } else {
+                        video.setOption('captions', 'track', {});
                     }
                     onPropChanged('selectedSubtitlesTrackId');
                 }
