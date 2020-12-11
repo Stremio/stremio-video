@@ -25,11 +25,12 @@ function withHTMLSubtitles(Video) {
         var events = new EventEmitter();
         events.on('error', function() { });
 
+        video.on('error', onVideoError);
         video.on('propValue', onVideoPropEvent.bind(null, 'propValue'));
         video.on('propChanged', onVideoPropEvent.bind(null, 'propChanged'));
         Video.manifest.events
             .filter(function(eventName) {
-                return !['propChanged', 'propValue'].includes(eventName);
+                return !['error', 'propChanged', 'propValue'].includes(eventName);
             })
             .forEach(function(eventName) {
                 video.on(eventName, onVideoOtherEvent(eventName));
@@ -163,6 +164,12 @@ function withHTMLSubtitles(Video) {
             }
 
             events.emit(eventName, propName, getProp(propName, propValue));
+        }
+        function onVideoError(error) {
+            events.emit('error', error);
+            if (error.critical) {
+                command('unload');
+            }
         }
         function onVideoOtherEvent(eventName) {
             return function() {
