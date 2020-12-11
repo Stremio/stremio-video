@@ -1,6 +1,7 @@
 var EventEmitter = require('events');
 var Hls = require('hls.js');
 var cloneDeep = require('lodash.clonedeep');
+var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 
 function HTMLVideo(options) {
@@ -332,7 +333,7 @@ function HTMLVideo(options) {
             throw new Error('Video is destroyed');
         }
 
-        action = cloneDeep(action);
+        action = deepFreeze(cloneDeep(action));
         if (action) {
             switch (action.type) {
                 case 'observeProp': {
