@@ -223,7 +223,7 @@ function YouTubeVideo(options) {
                         return Object.freeze({
                             id: String(index),
                             lang: track.languageCode,
-                            label: track.displayName === 'string' ? track.displayName : track.languageCode,
+                            label: typeof track.displayName === 'string' ? track.displayName : track.languageCode,
                             origin: 'EMBEDDED'
                         });
                     });
