@@ -1,5 +1,6 @@
 var EventEmitter = require('events');
 var Hls = require('hls.js');
+var cloneDeep = require('lodash.clonedeep');
 var ERROR = require('../error');
 
 function HTMLVideo(options) {
@@ -331,6 +332,7 @@ function HTMLVideo(options) {
             throw new Error('Video is destroyed');
         }
 
+        action = cloneDeep(action);
         if (action) {
             switch (action.type) {
                 case 'observeProp': {

@@ -1,4 +1,5 @@
 var EventEmitter = require('events');
+var cloneDeep = require('lodash.clonedeep');
 var ERROR = require('../error');
 
 function YouTubeVideo(options) {
@@ -401,6 +402,7 @@ function YouTubeVideo(options) {
             throw new Error('Video is destroyed');
         }
 
+        action = cloneDeep(action);
         if (action) {
             switch (action.type) {
                 case 'observeProp': {
