@@ -219,7 +219,8 @@ function YouTubeVideo(options) {
                     .map(function(track, index) {
                         return Object.freeze({
                             id: String(index),
-                            lang: track.languageCode
+                            lang: track.languageCode,
+                            label: track.displayName === 'string' ? track.displayName : track.languageCode
                         });
                     });
             }
