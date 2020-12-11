@@ -209,7 +209,7 @@ function YouTubeVideo(options) {
             }
             case 'subtitlesTracks': {
                 if (stream === null) {
-                    return null;
+                    return [];
                 }
 
                 return (video.getOption('captions', 'tracklist') || [])
