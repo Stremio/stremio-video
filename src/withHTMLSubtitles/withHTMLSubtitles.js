@@ -49,14 +49,14 @@ function withHTMLSubtitles(Video) {
         var backgroundColor = '#00000000';
         var shadowColor = '#222222FF';
         var observedProps = {
-            subtitlesTracks: false,
-            selectedSubtitlesTrackId: false,
-            subtitlesDelay: false,
-            subtitlesSize: false,
-            subtitlesOffset: false,
-            subtitlesTextColor: false,
-            subtitlesBackgroundColor: false,
-            subtitlesShadowColor: false
+            extraSubtitlesTracks: false,
+            selectedExtraSubtitlesTrackId: false,
+            extraSubtitlesDelay: false,
+            extraSubtitlesSize: false,
+            extraSubtitlesOffset: false,
+            extraSubtitlesTextColor: false,
+            extraSubtitlesBackgroundColor: false,
+            extraSubtitlesShadowColor: false
         };
 
         function renderSubtitles() {
@@ -85,56 +85,56 @@ function withHTMLSubtitles(Video) {
         }
         function getProp(propName, videoPropValue) {
             switch (propName) {
-                case 'subtitlesTracks': {
+                case 'extraSubtitlesTracks': {
                     if (destroyed) {
                         return null;
                     }
 
                     return tracks.slice();
                 }
-                case 'selectedSubtitlesTrackId': {
+                case 'selectedExtraSubtitlesTrackId': {
                     if (destroyed) {
                         return null;
                     }
 
                     return selectedTrackId;
                 }
-                case 'subtitlesDelay': {
+                case 'extraSubtitlesDelay': {
                     if (destroyed) {
                         return null;
                     }
 
                     return delay;
                 }
-                case 'subtitlesSize': {
+                case 'extraSubtitlesSize': {
                     if (destroyed) {
                         return null;
                     }
 
                     return size;
                 }
-                case 'subtitlesOffset': {
+                case 'extraSubtitlesOffset': {
                     if (destroyed) {
                         return null;
                     }
 
                     return offset;
                 }
-                case 'subtitlesTextColor': {
+                case 'extraSubtitlesTextColor': {
                     if (destroyed) {
                         return null;
                     }
 
                     return textColor;
                 }
-                case 'subtitlesBackgroundColor': {
+                case 'extraSubtitlesBackgroundColor': {
                     if (destroyed) {
                         return null;
                     }
 
                     return backgroundColor;
                 }
-                case 'subtitlesShadowColor': {
+                case 'extraSubtitlesShadowColor': {
                     if (destroyed) {
                         return null;
                     }
@@ -176,14 +176,14 @@ function withHTMLSubtitles(Video) {
         }
         function observeProp(propName) {
             switch (propName) {
-                case 'subtitlesTracks':
-                case 'selectedSubtitlesTrackId':
-                case 'subtitlesDelay':
-                case 'subtitlesSize':
-                case 'subtitlesOffset':
-                case 'subtitlesTextColor':
-                case 'subtitlesBackgroundColor':
-                case 'subtitlesShadowColor': {
+                case 'extraSubtitlesTracks':
+                case 'selectedExtraSubtitlesTrackId':
+                case 'extraSubtitlesDelay':
+                case 'extraSubtitlesSize':
+                case 'extraSubtitlesOffset':
+                case 'extraSubtitlesTextColor':
+                case 'extraSubtitlesBackgroundColor':
+                case 'extraSubtitlesShadowColor': {
                     events.emit('propValue', propName, getProp(propName));
                     observedProps[propName] = true;
                     return true;
@@ -195,7 +195,7 @@ function withHTMLSubtitles(Video) {
         }
         function setProp(propName, propValue) {
             switch (propName) {
-                case 'selectedSubtitlesTrackId': {
+                case 'selectedExtraSubtitlesTrackId': {
                     selectedTrackId = null;
                     delay = null;
                     cuesByTime = null;
@@ -228,60 +228,60 @@ function withHTMLSubtitles(Video) {
                     }
 
                     renderSubtitles();
-                    onPropChanged('selectedSubtitlesTrackId');
-                    onPropChanged('subtitlesDelay');
+                    onPropChanged('selectedExtraSubtitlesTrackId');
+                    onPropChanged('extraSubtitlesDelay');
                     return true;
                 }
-                case 'subtitlesDelay': {
+                case 'extraSubtitlesDelay': {
                     if (selectedTrackId !== null && propValue !== null && isFinite(propValue)) {
                         delay = parseInt(propValue, 10);
                         renderSubtitles();
-                        onPropChanged('subtitlesDelay');
+                        onPropChanged('extraSubtitlesDelay');
                     }
 
                     return true;
                 }
-                case 'subtitlesSize': {
+                case 'extraSubtitlesSize': {
                     if (propValue !== null && isFinite(propValue)) {
                         size = Math.max(0, parseInt(propValue, 10));
                         renderSubtitles();
-                        onPropChanged('subtitlesSize');
+                        onPropChanged('extraSubtitlesSize');
                     }
 
                     return true;
                 }
-                case 'subtitlesOffset': {
+                case 'extraSubtitlesOffset': {
                     if (propValue !== null && isFinite(propValue)) {
                         offset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
                         renderSubtitles();
-                        onPropChanged('subtitlesOffset');
+                        onPropChanged('extraSubtitlesOffset');
                     }
 
                     return true;
                 }
-                case 'subtitlesTextColor': {
+                case 'extraSubtitlesTextColor': {
                     if (typeof propValue === 'string') {
                         textColor = propValue;
                         renderSubtitles();
-                        onPropChanged('subtitlesTextColor');
+                        onPropChanged('extraSubtitlesTextColor');
                     }
 
                     return true;
                 }
-                case 'subtitlesBackgroundColor': {
+                case 'extraSubtitlesBackgroundColor': {
                     if (typeof propValue === 'string') {
                         backgroundColor = propValue;
                         renderSubtitles();
-                        onPropChanged('subtitlesBackgroundColor');
+                        onPropChanged('extraSubtitlesBackgroundColor');
                     }
 
                     return true;
                 }
-                case 'subtitlesShadowColor': {
+                case 'extraSubtitlesShadowColor': {
                     if (typeof propValue === 'string') {
                         shadowColor = propValue;
                         renderSubtitles();
-                        onPropChanged('subtitlesShadowColor');
+                        onPropChanged('extraSubtitlesShadowColor');
                     }
 
                     return true;
@@ -293,7 +293,7 @@ function withHTMLSubtitles(Video) {
         }
         function command(commandName, commandArgs) {
             switch (commandName) {
-                case 'addSubtitlesTracks': {
+                case 'addExtraSubtitlesTracks': {
                     if (commandArgs && Array.isArray(commandArgs.tracks)) {
                         tracks = tracks
                             .concat(commandArgs.tracks)
@@ -309,7 +309,7 @@ function withHTMLSubtitles(Video) {
                                     id: 'ext' + index
                                 }));
                             });
-                        onPropChanged('subtitlesTracks');
+                        onPropChanged('extraSubtitlesTracks');
                     }
 
                     return true;
@@ -324,19 +324,19 @@ function withHTMLSubtitles(Video) {
                     selectedTrackId = null;
                     delay = null;
                     renderSubtitles();
-                    onPropChanged('subtitlesTracks');
-                    onPropChanged('selectedSubtitlesTrackId');
-                    onPropChanged('subtitlesDelay');
+                    onPropChanged('extraSubtitlesTracks');
+                    onPropChanged('selectedExtraSubtitlesTrackId');
+                    onPropChanged('extraSubtitlesDelay');
                     return false;
                 }
                 case 'destroy': {
                     command('unload');
                     destroyed = true;
-                    onPropChanged('subtitlesSize');
-                    onPropChanged('subtitlesOffset');
-                    onPropChanged('subtitlesTextColor');
-                    onPropChanged('subtitlesBackgroundColor');
-                    onPropChanged('subtitlesShadowColor');
+                    onPropChanged('extraSubtitlesSize');
+                    onPropChanged('extraSubtitlesOffset');
+                    onPropChanged('extraSubtitlesTextColor');
+                    onPropChanged('extraSubtitlesBackgroundColor');
+                    onPropChanged('extraSubtitlesShadowColor');
                     events.removeAllListeners();
                     events.on('error', function() { });
                     containerElement.removeChild(subtitlesElement);
@@ -397,11 +397,11 @@ function withHTMLSubtitles(Video) {
 
     VideoWithHTMLSubtitles.manifest = {
         name: Video.manifest.name + 'WithHTMLSubtitles',
-        props: Video.manifest.props.concat(['subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesDelay', 'subtitlesSize', 'subtitlesOffset', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor'])
+        props: Video.manifest.props.concat(['extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesShadowColor'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addSubtitlesTracks'])
+        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        events: Video.manifest.events.concat(['propChanged', 'propValue', 'error', 'subtitlesTrackLoaded'])
+        events: Video.manifest.events.concat(['propChanged', 'propValue', 'error', 'extraSubtitlesTrackLoaded'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };
 
