@@ -1,4 +1,6 @@
 var EventEmitter = require('events');
+var cloneDeep = require('lodash.clonedeep');
+var deepFreeze = require('deep-freeze');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var fetchSubtitles = require('./fetchSubtitles');
 
@@ -358,6 +360,7 @@ function withHTMLSubtitles(Video) {
                 throw new Error('Video is destroyed');
             }
 
+            action = deepFreeze(cloneDeep(action));
             if (action) {
                 switch (action.type) {
                     case 'observeProp': {

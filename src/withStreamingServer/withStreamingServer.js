@@ -1,4 +1,6 @@
 var EventEmitter = require('events');
+var cloneDeep = require('lodash.clonedeep');
+var deepFreeze = require('deep-freeze');
 var convertStreamToURL = require('./convertStreamToURL');
 var createTranscoder = require('./createTranscoder');
 var transcodeNextSegment = require('./transcodeNextSegment');
@@ -301,6 +303,7 @@ function withStreamingServer(Video) {
                 throw new Error('Video is destroyed');
             }
 
+            action = deepFreeze(cloneDeep(action));
             if (action) {
                 switch (action.type) {
                     case 'observeProp': {
