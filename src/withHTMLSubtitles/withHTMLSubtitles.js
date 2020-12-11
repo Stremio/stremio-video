@@ -221,7 +221,7 @@ function withHTMLSubtitles(Video) {
 
                                 cuesByTime = resp;
                                 renderSubtitles();
-                                events.emit('subtitlesTrackLoaded', selecterdTrack);
+                                events.emit('extraSubtitlesTrackLoaded', selecterdTrack);
                             })
                             .catch(function(error) {
                                 if (selectedTrackId !== selecterdTrack.id) {
