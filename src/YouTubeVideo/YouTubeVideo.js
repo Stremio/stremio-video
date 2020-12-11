@@ -48,6 +48,8 @@ function YouTubeVideo(options) {
 
     var timeChangedIntervalId = window.setInterval(function() {
         onPropChanged('time');
+        onPropChanged('volume');
+        onPropChanged('muted');
     }, timeChangedTimeout);
 
     function onAPIError() {
