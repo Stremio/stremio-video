@@ -151,6 +151,7 @@ function YouTubeVideo(options) {
     }
     function onVideoAPIChange() {
         video.loadModule('captions');
+        video.setOption('captions', 'track', {});
         onPropChanged('paused');
         onPropChanged('time');
         onPropChanged('duration');
