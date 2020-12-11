@@ -15,6 +15,7 @@
     "dependencies": {
         "events": "1.1.1",
         "hls.js": "0.14.16",
+        "lodash.clonedeep": "4.5.0",
         "magnet-uri": "5.2.4",
         "url": "0.11.0",
         "video-name-parser": "1.4.6",
