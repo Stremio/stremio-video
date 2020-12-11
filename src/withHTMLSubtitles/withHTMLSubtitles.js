@@ -299,8 +299,10 @@ function withHTMLSubtitles(Video) {
                             .concat(commandArgs.tracks)
                             .filter(function(track, index, tracks) {
                                 return track &&
-                                    typeof track.url === 'string' && track.url.length > 0 &&
-                                    typeof track.id === 'string' && track.id.length > 0 &&
+                                    typeof track.id === 'string' &&
+                                    typeof track.url === 'string' &&
+                                    typeof track.lang === 'string' &&
+                                    typeof track.label === 'string' &&
                                     index === tracks.findIndex(function(t) { return t.id === track.id; });
                             });
                         onPropChanged('extraSubtitlesTracks');
