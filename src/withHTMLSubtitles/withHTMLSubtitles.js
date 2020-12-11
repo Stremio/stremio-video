@@ -87,7 +87,7 @@ function withHTMLSubtitles(Video) {
             switch (propName) {
                 case 'extraSubtitlesTracks': {
                     if (destroyed) {
-                        return null;
+                        return [];
                     }
 
                     return tracks.slice();
