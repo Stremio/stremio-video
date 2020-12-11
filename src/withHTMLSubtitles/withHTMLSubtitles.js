@@ -297,17 +297,11 @@ function withHTMLSubtitles(Video) {
                     if (commandArgs && Array.isArray(commandArgs.tracks)) {
                         tracks = tracks
                             .concat(commandArgs.tracks)
-                            .filter(function(track) {
+                            .filter(function(track, index, tracks) {
                                 return track &&
-                                    typeof track.url === 'string' &&
-                                    track.url.length > 0 &&
-                                    typeof track.lang === 'string' &&
-                                    track.lang.length > 0;
-                            })
-                            .map(function(track, index) {
-                                return Object.freeze(Object.assign({}, track, {
-                                    id: 'ext' + index
-                                }));
+                                    typeof track.url === 'string' && track.url.length > 0 &&
+                                    typeof track.id === 'string' && track.id.length > 0 &&
+                                    index === tracks.findIndex(function(t) { return t.id === track.id; });
                             });
                         onPropChanged('extraSubtitlesTracks');
                     }
