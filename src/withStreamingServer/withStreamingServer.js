@@ -14,11 +14,12 @@ function withStreamingServer(Video) {
         options = options || {};
 
         var video = new Video(options);
+        video.on('error', onError);
         video.on('propChanged', onPropEvent.bind(null, 'propChanged'));
         video.on('propValue', onPropEvent.bind(null, 'propValue'));
         Video.manifest.events
             .filter(function(eventName) {
-                return !['propChanged', 'propValue'].includes(eventName);
+                return !['error', 'propChanged', 'propValue'].includes(eventName);
             })
             .forEach(function(eventName) {
                 video.on(eventName, onOtherEvent(eventName));
