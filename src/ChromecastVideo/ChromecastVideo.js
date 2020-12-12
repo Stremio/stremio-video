@@ -56,12 +56,14 @@ function ChromecastVideo(options) {
         muted: false,
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false,
-        subtitlesDelay: false,
-        subtitlesSize: false,
-        subtitlesOffset: false,
-        subtitlesTextColor: false,
-        subtitlesBackgroundColor: false,
-        subtitlesShadowColor: false,
+        extraSubtitlesTracks: false,
+        selectedExtraSubtitlesTrackId: false,
+        extraSubtitlesDelay: false,
+        extraSubtitlesSize: false,
+        extraSubtitlesOffset: false,
+        extraSubtitlesTextColor: false,
+        extraSubtitlesBackgroundColor: false,
+        extraSubtitlesShadowColor: false
     };
 
     function onTransportError(error) {
@@ -119,12 +121,14 @@ function ChromecastVideo(options) {
                 onPropChanged('muted', null);
                 onPropChanged('subtitlesTracks', []);
                 onPropChanged('selectedSubtitlesTrackId', null);
-                onPropChanged('subtitlesDelay', null);
-                onPropChanged('subtitlesSize', null);
-                onPropChanged('subtitlesOffset', null);
-                onPropChanged('subtitlesTextColor', null);
-                onPropChanged('subtitlesBackgroundColor', null);
-                onPropChanged('subtitlesShadowColor', null);
+                onPropChanged('extraSubtitlesTracks', []);
+                onPropChanged('selectedExtraSubtitlesTrackId', null);
+                onPropChanged('extraSubtitlesDelay', null);
+                onPropChanged('extraSubtitlesSize', null);
+                onPropChanged('extraSubtitlesOffset', null);
+                onPropChanged('extraSubtitlesTextColor', null);
+                onPropChanged('extraSubtitlesBackgroundColor', null);
+                onPropChanged('extraSubtitlesShadowColor', null);
                 events.removeAllListeners();
                 events.on('error', function() { });
                 chromecastTransport.off('message', onMessage);
