@@ -304,8 +304,8 @@ function withStreamingServer(Video) {
                 throw new Error('Video is destroyed');
             }
 
-            action = deepFreeze(cloneDeep(action));
             if (action) {
+                action = deepFreeze(cloneDeep(action));
                 switch (action.type) {
                     case 'observeProp': {
                         if (observeProp(action.propName)) {

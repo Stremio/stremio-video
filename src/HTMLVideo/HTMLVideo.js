@@ -333,8 +333,8 @@ function HTMLVideo(options) {
             throw new Error('Video is destroyed');
         }
 
-        action = deepFreeze(cloneDeep(action));
         if (action) {
+            action = deepFreeze(cloneDeep(action));
             switch (action.type) {
                 case 'observeProp': {
                     observeProp(action.propName);
