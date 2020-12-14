@@ -71,7 +71,7 @@ function ChromecastSenderVideo(options) {
             return;
         }
 
-        events.emit('error', Object.assign({}, ERROR.CAST_SENDER_VIDEO.MESSAGE_SEND_FAILED, {
+        events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.MESSAGE_SEND_FAILED, {
             error: error
         }));
     }
@@ -80,7 +80,7 @@ function ChromecastSenderVideo(options) {
         try {
             parsedMessage = JSON.parse(message);
         } catch (error) {
-            events.emit('error', Object.assign({}, ERROR.CAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
+            events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
                 error: error,
                 data: message
             }));
@@ -88,7 +88,7 @@ function ChromecastSenderVideo(options) {
         }
 
         if (!parsedMessage || typeof parsedMessage.event !== 'string') {
-            events.emit('error', Object.assign({}, ERROR.CAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
+            events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
                 data: message
             }));
             return;

@@ -1,5 +1,5 @@
 var ERROR = {
-    CAST_SENDER_VIDEO: {
+    CHROMECAST_SENDER_VIDEO: {
         INVALID_MESSAGE_RECEIVED: {
             code: 100,
             message: 'Invalid message received'
