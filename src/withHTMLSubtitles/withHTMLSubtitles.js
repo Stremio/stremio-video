@@ -348,10 +348,11 @@ function withHTMLSubtitles(Video) {
                     onPropChanged('extraSubtitlesTextColor');
                     onPropChanged('extraSubtitlesBackgroundColor');
                     onPropChanged('extraSubtitlesShadowColor');
+                    video.dispatch({ type: 'command', commandName: 'destroy' });
                     events.removeAllListeners();
                     events.on('error', function() { });
                     containerElement.removeChild(subtitlesElement);
-                    return false;
+                    return true;
                 }
                 default: {
                     return false;

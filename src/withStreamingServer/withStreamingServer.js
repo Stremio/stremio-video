@@ -282,9 +282,10 @@ function withStreamingServer(Video) {
                 case 'destroy': {
                     command('unload');
                     destroyed = true;
+                    video.dispatch({ type: 'command', commandName: 'destroy' });
                     events.removeAllListeners();
                     events.on('error', function() { });
-                    return false;
+                    return true;
                 }
                 default: {
                     return false;
