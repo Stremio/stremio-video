@@ -67,10 +67,6 @@ function ChromecastSenderVideo(options) {
     };
 
     function onTransportError(error) {
-        if (destroyed) {
-            return;
-        }
-
         events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.MESSAGE_SEND_FAILED, {
             error: error
         }));
