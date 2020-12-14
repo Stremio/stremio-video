@@ -232,7 +232,12 @@ function withStreamingServer(Video) {
                                                     loadArgsExt: {
                                                         time: 0,
                                                         stream: {
-                                                            url: transcoder.url
+                                                            url: transcoder.url,
+                                                            behaviorHints: {
+                                                                headers: {
+                                                                    'content-type': 'application/vnd.apple.mpegurl'
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 };
