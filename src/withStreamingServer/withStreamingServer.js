@@ -342,6 +342,7 @@ function withStreamingServer(Video) {
 
     VideoWithStreamingServer.manifest = {
         name: Video.manifest.name + 'WithStreamingServer',
+        external: Video.manifest.external,
         props: Video.manifest.props.concat(['stream'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy'])
