@@ -1,7 +1,7 @@
 var EventEmitter = require('events');
 var ERROR = require('../error');
 
-function ChromecastVideo(options) {
+function ChromecastSenderVideo(options) {
     options = options || {};
 
     var containerElement = options.containerElement;
@@ -71,7 +71,7 @@ function ChromecastVideo(options) {
             return;
         }
 
-        events.emit('error', Object.assign({}, ERROR.CAST_VIDEO.MESSAGE_SEND_FAILED, {
+        events.emit('error', Object.assign({}, ERROR.CAST_SENDER_VIDEO.MESSAGE_SEND_FAILED, {
             error: error
         }));
     }
@@ -80,7 +80,7 @@ function ChromecastVideo(options) {
         try {
             parsedMessage = JSON.parse(message);
         } catch (error) {
-            events.emit('error', Object.assign({}, ERROR.CAST_VIDEO.INVALID_MESSAGE_RECEIVED, {
+            events.emit('error', Object.assign({}, ERROR.CAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
                 error: error,
                 data: message
             }));
@@ -88,7 +88,7 @@ function ChromecastVideo(options) {
         }
 
         if (!parsedMessage || typeof parsedMessage.event !== 'string') {
-            events.emit('error', Object.assign({}, ERROR.CAST_VIDEO.INVALID_MESSAGE_RECEIVED, {
+            events.emit('error', Object.assign({}, ERROR.CAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
                 data: message
             }));
             return;
@@ -173,15 +173,15 @@ function ChromecastVideo(options) {
     };
 }
 
-ChromecastVideo.canPlayStream = function() {
+ChromecastSenderVideo.canPlayStream = function() {
     return Promise.resolve(true);
 };
 
-ChromecastVideo.manifest = {
-    name: 'ChromecastVideo',
+ChromecastSenderVideo.manifest = {
+    name: 'ChromecastSenderVideo',
     props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesShadowColor'],
     commands: ['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'],
     events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded', 'extraSubtitlesTrackLoaded']
 };
 
-module.exports = ChromecastVideo;
+module.exports = ChromecastSenderVideo;

@@ -1,5 +1,5 @@
 var ERROR = {
-    CAST_VIDEO: {
+    CAST_SENDER_VIDEO: {
         INVALID_MESSAGE_RECEIVED: {
             code: 100,
             message: 'Invalid message received'
