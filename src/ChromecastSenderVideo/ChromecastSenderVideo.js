@@ -181,7 +181,8 @@ ChromecastSenderVideo.manifest = {
     name: 'ChromecastSenderVideo',
     props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesShadowColor'],
     commands: ['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'],
-    events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded', 'extraSubtitlesTrackLoaded']
+    events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded', 'extraSubtitlesTrackLoaded', 'implementationChanged'],
+    external: true,
 };
 
 module.exports = ChromecastSenderVideo;
