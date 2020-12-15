@@ -1,8 +1,15 @@
 var url = require('url');
 var ERROR = require('../error');
 
-function createTranscoder(streamingServerURL, mediaURL, time) {
-    return fetch(url.resolve(streamingServerURL, '/transcode/create') + '?' + new URLSearchParams([['url', mediaURL], ['time', time]]).toString())
+function createTranscoder(streamingServerURL, mediaURL, time, audioChannels) {
+    var queryParams = new URLSearchParams([
+        ['url', mediaURL],
+        ['time', time]
+    ]);
+    if (audioChannels !== null && isFinite(audioChannels)) {
+        queryParams.set('audioChannels', audioChannels);
+    }
+    return fetch(url.resolve(streamingServerURL, '/transcode/create') + '?' + queryParams.toString())
         .then(function(resp) {
             return resp.json();
         })

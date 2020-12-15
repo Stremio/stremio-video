@@ -225,7 +225,7 @@ function withStreamingServer(Video) {
                                         }
 
                                         var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0;
-                                        return createTranscoder(commandArgs.streamingServerURL, mediaURL, time)
+                                        return createTranscoder(commandArgs.streamingServerURL, mediaURL, time, commandArgs.audioChannels)
                                             .then(function(transcoder) {
                                                 return {
                                                     transcoder: transcoder,
