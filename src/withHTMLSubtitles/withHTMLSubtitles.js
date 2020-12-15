@@ -211,7 +211,6 @@ function withHTMLSubtitles(Video) {
                     if (selecterdTrack) {
                         selectedTrackId = selecterdTrack.id;
                         delay = 0;
-                        cuesByTime = null;
                         fetchSubtitles(selecterdTrack)
                             .then(function(resp) {
                                 if (selectedTrackId !== selecterdTrack.id) {
