@@ -325,7 +325,7 @@ function withHTMLSubtitles(Video) {
                                 return Object.assign({}, subtitles, {
                                     id: 'exclusive_' + index,
                                     label: typeof subtitles.label === 'string' ? subtitles.label : subtitles.lang,
-                                    origin: typeof subtitles.origin === 'string' ? subtitles.origin : 'EXCLUSIVE'
+                                    origin: 'EXCLUSIVE'
                                 });
                             })
                         });
