@@ -73,19 +73,15 @@ function withHTMLSubtitles(Video) {
             }
 
             subtitlesElement.style.bottom = offset + '%';
-            subtitlesRenderer.render(cuesByTime, videoState.time + delay)
-                .map(function(cueNode) {
-                    cueNode.style.display = 'inline-block';
-                    cueNode.style.padding = '0.2em';
-                    cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
-                    cueNode.style.color = textColor;
-                    cueNode.style.backgroundColor = backgroundColor;
-                    cueNode.style.textShadow = '1px 1px 0.1em ' + shadowColor;
-                    return cueNode;
-                })
-                .forEach(function(cueNode) {
-                    subtitlesElement.append(cueNode, document.createElement('br'));
-                });
+            subtitlesRenderer.render(cuesByTime, videoState.time + delay).forEach(function(cueNode) {
+                cueNode.style.display = 'inline-block';
+                cueNode.style.padding = '0.2em';
+                cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
+                cueNode.style.color = textColor;
+                cueNode.style.backgroundColor = backgroundColor;
+                cueNode.style.textShadow = '1px 1px 0.1em ' + shadowColor;
+                subtitlesElement.append(cueNode, document.createElement('br'));
+            });
         }
         function getProp(propName, videoPropValue) {
             switch (propName) {
