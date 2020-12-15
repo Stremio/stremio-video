@@ -11,7 +11,9 @@ function withHTMLSubtitles(Video) {
         var video = new Video(options);
 
         var containerElement = options.containerElement;
-        containerElement.style.position = 'relative';
+        if (!(containerElement instanceof HTMLElement)) {
+            throw new Error('Container element required to be instance of HTMLElement');
+        }
 
         var subtitlesElement = document.createElement('div');
         subtitlesElement.style.position = 'absolute';
@@ -20,6 +22,7 @@ function withHTMLSubtitles(Video) {
         subtitlesElement.style.left = '0';
         subtitlesElement.style.zIndex = '1';
         subtitlesElement.style.textAlign = 'center';
+        containerElement.style.position = 'relative';
         containerElement.appendChild(subtitlesElement);
 
         var events = new EventEmitter();
