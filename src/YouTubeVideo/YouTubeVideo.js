@@ -224,7 +224,8 @@ function YouTubeVideo(options) {
                             id: String(index),
                             lang: track.languageCode,
                             label: typeof track.displayName === 'string' ? track.displayName : track.languageCode,
-                            origin: 'EMBEDDED'
+                            origin: 'EMBEDDED',
+                            embedded: true
                         });
                     });
             }

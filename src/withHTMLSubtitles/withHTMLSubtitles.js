@@ -309,8 +309,8 @@ function withHTMLSubtitles(Video) {
                                     typeof track.lang === 'string' &&
                                     typeof track.label === 'string' &&
                                     typeof track.origin === 'string' &&
-                                    track.origin !== 'EMBEDDED' &&
-                                    track.origin !== 'EXCLUSIVE' &&
+                                    !track.embedded &&
+                                    !track.exclusive &&
                                     index === tracks.findIndex(function(t) { return t.id === track.id; });
                             });
                         onPropChanged('extraSubtitlesTracks');
@@ -322,10 +322,11 @@ function withHTMLSubtitles(Video) {
                     command('unload');
                     if (commandArgs.stream && Array.isArray(commandArgs.stream.subtitles)) {
                         command('addExtraSubtitlesTracks', {
-                            tracks: commandArgs.stream.subtitles.map(function(subtitles, index) {
+                            tracks: commandArgs.stream.subtitles.map(function(subtitles) {
                                 return Object.assign({}, subtitles, {
-                                    id: 'exclusive_' + index,
-                                    origin: 'EXCLUSIVE'
+                                    origin: 'EXCLUSIVE',
+                                    exclusive: true,
+                                    embedded: false
                                 });
                             })
                         });
