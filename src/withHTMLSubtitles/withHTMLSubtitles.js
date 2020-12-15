@@ -310,7 +310,6 @@ function withHTMLSubtitles(Video) {
                                     typeof track.label === 'string' &&
                                     typeof track.origin === 'string' &&
                                     !track.embedded &&
-                                    !track.exclusive &&
                                     index === tracks.findIndex(function(t) { return t.id === track.id; });
                             });
                         onPropChanged('extraSubtitlesTracks');
