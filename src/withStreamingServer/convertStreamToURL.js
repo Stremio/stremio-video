@@ -84,7 +84,13 @@ function convertStreamToURL(streamingServerURL, stream, seriesInfo) {
                 var parsedMagnetURI;
                 try {
                     parsedMagnetURI = magnet.decode(stream.url);
-                } catch (e) { }
+                } catch (error) {
+                    reject(Object.assign({}, ERROR.WITH_STREAMING_SERVER.STREAM_CONVERT_FAILED, {
+                        stream: stream,
+                        error: error
+                    }));
+                    return;
+                }
                 if (parsedMagnetURI && typeof parsedMagnetURI.infoHash === 'string') {
                     var sources = Array.isArray(parsedMagnetURI.announce) ?
                         parsedMagnetURI.announce.map(function(source) {
