@@ -28,7 +28,7 @@ function withHTMLSubtitles(Video) {
         var events = new EventEmitter();
         events.on('error', function() { });
 
-        video.on('error', onError);
+        video.on('error', onVideoError);
         video.on('propValue', onVideoPropEvent.bind(null, 'propValue'));
         video.on('propChanged', onVideoPropEvent.bind(null, 'propChanged'));
         Video.manifest.events
@@ -155,6 +155,12 @@ function withHTMLSubtitles(Video) {
             if (error.critical) {
                 command('unload');
                 video.dispatch({ type: 'command', commandName: 'unload' });
+            }
+        }
+        function onVideoError(error) {
+            events.emit('error', error);
+            if (error.critical) {
+                command('unload');
             }
         }
         function onVideoPropEvent(eventName, propName, propValue) {
