@@ -324,7 +324,6 @@ function withHTMLSubtitles(Video) {
                             tracks: commandArgs.stream.subtitles.map(function(subtitles, index) {
                                 return Object.assign({}, subtitles, {
                                     id: 'exclusive_' + index,
-                                    label: typeof subtitles.label === 'string' ? subtitles.label : subtitles.lang,
                                     origin: 'EXCLUSIVE'
                                 });
                             })
