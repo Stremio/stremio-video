@@ -63,13 +63,18 @@ function YouTubeVideo(options) {
             return;
         }
 
-        if (!YT) {
+        if (!YT || typeof YT.ready !== 'function') {
             onAPIError();
             return;
         }
 
         YT.ready(function() {
             if (destroyed) {
+                return;
+            }
+
+            if (!YT || !YT.PlayerState || typeof YT.Player !== 'function') {
+                onAPIError();
                 return;
             }
 
@@ -147,8 +152,12 @@ function YouTubeVideo(options) {
             return;
         }
 
-        video.loadModule('captions');
-        video.setOption('captions', 'track', {});
+        if (typeof video.loadModule === 'function') {
+            video.loadModule('captions');
+        }
+        if (typeof video.setOption === 'function') {
+            video.setOption('captions', 'track', {});
+        }
         onPropChanged('paused');
         onPropChanged('time');
         onPropChanged('duration');
@@ -350,12 +359,12 @@ function YouTubeVideo(options) {
                         onPropChanged('stream');
                         var autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                         var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
-                        if (autoplay) {
+                        if (autoplay && typeof video.loadVideoById === 'function') {
                             video.loadVideoById({
                                 videoId: commandArgs.stream.ytId,
                                 startSeconds: time
                             });
-                        } else {
+                        } else if (typeof video.cueVideoById === 'function') {
                             video.cueVideoById({
                                 videoId: commandArgs.stream.ytId,
                                 startSeconds: time
@@ -382,11 +391,11 @@ function YouTubeVideo(options) {
                 break;
             }
             case 'unload': {
-                stream = null;
                 pendingLoadArgs = null;
+                stream = null;
                 onPropChanged('stream');
                 selectedSubtitlesTrackId = null;
-                if (ready) {
+                if (ready && typeof video.stopVideo === 'function') {
                     video.stopVideo();
                 }
                 onPropChanged('paused');
@@ -404,7 +413,7 @@ function YouTubeVideo(options) {
                 destroyed = true;
                 events.removeAllListeners();
                 clearInterval(timeChangedIntervalId);
-                if (ready) {
+                if (ready && typeof video.destroy === 'function') {
                     video.destroy();
                 }
                 containerElement.removeChild(apiScriptElement);
