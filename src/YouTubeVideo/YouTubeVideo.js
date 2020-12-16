@@ -54,7 +54,7 @@ function YouTubeVideo(options) {
             return;
         }
 
-        onError(Object.extend({}, ERROR.YOUTUBE_VIDEO.API_LOAD_FAILED, {
+        onError(Object.assign({}, ERROR.YOUTUBE_VIDEO.API_LOAD_FAILED, {
             critical: true
         }));
     }
@@ -131,7 +131,7 @@ function YouTubeVideo(options) {
                 error = ERROR.UNKNOWN_ERROR;
             }
         }
-        onError(Object.extend({}, error, {
+        onError(Object.assign({}, error, {
             critical: true,
             error: videoError
         }));
