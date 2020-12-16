@@ -7,6 +7,7 @@ function YouTubeVideo(options) {
     options = options || {};
 
     var timeChangedTimeout = !isNaN(options.timeChangedTimeout) ? parseInt(options.timeChangedTimeout, 10) : 100;
+
     var containerElement = options.containerElement;
     if (!(containerElement instanceof HTMLElement)) {
         throw new Error('Container element required to be instance of HTMLElement');
@@ -18,20 +19,23 @@ function YouTubeVideo(options) {
     apiScriptElement.onload = onAPILoaded;
     apiScriptElement.onerror = onAPIError;
     containerElement.appendChild(apiScriptElement);
-
     var videoContainerElement = document.createElement('div');
     videoContainerElement.style.width = '100%';
     videoContainerElement.style.height = '100%';
     videoContainerElement.style.backgroundColor = 'black';
     containerElement.appendChild(videoContainerElement);
+    var timeChangedIntervalId = window.setInterval(function() {
+        onPropChanged('time');
+        onPropChanged('volume');
+        onPropChanged('muted');
+    }, timeChangedTimeout);
 
-    var events = new EventEmitter();
-
-    var destroyed = false;
-    var ready = false;
-    var stream = null;
     var video = null;
+    var ready = false;
     var pendingLoadArgs = null;
+    var events = new EventEmitter();
+    var destroyed = false;
+    var stream = null;
     var selectedSubtitlesTrackId = null;
     var observedProps = {
         stream: false,
@@ -44,12 +48,6 @@ function YouTubeVideo(options) {
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false
     };
-
-    var timeChangedIntervalId = window.setInterval(function() {
-        onPropChanged('time');
-        onPropChanged('volume');
-        onPropChanged('muted');
-    }, timeChangedTimeout);
 
     function onAPIError() {
         onError(Object.extend({}, ERROR.YOUTUBE_VIDEO.API_LOAD_FAILED, {
