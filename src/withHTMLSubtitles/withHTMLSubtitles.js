@@ -23,6 +23,7 @@ function withHTMLSubtitles(Video) {
         subtitlesElement.style.zIndex = '1';
         subtitlesElement.style.textAlign = 'center';
         containerElement.style.position = 'relative';
+        containerElement.style.zIndex = '0';
         containerElement.appendChild(subtitlesElement);
 
         var events = new EventEmitter();
