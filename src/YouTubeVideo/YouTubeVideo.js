@@ -224,7 +224,7 @@ function YouTubeVideo(options) {
                 return video.isMuted();
             }
             case 'subtitlesTracks': {
-                if (stream === null) {
+                if (stream === null || typeof video.getOption !== 'function') {
                     return [];
                 }
 
