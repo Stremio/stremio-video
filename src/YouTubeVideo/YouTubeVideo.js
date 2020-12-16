@@ -26,7 +26,6 @@ function YouTubeVideo(options) {
     containerElement.appendChild(videoContainerElement);
 
     var events = new EventEmitter();
-    events.on('error', function() { });
 
     var destroyed = false;
     var ready = false;
@@ -387,7 +386,6 @@ function YouTubeVideo(options) {
                 command('unload');
                 destroyed = true;
                 events.removeAllListeners();
-                events.on('error', function() { });
                 clearInterval(timeChangedIntervalId);
                 if (ready) {
                     video.destroy();

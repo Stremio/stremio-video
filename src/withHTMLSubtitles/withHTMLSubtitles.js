@@ -26,7 +26,6 @@ function withHTMLSubtitles(Video) {
         containerElement.appendChild(subtitlesElement);
 
         var events = new EventEmitter();
-        events.on('error', function() { });
 
         video.on('error', onVideoError);
         video.on('propValue', onVideoPropEvent.bind(null, 'propValue'));
@@ -354,7 +353,6 @@ function withHTMLSubtitles(Video) {
                     onPropChanged('extraSubtitlesShadowColor');
                     video.dispatch({ type: 'command', commandName: 'destroy' });
                     events.removeAllListeners();
-                    events.on('error', function() { });
                     containerElement.removeChild(subtitlesElement);
                     return true;
                 }

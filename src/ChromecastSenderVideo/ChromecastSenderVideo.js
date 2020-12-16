@@ -42,7 +42,6 @@ function ChromecastSenderVideo(options) {
     chromecastTransport.on('message', onMessage);
 
     var events = new EventEmitter();
-    events.on('error', function() { });
 
     var destroyed = false;
     var observedProps = {
@@ -126,7 +125,6 @@ function ChromecastSenderVideo(options) {
                 onPropChanged('extraSubtitlesBackgroundColor', null);
                 onPropChanged('extraSubtitlesShadowColor', null);
                 events.removeAllListeners();
-                events.on('error', function() { });
                 chromecastTransport.off('message', onMessage);
                 containerElement.removeChild(deviceNameContainerElement);
                 break;

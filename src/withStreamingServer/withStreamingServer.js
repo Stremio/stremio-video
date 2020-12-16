@@ -26,7 +26,6 @@ function withStreamingServer(Video) {
             });
 
         var events = new EventEmitter();
-        events.on('error', function() { });
 
         var destroyed = false;
         var observedProps = {
@@ -289,7 +288,6 @@ function withStreamingServer(Video) {
                     destroyed = true;
                     video.dispatch({ type: 'command', commandName: 'destroy' });
                     events.removeAllListeners();
-                    events.on('error', function() { });
                     return true;
                 }
                 default: {

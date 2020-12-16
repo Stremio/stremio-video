@@ -76,7 +76,6 @@ function HTMLVideo(options) {
     containerElement.appendChild(videoElement);
 
     var events = new EventEmitter();
-    events.on('error', function() { });
 
     var hls = null;
     var destroyed = false;
@@ -299,7 +298,6 @@ function HTMLVideo(options) {
                 onPropChanged('volume');
                 onPropChanged('muted');
                 events.removeAllListeners();
-                events.on('error', function() { });
                 videoElement.onerror = null;
                 videoElement.onended = null;
                 videoElement.onpause = null;

@@ -14,7 +14,6 @@ function StremioVideo(options) {
     var video = null;
 
     var events = new EventEmitter();
-    events.on('error', function() { });
 
     this.on = function(eventName, listener) {
         if (destroyed) {
@@ -78,7 +77,6 @@ function StremioVideo(options) {
             if (action.type === 'command' && action.commandName === 'destroy') {
                 destroyed = true;
                 events.removeAllListeners();
-                events.on('error', function() { });
             }
 
             return;
