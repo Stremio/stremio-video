@@ -38,11 +38,9 @@ function ChromecastSenderVideo(options) {
     deviceNameLabelElement.innerText = 'Casting to ' + device.friendlyName;
     deviceNameContainerElement.appendChild(deviceNameLabelElement);
     containerElement.appendChild(deviceNameContainerElement);
-
     chromecastTransport.on('message', onMessage);
 
     var events = new EventEmitter();
-
     var destroyed = false;
     var observedProps = {
         stream: false,
