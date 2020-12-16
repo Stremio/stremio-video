@@ -322,14 +322,16 @@ function YouTubeVideo(options) {
                         .find(function(track) {
                             return track.id === propValue;
                         });
-                    if (selecterdTrack) {
-                        selectedSubtitlesTrackId = selecterdTrack.id;
-                        video.setOption('captions', 'track', {
-                            languageCode: selecterdTrack.lang
-                        });
-                        events.emit('subtitlesTrackLoaded', selecterdTrack);
-                    } else {
-                        video.setOption('captions', 'track', {});
+                    if (typeof video.setOption === 'function') {
+                        if (selecterdTrack) {
+                            selectedSubtitlesTrackId = selecterdTrack.id;
+                            video.setOption('captions', 'track', {
+                                languageCode: selecterdTrack.lang
+                            });
+                            events.emit('subtitlesTrackLoaded', selecterdTrack);
+                        } else {
+                            video.setOption('captions', 'track', {});
+                        }
                     }
                     onPropChanged('selectedSubtitlesTrackId');
                 }
