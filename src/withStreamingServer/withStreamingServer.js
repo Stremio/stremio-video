@@ -14,7 +14,7 @@ function withStreamingServer(Video) {
         options = options || {};
 
         var video = new Video(options);
-        video.on('error', onError);
+        video.on('error', onVideoError);
         video.on('propChanged', onPropEvent.bind(null, 'propChanged'));
         video.on('propValue', onPropEvent.bind(null, 'propValue'));
         Video.manifest.events
@@ -87,6 +87,12 @@ function withStreamingServer(Video) {
                         error: error
                     }));
                 });
+        }
+        function onVideoError(error) {
+            events.emit('error', error);
+            if (error.critical) {
+                command('unload');
+            }
         }
         function onPropEvent(eventName, propName, propValue) {
             switch (propName) {
