@@ -92,8 +92,8 @@ function YouTubeVideo(options) {
                 events: {
                     onError: onVideoError,
                     onReady: onVideoReady,
-                    onStateChange: onVideoStateChange,
-                    onApiChange: onVideoAPIChange
+                    onApiChange: onVideoAPIChange,
+                    onStateChange: onVideoStateChange
                 }
             });
         });
@@ -132,11 +132,31 @@ function YouTubeVideo(options) {
         }));
     }
     function onVideoReady() {
+        if (destroyed) {
+            return;
+        }
+
         ready = true;
         if (pendingLoadArgs !== null) {
             command('load', pendingLoadArgs);
             pendingLoadArgs = null;
         }
+    }
+    function onVideoAPIChange() {
+        if (destroyed) {
+            return;
+        }
+
+        video.loadModule('captions');
+        video.setOption('captions', 'track', {});
+        onPropChanged('paused');
+        onPropChanged('time');
+        onPropChanged('duration');
+        onPropChanged('buffering');
+        onPropChanged('volume');
+        onPropChanged('muted');
+        onPropChanged('subtitlesTracks');
+        onPropChanged('selectedSubtitlesTrackId');
     }
     function onVideoStateChange(state) {
         onPropChanged('buffering');
@@ -155,18 +175,6 @@ function YouTubeVideo(options) {
                 break;
             }
         }
-    }
-    function onVideoAPIChange() {
-        video.loadModule('captions');
-        video.setOption('captions', 'track', {});
-        onPropChanged('paused');
-        onPropChanged('time');
-        onPropChanged('duration');
-        onPropChanged('buffering');
-        onPropChanged('volume');
-        onPropChanged('muted');
-        onPropChanged('subtitlesTracks');
-        onPropChanged('selectedSubtitlesTrackId');
     }
     function getProp(propName) {
         switch (propName) {
