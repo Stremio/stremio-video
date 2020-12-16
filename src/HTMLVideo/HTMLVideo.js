@@ -1,4 +1,4 @@
-var EventEmitter = require('events');
+var EventEmitter = require('eventemitter3');
 var Hls = require('hls.js');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');

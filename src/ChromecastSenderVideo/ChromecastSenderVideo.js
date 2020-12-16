@@ -1,4 +1,4 @@
-var EventEmitter = require('events');
+var EventEmitter = require('eventemitter3');
 var ERROR = require('../error');
 
 function ChromecastSenderVideo(options) {

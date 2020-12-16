@@ -1,4 +1,4 @@
-var EventEmitter = require('events');
+var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var convertStreamToURL = require('./convertStreamToURL');
