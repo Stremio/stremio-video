@@ -200,9 +200,9 @@ function withHTMLSubtitles(Video) {
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'selectedExtraSubtitlesTrackId': {
+                    cuesByTime = null;
                     selectedTrackId = null;
                     delay = null;
-                    cuesByTime = null;
                     var selecterdTrack = tracks.find(function(track) {
                         return track.id === propValue;
                     });
@@ -229,7 +229,6 @@ function withHTMLSubtitles(Video) {
                                 }));
                             });
                     }
-
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
                     onPropChanged('extraSubtitlesDelay');
