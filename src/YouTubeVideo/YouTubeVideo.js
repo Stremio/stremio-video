@@ -352,9 +352,9 @@ function YouTubeVideo(options) {
     function command(commandName, commandArgs) {
         switch (commandName) {
             case 'load': {
-                if (ready) {
-                    command('unload');
-                    if (commandArgs && commandArgs.stream && typeof commandArgs.stream.ytId === 'string') {
+                command('unload');
+                if (commandArgs && commandArgs.stream && typeof commandArgs.stream.ytId === 'string') {
+                    if (ready) {
                         stream = commandArgs.stream;
                         onPropChanged('stream');
                         var autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
@@ -379,13 +379,13 @@ function YouTubeVideo(options) {
                         onPropChanged('subtitlesTracks');
                         onPropChanged('selectedSubtitlesTrackId');
                     } else {
-                        onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
-                            critical: true,
-                            stream: commandArgs ? commandArgs.stream : null
-                        }));
+                        pendingLoadArgs = commandArgs;
                     }
                 } else {
-                    pendingLoadArgs = commandArgs;
+                    onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                        critical: true,
+                        stream: commandArgs ? commandArgs.stream : null
+                    }));
                 }
 
                 break;
