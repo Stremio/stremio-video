@@ -36,10 +36,10 @@ function withHTMLSubtitles(Video) {
         containerElement.style.zIndex = '0';
         containerElement.appendChild(subtitlesElement);
 
-        var cuesByTime = null;
         var videoState = {
             time: null
         };
+        var cuesByTime = null;
         var events = new EventEmitter();
         var destroyed = false;
         var tracks = [];
