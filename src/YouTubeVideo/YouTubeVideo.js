@@ -373,6 +373,7 @@ function YouTubeVideo(options) {
             }
             case 'unload': {
                 stream = null;
+                pendingLoadArgs = null;
                 onPropChanged('stream');
                 selectedSubtitlesTrackId = null;
                 if (ready) {
