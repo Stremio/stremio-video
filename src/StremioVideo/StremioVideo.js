@@ -10,10 +10,9 @@ function StremioVideo(options) {
         throw new Error('selectVideoImplementation argument required');
     }
 
-    var destroyed = false;
     var video = null;
-
     var events = new EventEmitter();
+    var destroyed = false;
 
     this.on = function(eventName, listener) {
         if (destroyed) {
