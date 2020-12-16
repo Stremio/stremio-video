@@ -25,12 +25,6 @@ function withStreamingServer(Video) {
                 video.on(eventName, onOtherEvent(eventName));
             });
 
-        var events = new EventEmitter();
-
-        var destroyed = false;
-        var observedProps = {
-            stream: false
-        };
         var videoState = {
             time: null,
             duration: null
@@ -38,8 +32,13 @@ function withStreamingServer(Video) {
         var loadArgs = null;
         var transcoder = null;
         var transcodingNextSegment = false;
-        var lastStarvationDuration = null;
         var starvationHandlerTimeoutId = null;
+        var lastStarvationDuration = null;
+        var events = new EventEmitter();
+        var destroyed = false;
+        var observedProps = {
+            stream: false
+        };
 
         function isStarving() {
             return transcoder !== null &&
@@ -278,8 +277,8 @@ function withStreamingServer(Video) {
                     loadArgs = null;
                     transcoder = null;
                     transcodingNextSegment = false;
-                    lastStarvationDuration = null;
                     starvationHandlerTimeoutId = null;
+                    lastStarvationDuration = null;
                     onPropChanged('stream');
                     return false;
                 }
