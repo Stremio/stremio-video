@@ -154,6 +154,10 @@ function HTMLVideo(options) {
         }
     }
     function onVideoError() {
+        if (stream === null) {
+            return;
+        }
+
         var error;
         switch (videoElement.error.code) {
             case 1: {
