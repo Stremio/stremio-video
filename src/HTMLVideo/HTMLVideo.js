@@ -75,9 +75,8 @@ function HTMLVideo(options) {
     };
     containerElement.appendChild(videoElement);
 
-    var events = new EventEmitter();
-
     var hls = null;
+    var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
     var observedProps = {
