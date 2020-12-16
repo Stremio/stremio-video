@@ -50,6 +50,10 @@ function YouTubeVideo(options) {
     };
 
     function onAPIError() {
+        if (destroyed) {
+            return;
+        }
+
         onError(Object.extend({}, ERROR.YOUTUBE_VIDEO.API_LOAD_FAILED, {
             critical: true
         }));
@@ -95,6 +99,10 @@ function YouTubeVideo(options) {
         });
     }
     function onVideoError(videoError) {
+        if (destroyed) {
+            return;
+        }
+
         var error;
         switch (videoError.data) {
             case 2: {
