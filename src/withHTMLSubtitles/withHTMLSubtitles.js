@@ -9,6 +9,16 @@ function withHTMLSubtitles(Video) {
         options = options || {};
 
         var video = new Video(options);
+        video.on('error', onVideoError);
+        video.on('propValue', onVideoPropEvent.bind(null, 'propValue'));
+        video.on('propChanged', onVideoPropEvent.bind(null, 'propChanged'));
+        Video.manifest.events
+            .filter(function(eventName) {
+                return !['error', 'propChanged', 'propValue'].includes(eventName);
+            })
+            .forEach(function(eventName) {
+                video.on(eventName, onVideoOtherEvent(eventName));
+            });
 
         var containerElement = options.containerElement;
         if (!(containerElement instanceof HTMLElement)) {
@@ -26,24 +36,12 @@ function withHTMLSubtitles(Video) {
         containerElement.style.zIndex = '0';
         containerElement.appendChild(subtitlesElement);
 
-        var events = new EventEmitter();
-
-        video.on('error', onVideoError);
-        video.on('propValue', onVideoPropEvent.bind(null, 'propValue'));
-        video.on('propChanged', onVideoPropEvent.bind(null, 'propChanged'));
-        Video.manifest.events
-            .filter(function(eventName) {
-                return !['error', 'propChanged', 'propValue'].includes(eventName);
-            })
-            .forEach(function(eventName) {
-                video.on(eventName, onVideoOtherEvent(eventName));
-            });
-
-        var destroyed = false;
+        var cuesByTime = null;
         var videoState = {
             time: null
         };
-        var cuesByTime = null;
+        var events = new EventEmitter();
+        var destroyed = false;
         var tracks = [];
         var selectedTrackId = null;
         var delay = null;
