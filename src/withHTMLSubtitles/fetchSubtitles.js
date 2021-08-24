@@ -13,14 +13,13 @@ function fetchSubtitles(track) {
             });
         })
         .then(function(text) {
-            var cuesByTime = subtitlesParser.parse(text);
-            if (cuesByTime.times.length === 0) {
-                throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.PARSE_FAILED, {
-                    track: track
-                });
-            }
-
-            return cuesByTime;
+            return subtitlesParser.parse(text);
+        })
+        .catch(function(error) {
+            throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.PARSE_FAILED, {
+                track: track,
+                error: error
+            });
         });
 }
 
