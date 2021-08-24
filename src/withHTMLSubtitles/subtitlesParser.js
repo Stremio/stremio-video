@@ -66,7 +66,7 @@ function parse(text) {
         };
 
         parser.parse(text);
-    })
+    });
 }
 
 module.exports = {
