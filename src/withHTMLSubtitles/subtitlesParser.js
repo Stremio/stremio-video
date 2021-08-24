@@ -22,10 +22,8 @@ function parse(text) {
         parser.onparsingerror = function(error) {
             if (error.code === 0) // fatal
                 reject(error);
-            else { // not fatal
-                console.warn('Subtitle parsing warning:', error.message);
+            else // not fatal
                 errors.push(error);
-            }
         };
 
         parser.onflush = function() {
