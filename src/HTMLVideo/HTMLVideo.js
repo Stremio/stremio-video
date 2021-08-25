@@ -3,6 +3,7 @@ var Hls = require('hls.js');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
+var HLS_CONFIG = require('./hlsConfig');
 
 function HTMLVideo(options) {
     options = options || {};
@@ -256,7 +257,7 @@ function HTMLVideo(options) {
                             }
 
                             if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
-                                hls = new Hls();
+                                hls = new Hls(HLS_CONFIG);
                                 hls.loadSource(stream.url);
                                 hls.attachMedia(videoElement);
                             } else {
