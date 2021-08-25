@@ -84,6 +84,12 @@ function convertStreamToURL(streamingServerURL, stream, seriesInfo) {
                 var parsedMagnetURI;
                 try {
                     parsedMagnetURI = magnet.decode(stream.url);
+                    if (!parsedMagnetURI || typeof parsedMagnetURI.infoHash !== 'string') {
+                        reject(Object.assign({}, ERROR.WITH_STREAMING_SERVER.STREAM_CONVERT_FAILED, {
+                            stream: stream
+                        }));
+                        return;
+                    }
                 } catch (error) {
                     reject(Object.assign({}, ERROR.WITH_STREAMING_SERVER.STREAM_CONVERT_FAILED, {
                         stream: stream,
@@ -91,34 +97,32 @@ function convertStreamToURL(streamingServerURL, stream, seriesInfo) {
                     }));
                     return;
                 }
-                if (parsedMagnetURI && typeof parsedMagnetURI.infoHash === 'string') {
-                    var sources = Array.isArray(parsedMagnetURI.announce) ?
-                        parsedMagnetURI.announce.map(function(source) {
-                            return 'tracker:' + source;
-                        })
-                        :
-                        [];
-                    inferTorrentFileIdx(streamingServerURL, parsedMagnetURI.infoHash, sources, seriesInfo)
-                        .then(function(fileIdx) {
-                            resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
-                        })
-                        .catch(function(error) {
-                            reject(Object.assign({}, error, {
-                                stream: stream
-                            }));
-                        });
-                    return;
-                }
+
+                var sources = Array.isArray(parsedMagnetURI.announce) ?
+                    parsedMagnetURI.announce.map(function(source) {
+                        return 'tracker:' + source;
+                    })
+                    :
+                    [];
+                inferTorrentFileIdx(streamingServerURL, parsedMagnetURI.infoHash, sources, seriesInfo)
+                    .then(function(fileIdx) {
+                        resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
+                    })
+                    .catch(function(error) {
+                        reject(Object.assign({}, error, {
+                            stream: stream
+                        }));
+                    });
             } else {
                 resolve(stream.url);
-                return;
             }
+
+            return;
         }
 
         if (typeof stream.infoHash === 'string') {
             if (stream.fileIdx !== null && isFinite(stream.fileIdx)) {
                 resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(stream.fileIdx)));
-                return;
             } else {
                 inferTorrentFileIdx(streamingServerURL, stream.infoHash, stream.announce, seriesInfo)
                     .then(function(fileIdx) {
@@ -129,8 +133,9 @@ function convertStreamToURL(streamingServerURL, stream, seriesInfo) {
                             stream: stream
                         }));
                     });
-                return;
             }
+
+            return;
         }
 
         reject(Object.assign({}, ERROR.WITH_STREAMING_SERVER.STREAM_CONVERT_FAILED, {

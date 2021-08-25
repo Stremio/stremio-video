@@ -64,20 +64,12 @@ var ERROR = {
             code: 60,
             message: 'Unable to convert stream to url',
         },
-        TRANSCODING_FAILED: {
-            code: 61,
-            message: 'Unable to transcode the next segment of the stream',
-        },
-        TRANSCODER_CREATE_FAILED: {
-            code: 62,
-            message: 'Failed to create transcoder'
-        },
         TORRENT_CREATE_FAILED: {
-            code: 63,
+            code: 61,
             message: 'Failed to create torrent'
         },
         NO_MEDIA_FILES_FOUND: {
-            code: 64,
+            code: 62,
             message: 'No media files found into the torrent'
         },
     },
