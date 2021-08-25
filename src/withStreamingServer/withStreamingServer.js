@@ -90,8 +90,7 @@ function withStreamingServer(Video) {
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: mediaURL }))
                                     .catch(function(error) {
                                         throw Object.assign({}, ERROR.UNKNOWN_ERROR, {
-                                            error: error,
-                                            stream: commandArgs.stream
+                                            error: error
                                         });
                                     })
                                     .then(function(canPlay) {
@@ -145,7 +144,8 @@ function withStreamingServer(Video) {
                     } else {
                         onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                             critical: true,
-                            stream: commandArgs ? commandArgs.stream : null
+                            stream: commandArgs ? commandArgs.stream : null,
+                            streamingServerURL: commandArgs && typeof commandArgs.streamingServerURL === 'string' ? commandArgs.streamingServerURL : null
                         }));
                     }
 

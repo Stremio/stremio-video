@@ -63,10 +63,6 @@ var ERROR = {
         STREAM_CONVERT_FAILED: {
             code: 60,
             message: 'Unable to convert stream to url',
-        },
-        TORRENT_CREATE_FAILED: {
-            code: 61,
-            message: 'Failed to create torrent'
         }
     },
     UNKNOWN_ERROR: {
