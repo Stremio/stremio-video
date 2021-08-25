@@ -1,6 +1,8 @@
 var VTTJS = require('vtt.js');
 var binarySearchUpperBound = require('./binarySearchUpperBound');
 
+var CRITICAL_ERROR_CODE = 0;
+
 function parse(text) {
     return new Promise(function(resolve, reject) {
         var parser = new VTTJS.WebVTT.Parser(window, VTTJS.WebVTT.StringDecoder());
@@ -20,10 +22,12 @@ function parse(text) {
         };
 
         parser.onparsingerror = function(error) {
-            if (error.code === 0) // fatal
+            if (error.code === CRITICAL_ERROR_CODE) {
                 reject(error);
-            else // not fatal
+            } else {
+                console.warn('Subtitles parsing error', error);
                 errors.push(error);
+            }
         };
 
         parser.onflush = function() {
