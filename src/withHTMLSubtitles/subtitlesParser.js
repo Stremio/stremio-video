@@ -25,7 +25,7 @@ function parse(text) {
             if (error.code === CRITICAL_ERROR_CODE) {
                 reject(error);
             } else {
-                console.warn(error);
+                console.warn('Subtitles parsing error', error);
                 errors.push(error);
             }
         };
