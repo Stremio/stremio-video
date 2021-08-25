@@ -43,10 +43,11 @@ function inferTorrentFileIdx(streamingServerURL, infoHash, sources, seriesInfo) 
             return file.path.match(MEDIA_FILE_EXTENTIONS);
         });
         if (mediaFiles.length === 0) {
-            throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.NO_MEDIA_FILES_FOUND, {
+            throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.TORRENT_CREATE_FAILED, {
                 infoHash: infoHash,
                 sources: sources,
-                files: resp.files
+                files: resp.files,
+                error: new Error('No media files')
             });
         }
 

@@ -67,11 +67,7 @@ var ERROR = {
         TORRENT_CREATE_FAILED: {
             code: 61,
             message: 'Failed to create torrent'
-        },
-        NO_MEDIA_FILES_FOUND: {
-            code: 62,
-            message: 'No media files found into the torrent'
-        },
+        }
     },
     UNKNOWN_ERROR: {
         code: 1,
