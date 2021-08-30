@@ -15,7 +15,7 @@ function withHTMLSubtitles(Video) {
         video.on('propChanged', onVideoPropEvent.bind(null, 'propChanged'));
         Video.manifest.events
             .filter(function(eventName) {
-                return !['error', 'propChanged', 'propValue'].includes(eventName);
+                return !['error', 'propValue', 'propChanged'].includes(eventName);
             })
             .forEach(function(eventName) {
                 video.on(eventName, onVideoOtherEvent(eventName));
