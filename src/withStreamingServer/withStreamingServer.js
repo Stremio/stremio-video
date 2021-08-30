@@ -216,7 +216,7 @@ function withStreamingServer(Video) {
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        events: Video.manifest.events.concat(['error'])
+        events: Video.manifest.events.concat(['propValue', 'propChanged', 'error'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };
 

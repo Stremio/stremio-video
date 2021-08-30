@@ -466,7 +466,7 @@ YouTubeVideo.manifest = {
     external: false,
     props: ['stream', 'paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId'],
     commands: ['load', 'unload', 'destroy'],
-    events: ['propChanged', 'propValue', 'ended', 'error', 'subtitlesTrackLoaded']
+    events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded']
 };
 
 module.exports = YouTubeVideo;

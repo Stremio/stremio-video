@@ -18,7 +18,7 @@ function withHTMLSubtitles(Video) {
                 return !['error', 'propValue', 'propChanged'].includes(eventName);
             })
             .forEach(function(eventName) {
-                video.on(eventName, onVideoOtherEvent(eventName));
+                video.on(eventName, onOtherVideoEvent(eventName));
             });
 
         var containerElement = options.containerElement;
@@ -81,6 +81,40 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.textShadow = '1px 1px 0.1em ' + shadowColor;
                 subtitlesElement.append(cueNode, document.createElement('br'));
             });
+        }
+        function onVideoError(error) {
+            events.emit('error', error);
+            if (error.critical) {
+                command('unload');
+            }
+        }
+        function onVideoPropEvent(eventName, propName, propValue) {
+            switch (propName) {
+                case 'time': {
+                    videoState.time = propValue;
+                    renderSubtitles();
+                    break;
+                }
+            }
+
+            events.emit(eventName, propName, getProp(propName, propValue));
+        }
+        function onOtherVideoEvent(eventName) {
+            return function() {
+                events.emit.apply(events, [eventName].concat(Array.from(arguments)));
+            };
+        }
+        function onPropChanged(propName) {
+            if (observedProps[propName]) {
+                events.emit('propChanged', propName, getProp(propName, null));
+            }
+        }
+        function onError(error) {
+            events.emit('error', error);
+            if (error.critical) {
+                command('unload');
+                video.dispatch({ type: 'command', commandName: 'unload' });
+            }
         }
         function getProp(propName, videoPropValue) {
             switch (propName) {
@@ -145,40 +179,6 @@ function withHTMLSubtitles(Video) {
                 }
             }
         }
-        function onError(error) {
-            events.emit('error', error);
-            if (error.critical) {
-                command('unload');
-                video.dispatch({ type: 'command', commandName: 'unload' });
-            }
-        }
-        function onVideoError(error) {
-            events.emit('error', error);
-            if (error.critical) {
-                command('unload');
-            }
-        }
-        function onVideoPropEvent(eventName, propName, propValue) {
-            switch (propName) {
-                case 'time': {
-                    videoState.time = propValue;
-                    renderSubtitles();
-                    break;
-                }
-            }
-
-            events.emit(eventName, propName, getProp(propName, propValue));
-        }
-        function onVideoOtherEvent(eventName) {
-            return function() {
-                events.emit.apply(events, [eventName].concat(Array.from(arguments)));
-            };
-        }
-        function onPropChanged(propName) {
-            if (observedProps[propName]) {
-                events.emit('propChanged', propName, getProp(propName));
-            }
-        }
         function observeProp(propName) {
             switch (propName) {
                 case 'extraSubtitlesTracks':
@@ -189,7 +189,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesTextColor':
                 case 'extraSubtitlesBackgroundColor':
                 case 'extraSubtitlesShadowColor': {
-                    events.emit('propValue', propName, getProp(propName));
+                    events.emit('propValue', propName, getProp(propName, null));
                     observedProps[propName] = true;
                     return true;
                 }
@@ -430,7 +430,7 @@ function withHTMLSubtitles(Video) {
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        events: Video.manifest.events.concat(['propChanged', 'propValue', 'error', 'extraSubtitlesTrackLoaded'])
+        events: Video.manifest.events.concat(['propValue', 'propChanged', 'error', 'extraSubtitlesTrackLoaded'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };
 
