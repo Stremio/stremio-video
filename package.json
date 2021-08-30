@@ -21,7 +21,7 @@
         "magnet-uri": "5.2.4",
         "url": "0.11.0",
         "video-name-parser": "1.4.6",
-        "vtt.js": "0.13.0"
+        "vtt.js": "git://github.com/jaruba/vtt.js.git#e4f5f5603730866bacb174a93f51b734c9f29e6a"
     },
     "devDependencies": {
         "eslint": "7.6.0"
