@@ -23,6 +23,9 @@ function parse(text) {
 
         parser.onparsingerror = function(error) {
             if (error.code === CRITICAL_ERROR_CODE) {
+                parser.oncue = null;
+                parser.onparsingerror = null;
+                parser.onflush = null;
                 reject(error);
             } else {
                 console.warn('Subtitles parsing error', error);
@@ -57,6 +60,9 @@ function parse(text) {
                 });
             }
 
+            parser.oncue = null;
+            parser.onparsingerror = null;
+            parser.onflush = null;
             // we may have multiple parsing errors here, but will only respond with the first
             // if subtitle cues are available, we will not reject the promise
             if (cues.length === 0 && errors.length) {
