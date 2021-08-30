@@ -62,7 +62,7 @@ function parse(text) {
             if (cues.length === 0 && errors.length)
                 reject(errors[0]);
             else if (cuesByTime.times.length === 0)
-                reject(Error('Missing subtitle track cues'));
+                reject(new Error('Missing subtitle track cues'));
             else
                 resolve(cuesByTime);
         };
