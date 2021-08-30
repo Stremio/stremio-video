@@ -1,8 +1,9 @@
 var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
+var ERROR = require('../error');
+var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
-var fetchSubtitles = require('./fetchSubtitles');
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
@@ -209,13 +210,27 @@ function withHTMLSubtitles(Video) {
                     if (selecterdTrack) {
                         selectedTrackId = selecterdTrack.id;
                         delay = 0;
-                        fetchSubtitles(selecterdTrack)
+                        fetch(selecterdTrack.url)
                             .then(function(resp) {
+                                return resp.text().catch(function(error) {
+                                    throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.FETCH_FAILED, {
+                                        error: error
+                                    });
+                                });
+                            })
+                            .then(function(text) {
+                                return subtitlesParser.parse(text).catch(function(error) {
+                                    throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.PARSE_FAILED, {
+                                        error: error
+                                    });
+                                });
+                            })
+                            .then(function(result) {
                                 if (selectedTrackId !== selecterdTrack.id) {
                                     return;
                                 }
 
-                                cuesByTime = resp;
+                                cuesByTime = result;
                                 renderSubtitles();
                                 events.emit('extraSubtitlesTrackLoaded', selecterdTrack);
                             })
@@ -225,7 +240,8 @@ function withHTMLSubtitles(Video) {
                                 }
 
                                 onError(Object.assign({}, error, {
-                                    critical: false
+                                    critical: false,
+                                    track: selecterdTrack
                                 }));
                             });
                     }
