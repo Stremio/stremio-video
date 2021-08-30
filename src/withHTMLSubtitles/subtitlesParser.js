@@ -59,12 +59,13 @@ function parse(text) {
 
             // we may have multiple parsing errors here, but will only respond with the first
             // if subtitle cues are available, we will not reject the promise
-            if (cues.length === 0 && errors.length)
+            if (cues.length === 0 && errors.length) {
                 reject(errors[0]);
-            else if (cuesByTime.times.length === 0)
+            } else if (cuesByTime.times.length === 0) {
                 reject(new Error('Missing subtitle track cues'));
-            else
+            } else {
                 resolve(cuesByTime);
+            }
         };
 
         parser.parse(text);
