@@ -204,13 +204,13 @@ function withHTMLSubtitles(Video) {
                     cuesByTime = null;
                     selectedTrackId = null;
                     delay = null;
-                    var selecterdTrack = tracks.find(function(track) {
+                    var selectedTrack = tracks.find(function(track) {
                         return track.id === propValue;
                     });
-                    if (selecterdTrack) {
-                        selectedTrackId = selecterdTrack.id;
+                    if (selectedTrack) {
+                        selectedTrackId = selectedTrack.id;
                         delay = 0;
-                        fetch(selecterdTrack.url)
+                        fetch(selectedTrack.url)
                             .then(function(resp) {
                                 return resp.text().catch(function(error) {
                                     throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.FETCH_FAILED, {
@@ -226,22 +226,22 @@ function withHTMLSubtitles(Video) {
                                 });
                             })
                             .then(function(result) {
-                                if (selectedTrackId !== selecterdTrack.id) {
+                                if (selectedTrackId !== selectedTrack.id) {
                                     return;
                                 }
 
                                 cuesByTime = result;
                                 renderSubtitles();
-                                events.emit('extraSubtitlesTrackLoaded', selecterdTrack);
+                                events.emit('extraSubtitlesTrackLoaded', selectedTrack);
                             })
                             .catch(function(error) {
-                                if (selectedTrackId !== selecterdTrack.id) {
+                                if (selectedTrackId !== selectedTrack.id) {
                                     return;
                                 }
 
                                 onError(Object.assign({}, error, {
                                     critical: false,
-                                    track: selecterdTrack
+                                    track: selectedTrack
                                 }));
                             });
                     }
