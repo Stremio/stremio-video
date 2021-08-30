@@ -68,6 +68,7 @@
         ],
         "semi": "error",
         "semi-spacing": "error",
+        "curly": ["error", "multi-line"],
         "space-before-blocks": "error",
         "valid-typeof": [
             "error",
