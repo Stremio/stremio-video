@@ -88,6 +88,7 @@ function withStreamingServer(Video) {
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
                             .then(function(mediaURL) {
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: mediaURL }))
+                                    .catch(function() { return false; })
                                     .then(function(canPlay) {
                                         if (canPlay) {
                                             return {
