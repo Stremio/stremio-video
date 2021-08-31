@@ -26,7 +26,7 @@ function convertStream(streamingServerURL, stream, seriesInfo) {
                     [];
                 inferTorrentFileIdx(streamingServerURL, parsedMagnetURI.infoHash, sources, seriesInfo)
                     .then(function(fileIdx) {
-                        resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
+                        resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(parsedMagnetURI.infoHash) + '/' + encodeURIComponent(fileIdx)));
                     })
                     .catch(function(error) {
                         reject(error);
