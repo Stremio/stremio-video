@@ -50,13 +50,9 @@ var ERROR = {
         }
     },
     WITH_HTML_SUBTITLES: {
-        FETCH_FAILED: {
+        LOAD_FAILED: {
             code: 70,
-            message: 'Failed to fetch subtitles'
-        },
-        PARSE_FAILED: {
-            code: 71,
-            message: 'Failed to parse subtitles'
+            message: 'Failed to load external subtitles'
         }
     },
     WITH_STREAMING_SERVER: {

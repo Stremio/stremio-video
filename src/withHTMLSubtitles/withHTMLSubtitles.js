@@ -218,18 +218,10 @@ function withHTMLSubtitles(Video) {
                             selectedTrack.url;
                         fetch(selectedTrackUrl)
                             .then(function(resp) {
-                                return resp.text().catch(function(error) {
-                                    throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.FETCH_FAILED, {
-                                        error: error
-                                    });
-                                });
+                                return resp.text();
                             })
                             .then(function(text) {
-                                return subtitlesParser.parse(text).catch(function(error) {
-                                    throw Object.assign({}, ERROR.WITH_HTML_SUBTITLES.PARSE_FAILED, {
-                                        error: error
-                                    });
-                                });
+                                return subtitlesParser.parse(text);
                             })
                             .then(function(result) {
                                 if (selectedTrackId !== selectedTrack.id) {
@@ -245,9 +237,10 @@ function withHTMLSubtitles(Video) {
                                     return;
                                 }
 
-                                onError(Object.assign({}, error, {
-                                    critical: false,
-                                    track: selectedTrack
+                                onError(Object.assign({}, ERROR.WITH_HTML_SUBTITLES.LOAD_FAILED, {
+                                    error: error,
+                                    track: selectedTrack,
+                                    critical: false
                                 }));
                             });
                     }
