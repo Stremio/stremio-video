@@ -63,9 +63,10 @@ function ChromecastSenderVideo(options) {
         extraSubtitlesShadowColor: false
     };
 
-    function onTransportError(error) {
+    function onTransportError(error, message) {
         events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.MESSAGE_SEND_FAILED, {
-            error: error
+            error: error,
+            message: message
         }));
     }
     function onMessage(message) {
@@ -146,16 +147,22 @@ function ChromecastSenderVideo(options) {
             switch (action.type) {
                 case 'observeProp': {
                     observeProp(action.propName);
-                    chromecastTransport.sendMessage(action).catch(onTransportError);
+                    chromecastTransport.sendMessage(action).catch(function(error) {
+                        onTransportError(error, action);
+                    });
                     return;
                 }
                 case 'setProp': {
-                    chromecastTransport.sendMessage(action).catch(onTransportError);
+                    chromecastTransport.sendMessage(action).catch(function(error) {
+                        onTransportError(error, action);
+                    });
                     return;
                 }
                 case 'command': {
                     command(action.commandName, action.commandArgs);
-                    chromecastTransport.sendMessage(action).catch(onTransportError);
+                    chromecastTransport.sendMessage(action).catch(function(error) {
+                        onTransportError(error, action);
+                    });
                     return;
                 }
             }
