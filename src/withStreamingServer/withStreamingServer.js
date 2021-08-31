@@ -244,7 +244,7 @@ function withStreamingServer(Video) {
         external: Video.manifest.external,
         props: Video.manifest.props.concat(['stream'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        commands: Video.manifest.commands.concat(['load', 'unload', 'addExtraSubtitlesTracks', 'destroy'])
+        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         events: Video.manifest.events.concat(['propValue', 'propChanged', 'error'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
