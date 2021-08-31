@@ -107,6 +107,17 @@ function withStreamingServer(Video) {
 
                                         return {
                                             url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
+                                            subtitles: Array.isArray(commandArgs.stream.subtitles) ?
+                                                commandArgs.stream.subtitles.map(function(track) {
+                                                    return Object.assign({}, track, {
+                                                        url: typeof track.url === 'string' ?
+                                                            url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
+                                                            :
+                                                            track.url
+                                                    });
+                                                })
+                                                :
+                                                [],
                                             behaviorHints: {
                                                 headers: {
                                                     'content-type': 'application/vnd.apple.mpegurl'
@@ -146,6 +157,26 @@ function withStreamingServer(Video) {
                             stream: commandArgs ? commandArgs.stream : null,
                             streamingServerURL: commandArgs && typeof commandArgs.streamingServerURL === 'string' ? commandArgs.streamingServerURL : null
                         }));
+                    }
+
+                    return true;
+                }
+                case 'addExtraSubtitlesTracks': {
+                    if (loadArgs && commandArgs && Array.isArray(commandArgs.tracks)) {
+                        video.dispatch({
+                            type: 'command',
+                            commandName: 'addExtraSubtitlesTracks',
+                            commandArgs: Object.assign({}, commandArgs, {
+                                tracks: commandArgs.tracks.map(function(track) {
+                                    return Object.assign({}, track, {
+                                        url: typeof track.url === 'string' ?
+                                            url.resolve(loadArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
+                                            :
+                                            track.url
+                                    });
+                                })
+                            })
+                        });
                     }
 
                     return true;
@@ -213,7 +244,7 @@ function withStreamingServer(Video) {
         external: Video.manifest.external,
         props: Video.manifest.props.concat(['stream'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy'])
+        commands: Video.manifest.commands.concat(['load', 'unload', 'addExtraSubtitlesTracks', 'destroy'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         events: Video.manifest.events.concat(['propValue', 'propChanged', 'error'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })

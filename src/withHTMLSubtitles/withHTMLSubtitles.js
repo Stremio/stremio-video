@@ -1,5 +1,4 @@
 var EventEmitter = require('eventemitter3');
-var url = require('url');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
@@ -42,7 +41,6 @@ function withHTMLSubtitles(Video) {
             time: null
         };
         var cuesByTime = null;
-        var streamingServerURL = null;
         var events = new EventEmitter();
         var destroyed = false;
         var tracks = [];
@@ -212,11 +210,7 @@ function withHTMLSubtitles(Video) {
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
-                        var selectedTrackUrl = streamingServerURL !== null ?
-                            url.resolve(streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', selectedTrack.url]]).toString())
-                            :
-                            selectedTrack.url;
-                        fetch(selectedTrackUrl)
+                        fetch(selectedTrack.url)
                             .then(function(resp) {
                                 return resp.text();
                             })
@@ -331,14 +325,10 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'load': {
                     command('unload');
-                    if (typeof commandArgs.streamingServerURL === 'string') {
-                        streamingServerURL = commandArgs.streamingServerURL;
-                    }
-
                     if (commandArgs.stream && Array.isArray(commandArgs.stream.subtitles)) {
                         command('addExtraSubtitlesTracks', {
-                            tracks: commandArgs.stream.subtitles.map(function(subtitles) {
-                                return Object.assign({}, subtitles, {
+                            tracks: commandArgs.stream.subtitles.map(function(track) {
+                                return Object.assign({}, track, {
                                     origin: 'EXCLUSIVE',
                                     exclusive: true,
                                     embedded: false
@@ -351,7 +341,6 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'unload': {
                     cuesByTime = null;
-                    streamingServerURL = null;
                     tracks = [];
                     selectedTrackId = null;
                     delay = null;
