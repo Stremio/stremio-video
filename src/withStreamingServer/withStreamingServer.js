@@ -3,7 +3,7 @@ var url = require('url');
 var hat = require('hat');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
-var convertStreamToURL = require('./convertStreamToURL');
+var convertStream = require('./convertStream');
 var ERROR = require('../error');
 
 function withStreamingServer(Video) {
@@ -85,14 +85,9 @@ function withStreamingServer(Video) {
                         video.dispatch({ type: 'command', commandName: 'unload' });
                         loadArgs = commandArgs;
                         onPropChanged('stream');
-                        convertStreamToURL(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
+                        convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
                             .then(function(mediaURL) {
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: mediaURL }))
-                                    .catch(function(error) {
-                                        throw Object.assign({}, ERROR.UNKNOWN_ERROR, {
-                                            error: error
-                                        });
-                                    })
                                     .then(function(canPlay) {
                                         if (canPlay) {
                                             return {
@@ -137,8 +132,11 @@ function withStreamingServer(Video) {
                                     return;
                                 }
 
-                                onError(Object.assign({}, error, {
-                                    critical: true
+                                onError(Object.assign({}, ERROR.WITH_STREAMING_SERVER.CONVERT_FAILED, {
+                                    error: error,
+                                    critical: true,
+                                    stream: commandArgs.stream,
+                                    streamingServerURL: commandArgs.streamingServerURL
                                 }));
                             });
                     } else {

@@ -60,9 +60,9 @@ var ERROR = {
         }
     },
     WITH_STREAMING_SERVER: {
-        STREAM_CONVERT_FAILED: {
+        CONVERT_FAILED: {
             code: 60,
-            message: 'Unable to convert stream to url',
+            message: 'Unable to convert stream'
         }
     },
     UNKNOWN_ERROR: {

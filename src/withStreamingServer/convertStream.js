@@ -1,9 +1,8 @@
 var url = require('url');
 var magnet = require('magnet-uri');
-var ERROR = require('../error');
 var inferTorrentFileIdx = require('./inferTorrentFileIdx');
 
-function convertStreamToURL(streamingServerURL, stream, seriesInfo) {
+function convertStream(streamingServerURL, stream, seriesInfo) {
     return new Promise(function(resolve, reject) {
         if (typeof stream.url === 'string') {
             if (stream.url.indexOf('magnet:') === 0) {
@@ -56,14 +55,7 @@ function convertStreamToURL(streamingServerURL, stream, seriesInfo) {
         }
 
         reject(new Error('Stream cannot be converted'));
-    }).catch(function(error) {
-        throw Object.assign({}, ERROR.WITH_STREAMING_SERVER.STREAM_CONVERT_FAILED, {
-            streamingServerURL: streamingServerURL,
-            stream: stream,
-            seriesInfo: seriesInfo ? seriesInfo : null,
-            error: error
-        });
     });
 }
 
-module.exports = convertStreamToURL;
+module.exports = convertStream;
