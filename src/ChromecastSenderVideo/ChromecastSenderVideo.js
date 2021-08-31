@@ -76,14 +76,14 @@ function ChromecastSenderVideo(options) {
         } catch (error) {
             events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
                 error: error,
-                data: message
+                message: message
             }));
             return;
         }
 
         if (!parsedMessage || typeof parsedMessage.event !== 'string') {
             events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
-                data: message
+                message: message
             }));
             return;
         }
