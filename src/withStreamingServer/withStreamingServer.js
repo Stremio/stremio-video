@@ -22,13 +22,22 @@ function withStreamingServer(Video) {
                 video.on(eventName, onOtherVideoEvent(eventName));
             });
 
+        var self = this;
         var loadArgs = null;
+        var loaded = false;
+        var actionsQueue = [];
         var events = new EventEmitter();
         var destroyed = false;
         var observedProps = {
             stream: false
         };
 
+        function flushActionsQueue() {
+            while (actionsQueue.length > 0) {
+                var action = actionsQueue.shift();
+                self.dispatch.call(self, action);
+            }
+        }
         function onVideoError(error) {
             events.emit('error', error);
             if (error.critical) {
@@ -138,6 +147,8 @@ function withStreamingServer(Video) {
                                         stream: stream
                                     })
                                 });
+                                loaded = true;
+                                flushActionsQueue();
                             })
                             .catch(function(error) {
                                 if (commandArgs !== loadArgs) {
@@ -163,26 +174,36 @@ function withStreamingServer(Video) {
                 }
                 case 'addExtraSubtitlesTracks': {
                     if (loadArgs && commandArgs && Array.isArray(commandArgs.tracks)) {
-                        video.dispatch({
-                            type: 'command',
-                            commandName: 'addExtraSubtitlesTracks',
-                            commandArgs: Object.assign({}, commandArgs, {
-                                tracks: commandArgs.tracks.map(function(track) {
-                                    return Object.assign({}, track, {
-                                        url: typeof track.url === 'string' ?
-                                            url.resolve(loadArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
-                                            :
-                                            track.url
-                                    });
+                        if (loaded) {
+                            video.dispatch({
+                                type: 'command',
+                                commandName: 'addExtraSubtitlesTracks',
+                                commandArgs: Object.assign({}, commandArgs, {
+                                    tracks: commandArgs.tracks.map(function(track) {
+                                        return Object.assign({}, track, {
+                                            url: typeof track.url === 'string' ?
+                                                url.resolve(loadArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
+                                                :
+                                                track.url
+                                        });
+                                    })
                                 })
-                            })
-                        });
+                            });
+                        } else {
+                            actionsQueue.push({
+                                type: 'command',
+                                commandName: 'addExtraSubtitlesTracks',
+                                commandArgs: commandArgs
+                            });
+                        }
                     }
 
                     return true;
                 }
                 case 'unload': {
                     loadArgs = null;
+                    loaded = false;
+                    actionsQueue = [];
                     onPropChanged('stream');
                     return false;
                 }
@@ -194,6 +215,16 @@ function withStreamingServer(Video) {
                     return true;
                 }
                 default: {
+                    if (!loaded) {
+                        actionsQueue.push({
+                            type: 'command',
+                            commandName: commandName,
+                            commandArgs: commandArgs
+                        });
+
+                        return true;
+                    }
+
                     return false;
                 }
             }
