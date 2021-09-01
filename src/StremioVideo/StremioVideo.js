@@ -1,15 +1,11 @@
 var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
+var selectVideoImplementation = require('./selectVideoImplementation');
 var ERROR = require('../error');
 
 function StremioVideo(options) {
     options = options || {};
-
-    var selectVideoImplementation = options.selectVideoImplementation;
-    if (typeof selectVideoImplementation !== 'function') {
-        throw new Error('selectVideoImplementation argument required');
-    }
 
     var video = null;
     var events = new EventEmitter();
