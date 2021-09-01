@@ -1,6 +1,7 @@
 var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
+var ERROR = require('../error');
 
 function StremioVideo(options) {
     options = options || {};
@@ -35,6 +36,15 @@ function StremioVideo(options) {
                     video = null;
                 }
                 if (video === null) {
+                    if (Video === null) {
+                        events.emit('error', Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                            error: new Error('No video implementation was selected'),
+                            critical: true,
+                            stream: action.commandArgs.stream
+                        }));
+                        return;
+                    }
+
                     video = new Video(Object.assign({}, options, action.commandArgs));
                     video.on('ended', function() {
                         events.emit('ended');
