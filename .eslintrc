@@ -4,7 +4,8 @@
     ],
     "globals": {
         "YT": "readonly",
-        "Promise": "readonly"
+        "Promise": "readonly",
+        "cast": "readonly"
     },
     "env": {
         "commonjs": true,
