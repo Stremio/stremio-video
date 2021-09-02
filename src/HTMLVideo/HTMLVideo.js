@@ -153,6 +153,9 @@ function HTMLVideo(options) {
 
                 return !!videoElement.muted;
             }
+            default: {
+                return null;
+            }
         }
     }
     function onVideoError() {

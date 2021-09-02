@@ -258,6 +258,9 @@ function YouTubeVideo(options) {
 
                 return selectedSubtitlesTrackId;
             }
+            default: {
+                return null;
+            }
         }
     }
     function onError(error) {
