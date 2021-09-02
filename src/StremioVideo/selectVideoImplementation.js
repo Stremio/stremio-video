@@ -1,5 +1,3 @@
-// Copyright (C) 2017-2020 Smart code 203358507
-
 var ChromecastSenderVideo = require('../ChromecastSenderVideo');
 var HTMLVideo = require('../HTMLVideo');
 var IFrameVideo = require('../IFrameVideo');
