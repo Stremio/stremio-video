@@ -2,6 +2,7 @@
 
 var ChromecastSenderVideo = require('../ChromecastSenderVideo');
 var HTMLVideo = require('../HTMLVideo');
+var IFrameVideo = require('../IFrameVideo');
 var YouTubeVideo = require('../YouTubeVideo');
 var withStreamingServer = require('../withStreamingServer');
 var withHTMLSubtitles = require('../withHTMLSubtitles');
@@ -20,8 +21,7 @@ function selectVideoImplementation(args) {
     }
 
     if (typeof args.stream.playerFrameUrl === 'string') {
-        // TODO return IFrameVideo;
-        return null;
+        return IFrameVideo;
     }
 
     if (typeof args.streamingServerURL === 'string') {
