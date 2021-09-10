@@ -33,7 +33,14 @@
                 "SwitchCase": 1
             }
         ],
-        "no-console": ["error", { "allow": ["warn"] }],
+        "no-console": [
+            "error",
+            {
+                "allow": [
+                    "warn"
+                ]
+            }
+        ],
         "no-extra-semi": "error",
         "no-eq-null": "error",
         "no-multi-spaces": "error",
@@ -54,7 +61,12 @@
         "no-trailing-spaces": "error",
         "no-useless-concat": "error",
         "no-unreachable": "error",
-        "no-unused-vars": "error",
+        "no-unused-vars": [
+            "error",
+            {
+                "varsIgnorePattern": "_"
+            }
+        ],
         "prefer-const": "error",
         "quotes": [
             "error",
@@ -69,7 +81,10 @@
         ],
         "semi": "error",
         "semi-spacing": "error",
-        "curly": ["error", "multi-line"],
+        "curly": [
+            "error",
+            "multi-line"
+        ],
         "space-before-blocks": "error",
         "valid-typeof": [
             "error",
