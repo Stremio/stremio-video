@@ -96,34 +96,47 @@ function withStreamingServer(Video) {
                         onPropChanged('stream');
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
                             .then(function(mediaURL) {
-                                var id = hat();
-                                var queryParams = new URLSearchParams([['mediaURL', mediaURL]]);
-                                if (commandArgs.forceTranscoding) {
-                                    queryParams.set('forceTranscoding', '1');
-                                }
-                                if (commandArgs.audioChannels !== null && isFinite(commandArgs.audioChannels)) {
-                                    queryParams.set('audioChannels', commandArgs.audioChannels);
-                                }
-
-                                return {
-                                    url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
-                                    subtitles: Array.isArray(commandArgs.stream.subtitles) ?
-                                        commandArgs.stream.subtitles.map(function(track) {
-                                            return Object.assign({}, track, {
-                                                url: typeof track.url === 'string' ?
-                                                    url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
-                                                    :
-                                                    track.url
-                                            });
-                                        })
-                                        :
-                                        [],
-                                    behaviorHints: {
-                                        headers: {
-                                            'content-type': 'application/vnd.apple.mpegurl'
+                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: mediaURL }))
+                                    .catch(function(error) {
+                                        console.warn('Media probe error', error);
+                                        return false;
+                                    })
+                                    .then(function(canPlay) {
+                                        if (canPlay) {
+                                            return {
+                                                url: mediaURL
+                                            };
                                         }
-                                    }
-                                };
+
+                                        var id = hat();
+                                        var queryParams = new URLSearchParams([['mediaURL', mediaURL]]);
+                                        if (commandArgs.forceTranscoding) {
+                                            queryParams.set('forceTranscoding', '1');
+                                        }
+                                        if (commandArgs.audioChannels !== null && isFinite(commandArgs.audioChannels)) {
+                                            queryParams.set('audioChannels', commandArgs.audioChannels);
+                                        }
+
+                                        return {
+                                            url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
+                                            subtitles: Array.isArray(commandArgs.stream.subtitles) ?
+                                                commandArgs.stream.subtitles.map(function(track) {
+                                                    return Object.assign({}, track, {
+                                                        url: typeof track.url === 'string' ?
+                                                            url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
+                                                            :
+                                                            track.url
+                                                    });
+                                                })
+                                                :
+                                                [],
+                                            behaviorHints: {
+                                                headers: {
+                                                    'content-type': 'application/vnd.apple.mpegurl'
+                                                }
+                                            }
+                                        };
+                                    });
                             })
                             .then(function(stream) {
                                 if (commandArgs !== loadArgs) {
