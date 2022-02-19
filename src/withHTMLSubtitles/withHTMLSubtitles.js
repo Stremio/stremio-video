@@ -4,6 +4,7 @@ var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
+var subtitlesConverter = require('./subtitlesConverter');
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
@@ -213,6 +214,9 @@ function withHTMLSubtitles(Video) {
                         fetch(selectedTrack.url)
                             .then(function(resp) {
                                 return resp.text();
+                            })
+                            .then(function(text) {
+                                return subtitlesConverter.convert(text);
                             })
                             .then(function(text) {
                                 return subtitlesParser.parse(text);
