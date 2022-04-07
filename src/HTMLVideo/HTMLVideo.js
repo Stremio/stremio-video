@@ -158,7 +158,7 @@ function HTMLVideo(options) {
                 return !!videoElement.muted;
             }
             case 'playbackRate': {
-                if (destroyed || videoElement.playbackRate === null || !isFinite(videoElement.volume)) {
+                if (destroyed || videoElement.playbackRate === null || !isFinite(videoElement.playbackRate)) {
                     return null;
                 }
 
@@ -323,6 +323,7 @@ function HTMLVideo(options) {
                 destroyed = true;
                 onPropChanged('volume');
                 onPropChanged('muted');
+                onPropChanged('playbackRate');
                 events.removeAllListeners();
                 videoElement.onerror = null;
                 videoElement.onended = null;
