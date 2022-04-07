@@ -36,6 +36,7 @@ function withHTMLSubtitles(Video) {
         subtitlesElement.style.textAlign = 'center';
         containerElement.style.position = 'relative';
         containerElement.style.zIndex = '0';
+        containerElement.style.color = 'white';
         containerElement.appendChild(subtitlesElement);
 
         var videoState = {
@@ -80,7 +81,8 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
                 cueNode.style.textShadow = '1px 1px 0.1em ' + shadowColor;
-                subtitlesElement.append(cueNode, document.createElement('br'));
+                subtitlesElement.appendChild(cueNode)
+                subtitlesElement.appendChild(document.createElement('br'))
             });
         }
         function onVideoError(error) {
