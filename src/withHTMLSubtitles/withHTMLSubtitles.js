@@ -81,8 +81,8 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
                 cueNode.style.textShadow = '1px 1px 0.1em ' + shadowColor;
-                subtitlesElement.appendChild(cueNode)
-                subtitlesElement.appendChild(document.createElement('br'))
+                subtitlesElement.appendChild(cueNode);
+                subtitlesElement.appendChild(document.createElement('br'));
             });
         }
         function onVideoError(error) {
