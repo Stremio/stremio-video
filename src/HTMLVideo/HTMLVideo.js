@@ -75,6 +75,9 @@ function HTMLVideo(options) {
         onPropChanged('volume');
         onPropChanged('muted');
     };
+    videoElement.onratechange = function() {
+        onPropChanged('playbackSpeed');
+    };
     containerElement.appendChild(videoElement);
 
     var hls = null;
@@ -89,7 +92,8 @@ function HTMLVideo(options) {
         buffering: false,
         buffered: false,
         volume: false,
-        muted: false
+        muted: false,
+        playbackSpeed: false
     };
 
     function getProp(propName) {
@@ -152,6 +156,13 @@ function HTMLVideo(options) {
                 }
 
                 return !!videoElement.muted;
+            }
+            case 'playbackSpeed': {
+                if (destroyed || videoElement.playbackRate === null || !isFinite(videoElement.playbackRate)) {
+                    return null;
+                }
+
+                return videoElement.playbackRate;
             }
             default: {
                 return null;
@@ -238,6 +249,13 @@ function HTMLVideo(options) {
                 videoElement.muted = !!propValue;
                 break;
             }
+            case 'playbackSpeed': {
+                if (propValue !== null && isFinite(propValue)) {
+                    videoElement.playbackRate = parseFloat(propValue);
+                }
+
+                break;
+            }
         }
     }
     function command(commandName, commandArgs) {
@@ -305,6 +323,7 @@ function HTMLVideo(options) {
                 destroyed = true;
                 onPropChanged('volume');
                 onPropChanged('muted');
+                onPropChanged('playbackSpeed');
                 events.removeAllListeners();
                 videoElement.onerror = null;
                 videoElement.onended = null;
@@ -321,6 +340,7 @@ function HTMLVideo(options) {
                 videoElement.canplaythrough = null;
                 videoElement.onloadeddata = null;
                 videoElement.onvolumechange = null;
+                videoElement.onratechange = null;
                 containerElement.removeChild(videoElement);
                 break;
             }
@@ -379,7 +399,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error']
 };
