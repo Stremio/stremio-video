@@ -391,6 +391,7 @@ function HTMLVideo(options) {
                 videoElement.onloadeddata = null;
                 videoElement.onvolumechange = null;
                 videoElement.onratechange = null;
+                videoElement.textTracks.onchange = null;
                 containerElement.removeChild(videoElement);
                 break;
             }
