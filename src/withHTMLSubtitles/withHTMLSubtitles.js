@@ -5,6 +5,11 @@ var ERROR = require('../error');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
+var color = require('color');
+
+function hexToRgba(hexColor) {
+    return color(hexColor).rgb().string();
+}
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
@@ -49,9 +54,9 @@ function withHTMLSubtitles(Video) {
         var delay = null;
         var size = 100;
         var offset = 0;
-        var textColor = '#FFFFFFFF';
-        var backgroundColor = '#00000000';
-        var shadowColor = '#222222FF';
+        var textColor = hexToRgba('#FFFFFFFF');
+        var backgroundColor = hexToRgba('#00000000');
+        var shadowColor = hexToRgba('#222222FF');
         var observedProps = {
             extraSubtitlesTracks: false,
             selectedExtraSubtitlesTrackId: false,
@@ -80,7 +85,8 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
                 cueNode.style.textShadow = '1px 1px 0.1em ' + shadowColor;
-                subtitlesElement.append(cueNode, document.createElement('br'));
+                subtitlesElement.appendChild(cueNode);
+                subtitlesElement.appendChild(document.createElement('br'));
             });
         }
         function onVideoError(error) {
@@ -276,7 +282,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'extraSubtitlesTextColor': {
                     if (typeof propValue === 'string') {
-                        textColor = propValue;
+                        textColor = hexToRgba(propValue);
                         renderSubtitles();
                         onPropChanged('extraSubtitlesTextColor');
                     }
@@ -285,7 +291,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'extraSubtitlesBackgroundColor': {
                     if (typeof propValue === 'string') {
-                        backgroundColor = propValue;
+                        backgroundColor = hexToRgba(propValue);
                         renderSubtitles();
                         onPropChanged('extraSubtitlesBackgroundColor');
                     }
@@ -294,7 +300,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'extraSubtitlesShadowColor': {
                     if (typeof propValue === 'string') {
-                        shadowColor = propValue;
+                        shadowColor = hexToRgba(propValue);
                         renderSubtitles();
                         onPropChanged('extraSubtitlesShadowColor');
                     }
