@@ -76,7 +76,7 @@ function HTMLVideo(options) {
         onPropChanged('muted');
     };
     videoElement.onratechange = function() {
-        onPropChanged('playbackRate');
+        onPropChanged('playbackSpeed');
     };
     containerElement.appendChild(videoElement);
 
@@ -93,7 +93,7 @@ function HTMLVideo(options) {
         buffered: false,
         volume: false,
         muted: false,
-        playbackRate: false
+        playbackSpeed: false
     };
 
     function getProp(propName) {
@@ -157,7 +157,7 @@ function HTMLVideo(options) {
 
                 return !!videoElement.muted;
             }
-            case 'playbackRate': {
+            case 'playbackSpeed': {
                 if (destroyed || videoElement.playbackRate === null || !isFinite(videoElement.playbackRate)) {
                     return null;
                 }
@@ -249,7 +249,7 @@ function HTMLVideo(options) {
                 videoElement.muted = !!propValue;
                 break;
             }
-            case 'playbackRate': {
+            case 'playbackSpeed': {
                 if (propValue !== null && isFinite(propValue)) {
                     videoElement.playbackRate = parseFloat(propValue);
                 }
@@ -323,7 +323,7 @@ function HTMLVideo(options) {
                 destroyed = true;
                 onPropChanged('volume');
                 onPropChanged('muted');
-                onPropChanged('playbackRate');
+                onPropChanged('playbackSpeed');
                 events.removeAllListeners();
                 videoElement.onerror = null;
                 videoElement.onended = null;
@@ -399,7 +399,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'playbackRate'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error']
 };
