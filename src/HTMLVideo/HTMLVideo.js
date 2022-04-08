@@ -97,6 +97,8 @@ function HTMLVideo(options) {
         buffered: false,
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false,
+        audioTracks: false,
+        selectedAudioTrackId: false,
         volume: false,
         muted: false,
         playbackSpeed: false
@@ -178,6 +180,41 @@ function HTMLVideo(options) {
 
                         return result;
                     }, null);
+            }
+            case 'audioTracks': {
+                if (hls === null || !Array.isArray(hls.audioTracks)) {
+                    return [];
+                }
+
+                return hls.audioTracks
+                    .map(function(track) {
+                        return Object.freeze({
+                            id: String(track.id),
+                            lang: typeof track.lang === 'string' && track.lang.length > 0 ?
+                                track.lang
+                                :
+                                typeof track.name === 'string' && track.name.length > 0 ?
+                                    track.name
+                                    :
+                                    String(track.id),
+                            label: typeof track.name === 'string' && track.name.length > 0 ?
+                                track.name
+                                :
+                                typeof track.lang === 'string' && track.lang.length > 0 ?
+                                    track.lang
+                                    :
+                                    String(track.id),
+                            origin: 'EMBEDDED',
+                            embedded: true
+                        });
+                    });
+            }
+            case 'selectedAudioTrackId': {
+                if (hls === null || hls.audioTrack === null || !isFinite(hls.audioTrack) || hls.audioTrack === -1) {
+                    return null;
+                }
+
+                return String(hls.audioTrack);
             }
             case 'volume': {
                 if (destroyed || videoElement.volume === null || !isFinite(videoElement.volume)) {
@@ -279,12 +316,26 @@ function HTMLVideo(options) {
                         .forEach(function(track, index) {
                             track.mode = String(index) === propValue ? 'showing' : 'disabled';
                         });
-                    var selecterdTrack = getProp('subtitlesTracks')
+                    var selecterdSubtitlesTrack = getProp('subtitlesTracks')
                         .find(function(track) {
                             return track.id === propValue;
                         });
-                    if (selecterdTrack) {
-                        events.emit('subtitlesTrackLoaded', selecterdTrack);
+                    if (selecterdSubtitlesTrack) {
+                        events.emit('subtitlesTrackLoaded', selecterdSubtitlesTrack);
+                    }
+                }
+
+                break;
+            }
+            case 'selectedAudioTrackId': {
+                if (hls !== null) {
+                    var selecterdAudioTrack = getProp('audioTracks')
+                        .find(function(track) {
+                            return track.id === propValue;
+                        });
+                    hls.audioTrack = selecterdAudioTrack ? parseInt(selecterdAudioTrack.id, 10) : -1;
+                    if (selecterdAudioTrack) {
+                        events.emit('audioTrackLoaded', selecterdAudioTrack);
                     }
                 }
 
@@ -327,6 +378,8 @@ function HTMLVideo(options) {
                     onPropChanged('buffered');
                     onPropChanged('subtitlesTracks');
                     onPropChanged('selectedSubtitlesTrackId');
+                    onPropChanged('audioTracks');
+                    onPropChanged('selectedAudioTrackId');
                     getContentType(stream)
                         .then(function(contentType) {
                             if (stream !== commandArgs.stream) {
@@ -335,6 +388,14 @@ function HTMLVideo(options) {
 
                             if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
                                 hls = new Hls(HLS_CONFIG);
+                                hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
+                                    onPropChanged('audioTracks');
+                                    onPropChanged('selectedAudioTrackId');
+                                });
+                                hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
+                                    onPropChanged('audioTracks');
+                                    onPropChanged('selectedAudioTrackId');
+                                });
                                 hls.loadSource(stream.url);
                                 hls.attachMedia(videoElement);
                             } else {
@@ -359,6 +420,8 @@ function HTMLVideo(options) {
             case 'unload': {
                 stream = null;
                 if (hls !== null) {
+                    hls.removeAllListeners();
+                    hls.detachMedia(videoElement);
                     hls.destroy();
                     hls = null;
                 }
@@ -373,6 +436,8 @@ function HTMLVideo(options) {
                 onPropChanged('buffered');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
+                onPropChanged('audioTracks');
+                onPropChanged('selectedAudioTrackId');
                 break;
             }
             case 'destroy': {
@@ -457,9 +522,9 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
-    events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded']
+    events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
 
 module.exports = HTMLVideo;
