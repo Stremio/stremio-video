@@ -77,7 +77,19 @@ function HTMLVideo(options) {
     };
     containerElement.appendChild(videoElement);
 
-    var hls = null;
+    var hls = new Hls(HLS_CONFIG);
+
+    function onHlsAudioTrackLoaded() {
+        onPropChanged('audioTracks');
+    }
+
+    function onHlsAudioTrackSwitched() {
+        onPropChanged('audioTrack');
+    }
+
+    hls.on(Hls.Events.AUDIO_TRACK_LOADED, onHlsAudioTrackLoaded);
+    hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, onHlsAudioTrackSwitched);
+
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
@@ -89,7 +101,9 @@ function HTMLVideo(options) {
         buffering: false,
         buffered: false,
         volume: false,
-        muted: false
+        muted: false,
+        audioTrack: false,
+        audioTracks: false,
     };
 
     function getProp(propName) {
@@ -152,6 +166,20 @@ function HTMLVideo(options) {
                 }
 
                 return !!videoElement.muted;
+            }
+            case 'audioTrack': {
+                if (destroyed || hls.audioTrack === null || !isFinite(hls.audioTrack)) {
+                    return null;
+                }
+
+                return hls.audioTrack;
+            }
+            case 'audioTracks': {
+                if (destroyed || hls.audioTracks === null || !Array.isArray(hls.audioTracks)) {
+                    return null;
+                }
+
+                return hls.audioTracks;
             }
             default: {
                 return null;
@@ -238,6 +266,12 @@ function HTMLVideo(options) {
                 videoElement.muted = !!propValue;
                 break;
             }
+            case 'audioTrack': {
+                if (hls !== null && propValue !== null && isFinite(propValue)) {
+                    hls.audioTrack = propValue;
+                }
+                break;
+            }
         }
     }
     function command(commandName, commandArgs) {
@@ -261,7 +295,6 @@ function HTMLVideo(options) {
                             }
 
                             if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
-                                hls = new Hls(HLS_CONFIG);
                                 hls.loadSource(stream.url);
                                 hls.attachMedia(videoElement);
                             } else {
@@ -285,19 +318,18 @@ function HTMLVideo(options) {
             }
             case 'unload': {
                 stream = null;
-                if (hls !== null) {
-                    hls.destroy();
-                    hls = null;
-                }
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
+                hls.detachMedia(videoElement);
                 onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
                 onPropChanged('buffered');
+                onPropChanged('audioTrack');
+                onPropChanged('audioTracks');
                 break;
             }
             case 'destroy': {
@@ -322,6 +354,8 @@ function HTMLVideo(options) {
                 videoElement.onloadeddata = null;
                 videoElement.onvolumechange = null;
                 containerElement.removeChild(videoElement);
+                hls.destroy();
+                hls = null;
                 break;
             }
         }
@@ -379,7 +413,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'audioTrack', 'audioTracks'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error']
 };
