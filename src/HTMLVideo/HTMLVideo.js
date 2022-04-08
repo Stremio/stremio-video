@@ -279,6 +279,13 @@ function HTMLVideo(options) {
                         .forEach(function(track, index) {
                             track.mode = String(index) === propValue ? 'showing' : 'disabled';
                         });
+                    var selecterdTrack = getProp('subtitlesTracks')
+                        .find(function(track) {
+                            return track.id === propValue;
+                        });
+                    if (selecterdTrack) {
+                        events.emit('subtitlesTrackLoaded', selecterdTrack);
+                    }
                 }
 
                 break;
