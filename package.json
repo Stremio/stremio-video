@@ -22,7 +22,7 @@
         "url": "0.11.0",
         "video-name-parser": "1.4.6",
         "vtt.js": "github:jaruba/vtt.js#e4f5f5603730866bacb174a93f51b734c9f29e6a",
-        "hex-to-rgba": "2.0.1"
+        "color": "4.2.3"
     },
     "devDependencies": {
         "eslint": "7.32.0"

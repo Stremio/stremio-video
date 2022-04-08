@@ -5,7 +5,11 @@ var ERROR = require('../error');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
-var hexToRgba = require('hex-to-rgba');
+var color = require('color');
+
+function hexToRgba(hexColor) {
+    return color(hexColor).rgb().string();
+}
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
