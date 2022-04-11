@@ -81,6 +81,10 @@ function HTMLVideo(options) {
     videoElement.textTracks.onchange = function() {
         onPropChanged('subtitlesTracks');
         onPropChanged('selectedSubtitlesTrackId');
+        onCueChange();
+        Array.from(videoElement.textTracks).forEach(function(track) {
+            track.oncuechange = onCueChange;
+        });
     };
     containerElement.appendChild(videoElement);
 
@@ -88,6 +92,7 @@ function HTMLVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
+    var subtitlesOffset = 0;
     var observedProps = {
         stream: false,
         paused: false,
@@ -97,6 +102,7 @@ function HTMLVideo(options) {
         buffered: false,
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false,
+        subtitlesOffset: false,
         audioTracks: false,
         selectedAudioTrackId: false,
         volume: false,
@@ -181,6 +187,13 @@ function HTMLVideo(options) {
                         return result;
                     }, null);
             }
+            case 'subtitlesOffset': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return subtitlesOffset;
+            }
             case 'audioTracks': {
                 if (hls === null || !Array.isArray(hls.audioTracks)) {
                     return [];
@@ -241,6 +254,14 @@ function HTMLVideo(options) {
                 return null;
             }
         }
+    }
+    function onCueChange() {
+        Array.from(videoElement.textTracks).forEach(function(track) {
+            Array.from(track.activeCues || []).forEach(function(cue) {
+                cue.snapToLines = false;
+                cue.line = 100 - subtitlesOffset;
+            });
+        });
     }
     function onVideoError() {
         if (destroyed) {
@@ -323,6 +344,15 @@ function HTMLVideo(options) {
                     if (selecterdSubtitlesTrack) {
                         events.emit('subtitlesTrackLoaded', selecterdSubtitlesTrack);
                     }
+                }
+
+                break;
+            }
+            case 'subtitlesOffset': {
+                if (propValue !== null && isFinite(propValue)) {
+                    subtitlesOffset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
+                    onCueChange();
+                    onPropChanged('subtitlesOffset');
                 }
 
                 break;
@@ -419,6 +449,9 @@ function HTMLVideo(options) {
             }
             case 'unload': {
                 stream = null;
+                Array.from(videoElement.textTracks).forEach(function(track) {
+                    track.oncuechange = null;
+                });
                 if (hls !== null) {
                     hls.removeAllListeners();
                     hls.detachMedia(videoElement);
@@ -443,6 +476,7 @@ function HTMLVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
+                onPropChanged('subtitlesOffset');
                 onPropChanged('volume');
                 onPropChanged('muted');
                 onPropChanged('playbackSpeed');
@@ -522,7 +556,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
