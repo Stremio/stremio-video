@@ -113,8 +113,8 @@ function withStreamingServer(Video) {
                                         if (commandArgs.forceTranscoding) {
                                             queryParams.set('forceTranscoding', '1');
                                         }
-                                        if (commandArgs.audioChannels !== null && isFinite(commandArgs.audioChannels)) {
-                                            queryParams.set('audioChannels', commandArgs.audioChannels);
+                                        if (commandArgs.maxAudioChannels !== null && isFinite(commandArgs.maxAudioChannels)) {
+                                            queryParams.set('maxAudioChannels', commandArgs.maxAudioChannels);
                                         }
 
                                         return {
