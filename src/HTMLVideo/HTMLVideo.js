@@ -14,6 +14,9 @@ function HTMLVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
+    var styleElement = document.createElement('style');
+    containerElement.appendChild(styleElement);
+    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; }');
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -103,6 +106,7 @@ function HTMLVideo(options) {
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false,
         subtitlesOffset: false,
+        subtitlesSize: false,
         audioTracks: false,
         selectedAudioTrackId: false,
         volume: false,
@@ -193,6 +197,13 @@ function HTMLVideo(options) {
                 }
 
                 return subtitlesOffset;
+            }
+            case 'subtitlesSize': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return parseInt(styleElement.sheet.cssRules[0].style.fontSize, 10) * 25;
             }
             case 'audioTracks': {
                 if (hls === null || !Array.isArray(hls.audioTracks)) {
@@ -357,6 +368,14 @@ function HTMLVideo(options) {
 
                 break;
             }
+            case 'subtitlesSize': {
+                if (propValue !== null && isFinite(propValue)) {
+                    styleElement.sheet.cssRules[0].style.fontSize = Math.floor(Math.max(0, parseInt(propValue, 10)) / 25) + 'vmin';
+                    onPropChanged('subtitlesSize');
+                }
+
+                break;
+            }
             case 'selectedAudioTrackId': {
                 if (hls !== null) {
                     var selecterdAudioTrack = getProp('audioTracks')
@@ -477,6 +496,7 @@ function HTMLVideo(options) {
                 command('unload');
                 destroyed = true;
                 onPropChanged('subtitlesOffset');
+                onPropChanged('subtitlesSize');
                 onPropChanged('volume');
                 onPropChanged('muted');
                 onPropChanged('playbackSpeed');
@@ -556,7 +576,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
