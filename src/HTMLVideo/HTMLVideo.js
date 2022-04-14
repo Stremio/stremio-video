@@ -110,7 +110,7 @@ function HTMLVideo(options) {
         subtitlesSize: false,
         subtitlesTextColor: false,
         subtitlesBackgroundColor: false,
-        subtitlesShadowColor: false,
+        subtitlesOutlineColor: false,
         audioTracks: false,
         selectedAudioTrackId: false,
         volume: false,
@@ -223,7 +223,7 @@ function HTMLVideo(options) {
 
                 return styleElement.sheet.cssRules[0].style.backgroundColor;
             }
-            case 'subtitlesShadowColor': {
+            case 'subtitlesOutlineColor': {
                 if (destroyed) {
                     return null;
                 }
@@ -429,7 +429,7 @@ function HTMLVideo(options) {
 
                 break;
             }
-            case 'subtitlesShadowColor': {
+            case 'subtitlesOutlineColor': {
                 if (typeof propValue === 'string') {
                     try {
                         styleElement.sheet.cssRules[0].style.textShadow = Color(propValue).rgb().string() + ' 1px 1px 0.1em';
@@ -438,7 +438,7 @@ function HTMLVideo(options) {
                         console.error('HTMLVideo', error);
                     }
 
-                    onPropChanged('subtitlesShadowColor');
+                    onPropChanged('subtitlesOutlineColor');
                 }
 
                 break;
@@ -566,7 +566,7 @@ function HTMLVideo(options) {
                 onPropChanged('subtitlesSize');
                 onPropChanged('subtitlesTextColor');
                 onPropChanged('subtitlesBackgroundColor');
-                onPropChanged('subtitlesShadowColor');
+                onPropChanged('subtitlesOutlineColor');
                 onPropChanged('volume');
                 onPropChanged('muted');
                 onPropChanged('playbackSpeed');
@@ -647,7 +647,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesShadowColor', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
