@@ -1,15 +1,11 @@
 var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
+var Color = require('color');
 var ERROR = require('../error');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
-var color = require('color');
-
-function hexToRgba(hexColor) {
-    return color(hexColor).rgb().string();
-}
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
@@ -54,9 +50,9 @@ function withHTMLSubtitles(Video) {
         var delay = null;
         var size = 100;
         var offset = 0;
-        var textColor = hexToRgba('#FFFFFFFF');
-        var backgroundColor = hexToRgba('#00000000');
-        var shadowColor = hexToRgba('#222222FF');
+        var textColor = 'rgb(255, 255, 255)';
+        var backgroundColor = 'rgba(0, 0, 0, 0)';
+        var shadowColor = 'rgb(34, 34, 34)';
         var observedProps = {
             extraSubtitlesTracks: false,
             selectedExtraSubtitlesTrackId: false,
@@ -282,7 +278,13 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'extraSubtitlesTextColor': {
                     if (typeof propValue === 'string') {
-                        textColor = hexToRgba(propValue);
+                        try {
+                            textColor = Color(propValue).rgb().string();
+                        } catch (error) {
+                            // eslint-disable-next-line no-console
+                            console.error('withHTMLSubtitles', error);
+                        }
+
                         renderSubtitles();
                         onPropChanged('extraSubtitlesTextColor');
                     }
@@ -291,7 +293,13 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'extraSubtitlesBackgroundColor': {
                     if (typeof propValue === 'string') {
-                        backgroundColor = hexToRgba(propValue);
+                        try {
+                            backgroundColor = Color(propValue).rgb().string();
+                        } catch (error) {
+                            // eslint-disable-next-line no-console
+                            console.error('withHTMLSubtitles', error);
+                        }
+
                         renderSubtitles();
                         onPropChanged('extraSubtitlesBackgroundColor');
                     }
@@ -300,7 +308,13 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'extraSubtitlesShadowColor': {
                     if (typeof propValue === 'string') {
-                        shadowColor = hexToRgba(propValue);
+                        try {
+                            shadowColor = Color(propValue).rgb().string();
+                        } catch (error) {
+                            // eslint-disable-next-line no-console
+                            console.error('withHTMLSubtitles', error);
+                        }
+
                         renderSubtitles();
                         onPropChanged('extraSubtitlesShadowColor');
                     }
