@@ -17,7 +17,7 @@ function HTMLVideo(options) {
 
     var styleElement = document.createElement('style');
     containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: white; background-color: transparent; }');
+    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); }');
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -213,26 +213,14 @@ function HTMLVideo(options) {
                     return null;
                 }
 
-                try {
-                    return Color(styleElement.sheet.cssRules[0].style.color).hexa();
-                } catch (error) {
-                    // eslint-disable-next-line no-console
-                    console.error('HTMLVideo', error);
-                    return null;
-                }
+                return styleElement.sheet.cssRules[0].style.color;
             }
             case 'subtitlesBackgroundColor': {
                 if (destroyed) {
                     return null;
                 }
 
-                try {
-                    return Color(styleElement.sheet.cssRules[0].style.backgroundColor).hexa();
-                } catch (error) {
-                    // eslint-disable-next-line no-console
-                    console.error('HTMLVideo', error);
-                    return null;
-                }
+                return styleElement.sheet.cssRules[0].style.backgroundColor;
             }
             case 'audioTracks': {
                 if (hls === null || !Array.isArray(hls.audioTracks)) {
@@ -413,6 +401,7 @@ function HTMLVideo(options) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
                     }
+
                     onPropChanged('subtitlesTextColor');
                 }
 
@@ -426,6 +415,7 @@ function HTMLVideo(options) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
                     }
+
                     onPropChanged('subtitlesBackgroundColor');
                 }
 
