@@ -215,7 +215,11 @@ function withHTMLSubtitles(Video) {
                         delay = 0;
                         fetch(selectedTrack.url)
                             .then(function(resp) {
-                                return resp.text();
+                                if (resp.ok) {
+                                    return resp.text();
+                                }
+
+                                throw new Error(resp.status + ' (' + resp.statusText + ')');
                             })
                             .then(function(text) {
                                 return subtitlesConverter.convert(text);

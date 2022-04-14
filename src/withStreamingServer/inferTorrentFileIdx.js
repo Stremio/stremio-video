@@ -20,7 +20,11 @@ function inferTorrentFileIdx(streamingServerURL, infoHash, sources, seriesInfo) 
             }
         })
     }).then(function(resp) {
-        return resp.json();
+        if (resp.ok) {
+            return resp.json();
+        }
+
+        throw new Error(resp.status + ' (' + resp.statusText + ')');
     }).then(function(resp) {
         if (!resp || !Array.isArray(resp.files) || resp.files.some(function(file) { return !file || typeof file.path !== 'string' || file.length === null || !isFinite(file.length); })) {
             throw new Error('No files found in the torrent');

@@ -9,7 +9,11 @@ function getContentType(stream) {
 
     return fetch(stream.url, { method: 'HEAD' })
         .then(function(resp) {
-            return resp.headers.get('content-type');
+            if (resp.ok) {
+                return resp.headers.get('content-type');
+            }
+
+            throw new Error(resp.status + ' (' + resp.statusText + ')');
         });
 }
 
