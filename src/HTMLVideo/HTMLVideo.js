@@ -2,6 +2,7 @@ var EventEmitter = require('eventemitter3');
 var Hls = require('hls.js');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
+var Color = require('color');
 var ERROR = require('../error');
 var getContentType = require('./getContentType');
 var HLS_CONFIG = require('./hlsConfig');
@@ -14,6 +15,9 @@ function HTMLVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
+    var styleElement = document.createElement('style');
+    containerElement.appendChild(styleElement);
+    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: rgb(34, 34, 34) 1px 1px 0.1em; }');
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -81,6 +85,10 @@ function HTMLVideo(options) {
     videoElement.textTracks.onchange = function() {
         onPropChanged('subtitlesTracks');
         onPropChanged('selectedSubtitlesTrackId');
+        onCueChange();
+        Array.from(videoElement.textTracks).forEach(function(track) {
+            track.oncuechange = onCueChange;
+        });
     };
     containerElement.appendChild(videoElement);
 
@@ -88,6 +96,7 @@ function HTMLVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
+    var subtitlesOffset = 0;
     var observedProps = {
         stream: false,
         paused: false,
@@ -97,6 +106,11 @@ function HTMLVideo(options) {
         buffered: false,
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false,
+        subtitlesOffset: false,
+        subtitlesSize: false,
+        subtitlesTextColor: false,
+        subtitlesBackgroundColor: false,
+        subtitlesOutlineColor: false,
         audioTracks: false,
         selectedAudioTrackId: false,
         volume: false,
@@ -181,6 +195,41 @@ function HTMLVideo(options) {
                         return result;
                     }, null);
             }
+            case 'subtitlesOffset': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return subtitlesOffset;
+            }
+            case 'subtitlesSize': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return parseInt(styleElement.sheet.cssRules[0].style.fontSize, 10) * 25;
+            }
+            case 'subtitlesTextColor': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return styleElement.sheet.cssRules[0].style.color;
+            }
+            case 'subtitlesBackgroundColor': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return styleElement.sheet.cssRules[0].style.backgroundColor;
+            }
+            case 'subtitlesOutlineColor': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return styleElement.sheet.cssRules[0].style.textShadow.slice(0, styleElement.sheet.cssRules[0].style.textShadow.indexOf(')') + 1);
+            }
             case 'audioTracks': {
                 if (hls === null || !Array.isArray(hls.audioTracks)) {
                     return [];
@@ -241,6 +290,14 @@ function HTMLVideo(options) {
                 return null;
             }
         }
+    }
+    function onCueChange() {
+        Array.from(videoElement.textTracks).forEach(function(track) {
+            Array.from(track.activeCues || []).forEach(function(cue) {
+                cue.snapToLines = false;
+                cue.line = 100 - subtitlesOffset;
+            });
+        });
     }
     function onVideoError() {
         if (destroyed) {
@@ -323,6 +380,65 @@ function HTMLVideo(options) {
                     if (selecterdSubtitlesTrack) {
                         events.emit('subtitlesTrackLoaded', selecterdSubtitlesTrack);
                     }
+                }
+
+                break;
+            }
+            case 'subtitlesOffset': {
+                if (propValue !== null && isFinite(propValue)) {
+                    subtitlesOffset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
+                    onCueChange();
+                    onPropChanged('subtitlesOffset');
+                }
+
+                break;
+            }
+            case 'subtitlesSize': {
+                if (propValue !== null && isFinite(propValue)) {
+                    styleElement.sheet.cssRules[0].style.fontSize = Math.floor(Math.max(0, parseInt(propValue, 10)) / 25) + 'vmin';
+                    onPropChanged('subtitlesSize');
+                }
+
+                break;
+            }
+            case 'subtitlesTextColor': {
+                if (typeof propValue === 'string') {
+                    try {
+                        styleElement.sheet.cssRules[0].style.color = Color(propValue).rgb().string();
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('HTMLVideo', error);
+                    }
+
+                    onPropChanged('subtitlesTextColor');
+                }
+
+                break;
+            }
+            case 'subtitlesBackgroundColor': {
+                if (typeof propValue === 'string') {
+                    try {
+                        styleElement.sheet.cssRules[0].style.backgroundColor = Color(propValue).rgb().string();
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('HTMLVideo', error);
+                    }
+
+                    onPropChanged('subtitlesBackgroundColor');
+                }
+
+                break;
+            }
+            case 'subtitlesOutlineColor': {
+                if (typeof propValue === 'string') {
+                    try {
+                        styleElement.sheet.cssRules[0].style.textShadow = Color(propValue).rgb().string() + ' 1px 1px 0.1em';
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('HTMLVideo', error);
+                    }
+
+                    onPropChanged('subtitlesOutlineColor');
                 }
 
                 break;
@@ -419,6 +535,9 @@ function HTMLVideo(options) {
             }
             case 'unload': {
                 stream = null;
+                Array.from(videoElement.textTracks).forEach(function(track) {
+                    track.oncuechange = null;
+                });
                 if (hls !== null) {
                     hls.removeAllListeners();
                     hls.detachMedia(videoElement);
@@ -443,6 +562,11 @@ function HTMLVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
+                onPropChanged('subtitlesOffset');
+                onPropChanged('subtitlesSize');
+                onPropChanged('subtitlesTextColor');
+                onPropChanged('subtitlesBackgroundColor');
+                onPropChanged('subtitlesOutlineColor');
                 onPropChanged('volume');
                 onPropChanged('muted');
                 onPropChanged('playbackSpeed');
@@ -465,6 +589,7 @@ function HTMLVideo(options) {
                 videoElement.onratechange = null;
                 videoElement.textTracks.onchange = null;
                 containerElement.removeChild(videoElement);
+                containerElement.removeChild(styleElement);
                 break;
             }
         }
@@ -522,7 +647,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };

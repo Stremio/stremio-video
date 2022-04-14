@@ -60,7 +60,7 @@ function ChromecastSenderVideo(options) {
         extraSubtitlesOffset: false,
         extraSubtitlesTextColor: false,
         extraSubtitlesBackgroundColor: false,
-        extraSubtitlesShadowColor: false
+        extraSubtitlesOutlineColor: false
     };
 
     function onTransportError(error, message) {
@@ -122,7 +122,7 @@ function ChromecastSenderVideo(options) {
                 onPropChanged('extraSubtitlesOffset', null);
                 onPropChanged('extraSubtitlesTextColor', null);
                 onPropChanged('extraSubtitlesBackgroundColor', null);
-                onPropChanged('extraSubtitlesShadowColor', null);
+                onPropChanged('extraSubtitlesOutlineColor', null);
                 events.removeAllListeners();
                 chromecastTransport.off('message', onMessage);
                 containerElement.removeChild(deviceNameContainerElement);
@@ -179,7 +179,7 @@ ChromecastSenderVideo.canPlayStream = function() {
 ChromecastSenderVideo.manifest = {
     name: 'ChromecastSenderVideo',
     external: true,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesShadowColor'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'],
     commands: ['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'extraSubtitlesTrackLoaded', 'implementationChanged']
 };

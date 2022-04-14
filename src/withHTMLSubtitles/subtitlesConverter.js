@@ -10,7 +10,7 @@ function srt2webvtt(data) {
     var result = '';
     if (cuelist.length > 0) {
         result += 'WEBVTT\n\n';
-        for (var i = 0; i < cuelist.length; i=i+1) {
+        for (var i = 0; i < cuelist.length; i = i + 1) {
             result += convertSrtCue(cuelist[i]);
         }
     }
@@ -41,8 +41,8 @@ function convertSrtCue(caption) {
         // convert time string
         var m = s[1].match(/(\d+):(\d+):(\d+)(?:,(\d+))?\s*--?>\s*(\d+):(\d+):(\d+)(?:,(\d+))?/);
         if (m) {
-            cue += m[1]+':'+m[2]+':'+m[3]+'.'+m[4]+' --> '
-                  +m[5]+':'+m[6]+':'+m[7]+'.'+m[8]+'\n';
+            cue += m[1] + ':' + m[2] + ':' + m[3] + '.' + m[4] + ' --> '
+                + m[5] + ':' + m[6] + ':' + m[7] + '.' + m[8] + '\n';
             line += 1;
         } else {
             // Unrecognized timestring
@@ -62,6 +62,14 @@ function convertSrtCue(caption) {
 module.exports = {
     convert: function(text) {
         // presume all to be SRT if not WEBVTT
-        return text.includes('WEBVTT') ? text : srt2webvtt(text);
+        if (text.includes('WEBVTT')) {
+            return text;
+        }
+
+        try {
+            return srt2webvtt(text);
+        } catch (error) {
+            throw new Error('Failed to convert srt to webvtt: ' + error.message);
+        }
     }
 };
