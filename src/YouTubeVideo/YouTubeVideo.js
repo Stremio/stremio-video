@@ -243,7 +243,7 @@ function YouTubeVideo(options) {
                     })
                     .map(function(track, index) {
                         return Object.freeze({
-                            id: String(index),
+                            id: 'EMBEDDED_' + String(index),
                             lang: track.languageCode,
                             label: typeof track.displayName === 'string' ? track.displayName : track.languageCode,
                             origin: 'EMBEDDED',
