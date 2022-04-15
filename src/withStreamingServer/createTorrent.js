@@ -24,7 +24,7 @@ function createTorrent(streamingServerURL, infoHash, sources, guessFileIdx) {
         body: JSON.stringify(body)
     }).then(function(resp) {
         return resp.json();
-    })
+    });
 }
 
 module.exports = createTorrent;
