@@ -49,10 +49,18 @@ function ChromecastSenderVideo(options) {
         duration: false,
         buffering: false,
         buffered: false,
-        volume: false,
-        muted: false,
+        audioTracks: false,
+        selectedAudioTrackId: false,
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false,
+        subtitlesOffset: false,
+        subtitlesSize: false,
+        subtitlesTextColor: false,
+        subtitlesBackgroundColor: false,
+        subtitlesOutlineColor: false,
+        volume: false,
+        muted: false,
+        playbackSpeed: false,
         extraSubtitlesTracks: false,
         selectedExtraSubtitlesTrackId: false,
         extraSubtitlesDelay: false,
@@ -111,10 +119,18 @@ function ChromecastSenderVideo(options) {
                 onPropChanged('duration', null);
                 onPropChanged('buffering', null);
                 onPropChanged('buffered', null);
-                onPropChanged('volume', null);
-                onPropChanged('muted', null);
+                onPropChanged('audioTracks', []);
+                onPropChanged('selectedAudioTrackId', []);
                 onPropChanged('subtitlesTracks', []);
                 onPropChanged('selectedSubtitlesTrackId', null);
+                onPropChanged('subtitlesOffset', null);
+                onPropChanged('subtitlesSize', null);
+                onPropChanged('subtitlesTextColor', null);
+                onPropChanged('subtitlesBackgroundColor', null);
+                onPropChanged('subtitlesOutlineColor', null);
+                onPropChanged('volume', null);
+                onPropChanged('muted', null);
+                onPropChanged('playbackSpeed', null);
                 onPropChanged('extraSubtitlesTracks', []);
                 onPropChanged('selectedExtraSubtitlesTrackId', null);
                 onPropChanged('extraSubtitlesDelay', null);
@@ -179,7 +195,7 @@ ChromecastSenderVideo.canPlayStream = function() {
 ChromecastSenderVideo.manifest = {
     name: 'ChromecastSenderVideo',
     external: true,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'],
     commands: ['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded', 'extraSubtitlesTrackLoaded', 'implementationChanged']
 };
