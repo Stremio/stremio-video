@@ -173,7 +173,7 @@ function HTMLVideo(options) {
                 return Array.from(videoElement.textTracks)
                     .map(function(track, index) {
                         return Object.freeze({
-                            id: String(index),
+                            id: 'EMBEDDED_' + String(index),
                             lang: track.language,
                             label: track.label,
                             origin: 'EMBEDDED',
@@ -189,7 +189,7 @@ function HTMLVideo(options) {
                 return Array.from(videoElement.textTracks)
                     .reduce(function(result, track, index) {
                         if (result === null && track.mode === 'showing') {
-                            return String(index);
+                            return 'EMBEDDED_' + String(index);
                         }
 
                         return result;
@@ -238,7 +238,7 @@ function HTMLVideo(options) {
                 return hls.audioTracks
                     .map(function(track) {
                         return Object.freeze({
-                            id: String(track.id),
+                            id: 'EMBEDDED_' + String(track.id),
                             lang: typeof track.lang === 'string' && track.lang.length > 0 ?
                                 track.lang
                                 :
@@ -263,7 +263,7 @@ function HTMLVideo(options) {
                     return null;
                 }
 
-                return String(hls.audioTrack);
+                return 'EMBEDDED_' + String(hls.audioTrack);
             }
             case 'volume': {
                 if (destroyed || videoElement.volume === null || !isFinite(videoElement.volume)) {
@@ -371,7 +371,7 @@ function HTMLVideo(options) {
                 if (stream !== null) {
                     Array.from(videoElement.textTracks)
                         .forEach(function(track, index) {
-                            track.mode = String(index) === propValue ? 'showing' : 'disabled';
+                            track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
                         });
                     var selecterdSubtitlesTrack = getProp('subtitlesTracks')
                         .find(function(track) {
@@ -449,7 +449,7 @@ function HTMLVideo(options) {
                         .find(function(track) {
                             return track.id === propValue;
                         });
-                    hls.audioTrack = selecterdAudioTrack ? parseInt(selecterdAudioTrack.id, 10) : -1;
+                    hls.audioTrack = selecterdAudioTrack ? parseInt(selecterdAudioTrack.id.split('_').pop(), 10) : -1;
                     if (selecterdAudioTrack) {
                         events.emit('audioTrackLoaded', selecterdAudioTrack);
                     }
