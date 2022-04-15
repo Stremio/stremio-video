@@ -57,6 +57,9 @@ function StremioVideo(options) {
                     video.on('subtitlesTrackLoaded', function(track) {
                         events.emit('subtitlesTrackLoaded', track);
                     });
+                    video.on('audioTrackLoaded', function(track) {
+                        events.emit('audioTrackLoaded', track);
+                    });
                     video.on('extraSubtitlesTrackLoaded', function(track) {
                         events.emit('extraSubtitlesTrackLoaded', track);
                     });
