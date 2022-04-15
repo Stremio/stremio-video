@@ -1,6 +1,6 @@
 var url = require('url');
 var magnet = require('magnet-uri');
-var inferTorrentFileIdx = require('./inferTorrentFileIdx');
+var createTorrent = require('./createTorrent');
 
 function convertStream(streamingServerURL, stream, seriesInfo) {
     return new Promise(function(resolve, reject) {
@@ -39,17 +39,22 @@ function convertStream(streamingServerURL, stream, seriesInfo) {
         }
 
         if (typeof stream.infoHash === 'string') {
-            if (stream.fileIdx !== null && isFinite(stream.fileIdx)) {
-                resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(stream.fileIdx)));
-            } else {
-                inferTorrentFileIdx(streamingServerURL, stream.infoHash, stream.announce, seriesInfo)
-                    .then(function(fileIdx) {
-                        resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
-                    })
-                    .catch(function(error) {
-                        reject(error);
-                    });
+            var guessFileIdx = false;
+            if (stream.fileIdx === null || !isFinite(stream.fileIdx)) {
+                guessFileIdx = {};
+                if (seriesInfo && (seriesInfo.season || seriesInfo.episode)) {
+                    guessFileIdx.season = seriesInfo.season;
+                    guessFileIdx.episode = seriesInfo.episode;
+                }
             }
+            createTorrent(streamingServerURL, stream.infoHash, stream.announce, guessFileIdx)
+                .then(function(resp) {
+                    var fileIdx = guessFileIdx ? resp.guessedFileIdx : stream.fileIdx
+                    resolve(url.resolve(streamingServerURL, '/' + encodeURIComponent(stream.infoHash) + '/' + encodeURIComponent(fileIdx)));
+                })
+                .catch(function(error) {
+                    reject(error);
+                });
 
             return;
         }
