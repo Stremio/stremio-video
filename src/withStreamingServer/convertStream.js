@@ -4,13 +4,16 @@ var createTorrent = require('./createTorrent');
 
 function convertStream(streamingServerURL, stream, seriesInfo) {
     return new Promise(function(resolve, reject) {
-
         var guessFileIdx = false;
         if (stream.fileIdx === null || !isFinite(stream.fileIdx)) {
             guessFileIdx = {};
-            if (seriesInfo && (seriesInfo.season || seriesInfo.episode)) {
-                guessFileIdx.season = seriesInfo.season;
-                guessFileIdx.episode = seriesInfo.episode;
+            if (seriesInfo) {
+                if (seriesInfo.season !== null && isFinite(seriesInfo.season)) {
+                    guessFileIdx.season = seriesInfo.season;
+                }
+                if (seriesInfo.episode !== null && isFinite(seriesInfo.episode)) {
+                    guessFileIdx.episode = seriesInfo.episode;
+                }
             }
         }
 
