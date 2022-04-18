@@ -6,9 +6,9 @@ function createTorrent(streamingServerURL, infoHash, sources, guessFileIdx) {
             infoHash: infoHash,
         }
     };
-    if ((sources || []).length) {
+    if (Array.isArray(sources) && sources.length > 0) {
         body.torrent.peerSearch = {
-            sources: ['dht:' + infoHash].concat(Array.isArray(sources) ? sources : []),
+            sources: ['dht:' + infoHash].concat(sources),
             min: 40,
             max: 150
         };
