@@ -293,7 +293,7 @@ function HTMLVideo(options) {
     }
     function onCueChange() {
         Array.from(videoElement.textTracks).forEach(function(track) {
-            Array.from(track.activeCues || []).forEach(function(cue) {
+            Array.from(track.cues || []).forEach(function(cue) {
                 cue.snapToLines = false;
                 cue.line = 100 - subtitlesOffset;
             });
