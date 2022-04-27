@@ -71,10 +71,11 @@ function ChromecastSenderVideo(options) {
         extraSubtitlesOutlineColor: false
     };
 
-    function onTransportError(error, message) {
+    function onTransportError(error, action) {
         events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.MESSAGE_SEND_FAILED, {
             error: error,
-            message: message
+            action: action,
+            message: 'Chromecast transport error'
         }));
     }
     function onMessage(message) {
