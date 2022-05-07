@@ -35,8 +35,6 @@ function IFrameVideo(options) {
         }
     }
 
-    eventer(messageEvent, onChildMessage, false);
-
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
@@ -129,6 +127,7 @@ function IFrameVideo(options) {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.playerFrameUrl === 'string') {
                     stream = commandArgs.stream;
                     onPropChanged('stream');
+                    eventer(messageEvent, onChildMessage, false);
                     iframeElement.src = commandArgs.stream.playerFrameUrl;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
