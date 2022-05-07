@@ -48,7 +48,7 @@ function IFrameVideo(options) {
         buffered: false,
         volume: 100,
         muted: false,
-        playbackSpeed: false
+        playbackSpeed: 1.0
     };
 
     var observedProps = {
