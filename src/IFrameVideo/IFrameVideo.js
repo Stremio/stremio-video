@@ -3,9 +3,9 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 
-var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+var eventMethod = window.addEventListener ? 'addEventListener' : 'attachEvent';
 var eventer = window[eventMethod];
-var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+var messageEvent = eventMethod === 'attachEvent' ? 'onmessage' : 'message';
 
 function IFrameVideo(options) {
     options = options || {};
@@ -25,9 +25,9 @@ function IFrameVideo(options) {
     containerElement.appendChild(iframeElement);
 
     // Listen to message from child window
-    eventer(messageEvent,function(e) {
+    eventer(messageEvent, function(e) {
         source = e.source;
-        var key = e.message ? "message" : "data";
+        var key = e.message ? 'message' : 'data';
         var data = e[key];
         if ((data || {}).propName) {
             iframeProps[data.propName] = data.propValue;
@@ -49,7 +49,8 @@ function IFrameVideo(options) {
         volume: 100,
         muted: false,
         playbackSpeed: false
-    }
+    };
+
     var observedProps = {
         stream: false,
         paused: false,
@@ -116,7 +117,7 @@ function IFrameVideo(options) {
     }
     function setProp(propName, propValue) {
         if (source) {
-            source.postMessage({ propName, propValue }, '*');
+            source.postMessage({ propName: propName, propValue: propValue }, '*');
         }
     }
     function command(commandName, commandArgs) {
