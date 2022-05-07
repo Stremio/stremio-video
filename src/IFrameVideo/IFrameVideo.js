@@ -25,7 +25,7 @@ function IFrameVideo(options) {
     containerElement.appendChild(iframeElement);
 
     // Listen to message from child window
-    eventer(messageEvent, function(e) {
+    function onChildMessage(e) {
         source = e.source;
         var key = e.message ? 'message' : 'data';
         var data = e[key];
@@ -33,7 +33,9 @@ function IFrameVideo(options) {
             iframeProps[data.propName] = data.propValue;
             onPropChanged(data.propName, data.propValue);
         }
-    }, false);
+    }
+
+    eventer(messageEvent, onChildMessage, false);
 
     var events = new EventEmitter();
     var destroyed = false;
@@ -139,6 +141,7 @@ function IFrameVideo(options) {
             case 'unload': {
                 stream = null;
                 source = null;
+                window.removeEventListener(messageEvent, onChildMessage);
                 iframeElement.removeAttribute('src');
                 onPropChanged('stream');
                 break;
