@@ -31,7 +31,7 @@ function IFrameVideo(options) {
         var data = e[key];
         if ((data || {}).propName) {
             iframeProps[data.propName] = data.propValue;
-            onPropChanged(data.propName, data.propValue);
+            onPropChanged(data.propName);
         }
     }
 
