@@ -35,15 +35,22 @@ function IFrameVideo(options) {
     };
 
     function onMessage(event) {
-        if (event.source !== iframeElement.contentWindow || !event.data || typeof event.data.event !== 'string') {
+        if (event.source !== iframeElement.contentWindow) {
             return;
         }
 
-        var args = Array.isArray(event.data.args) ? event.data.args : [];
-        if ((event.data.event === 'propValue' || event.data.event === 'propChanged') && args[0] === 'stream') {
+        var data = event.data || event.message;
+        if (!data || typeof data.event !== 'string') {
             return;
         }
-        events.emit.apply(events, [event.data.event].concat(args));
+
+        var eventName = data.event;
+        var args = Array.isArray(data.args) ? data.args : [];
+        if ((eventName === 'propValue' || eventName === 'propChanged') && args[0] === 'stream') {
+            return;
+        }
+
+        events.emit.apply(events, [eventName].concat(args));
     }
     function sendMessage(action) {
         iframeElement.contentWindow.postMessage(action, '*');
