@@ -72,13 +72,14 @@ function IFrameVideo(options) {
                     onPropChanged('stream', commandArgs.stream);
                     window.addEventListener('message', onMessage, false);
                     iframeElement.src = commandArgs.stream.playerFrameUrl;
+                    return false;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
                         stream: commandArgs ? commandArgs.stream : null
                     }));
+                    return true;
                 }
-                return true;
             }
             case 'unload': {
                 window.removeEventListener('message', onMessage);
