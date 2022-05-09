@@ -19,7 +19,6 @@ function IFrameVideo(options) {
     iframeElement.allowFullscreen = false;
     iframeElement.allow = 'autoplay';
     containerElement.appendChild(iframeElement);
-    window.addEventListener('message', onMessage, false);
 
     var events = new EventEmitter();
     var destroyed = false;
@@ -71,6 +70,7 @@ function IFrameVideo(options) {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.playerFrameUrl === 'string') {
                     onPropChanged('stream', commandArgs.stream);
+                    window.addEventListener('message', onMessage, false);
                     iframeElement.src = commandArgs.stream.playerFrameUrl;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
@@ -81,6 +81,7 @@ function IFrameVideo(options) {
                 return true;
             }
             case 'unload': {
+                window.removeEventListener('message', onMessage);
                 iframeElement.removeAttribute('src');
                 onPropChanged('stream', null);
                 onPropChanged('paused', null);
@@ -106,7 +107,6 @@ function IFrameVideo(options) {
                 onPropChanged('muted', null);
                 onPropChanged('playbackSpeed', null);
                 events.removeAllListeners();
-                window.removeEventListener('message', onMessage);
                 containerElement.removeChild(iframeElement);
                 return true;
             }
