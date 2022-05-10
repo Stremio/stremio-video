@@ -4,9 +4,7 @@ var deepFreeze = require('deep-freeze');
 var selectVideoImplementation = require('./selectVideoImplementation');
 var ERROR = require('../error');
 
-function StremioVideo(options) {
-    options = options || {};
-
+function StremioVideo() {
     var video = null;
     var events = new EventEmitter();
     var destroyed = false;
@@ -18,15 +16,16 @@ function StremioVideo(options) {
 
         events.on(eventName, listener);
     };
-    this.dispatch = function(action) {
+    this.dispatch = function(action, options) {
         if (destroyed) {
             throw new Error('Video is destroyed');
         }
 
         if (action) {
             action = deepFreeze(cloneDeep(action));
+            options = options || {};
             if (action.type === 'command' && action.commandName === 'load' && action.commandArgs) {
-                var Video = selectVideoImplementation(action.commandArgs);
+                var Video = selectVideoImplementation(action.commandArgs, options);
                 if (video !== null && video.constructor !== Video) {
                     video.dispatch({ type: 'command', commandName: 'destroy' });
                     video = null;
@@ -41,7 +40,7 @@ function StremioVideo(options) {
                         return;
                     }
 
-                    video = new Video(Object.assign({}, options, action.commandArgs));
+                    video = new Video(options);
                     video.on('ended', function() {
                         events.emit('ended');
                     });

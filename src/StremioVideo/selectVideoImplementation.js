@@ -5,28 +5,28 @@ var YouTubeVideo = require('../YouTubeVideo');
 var withStreamingServer = require('../withStreamingServer');
 var withHTMLSubtitles = require('../withHTMLSubtitles');
 
-function selectVideoImplementation(args) {
-    if (!args.stream || typeof args.stream.externalUrl === 'string') {
+function selectVideoImplementation(commandArgs, options) {
+    if (!commandArgs.stream || typeof commandArgs.stream.externalUrl === 'string') {
         return null;
     }
 
-    if (args.chromecastTransport && args.chromecastTransport.getCastState() === cast.framework.CastState.CONNECTED) {
+    if (options.chromecastTransport && options.chromecastTransport.getCastState() === cast.framework.CastState.CONNECTED) {
         return ChromecastSenderVideo;
     }
 
-    if (typeof args.stream.ytId === 'string') {
+    if (typeof commandArgs.stream.ytId === 'string') {
         return withHTMLSubtitles(YouTubeVideo);
     }
 
-    if (typeof args.stream.playerFrameUrl === 'string') {
+    if (typeof commandArgs.stream.playerFrameUrl === 'string') {
         return IFrameVideo;
     }
 
-    if (typeof args.streamingServerURL === 'string') {
+    if (typeof commandArgs.streamingServerURL === 'string') {
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
     }
 
-    if (typeof args.stream.url === 'string') {
+    if (typeof commandArgs.stream.url === 'string') {
         return withHTMLSubtitles(HTMLVideo);
     }
 
