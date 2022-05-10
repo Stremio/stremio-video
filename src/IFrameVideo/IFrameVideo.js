@@ -3,10 +3,6 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 
-var eventMethod = window.addEventListener ? 'addEventListener' : 'attachEvent';
-var eventer = window[eventMethod];
-var messageEvent = eventMethod === 'attachEvent' ? 'onmessage' : 'message';
-
 function IFrameVideo(options) {
     options = options || {};
 
@@ -24,33 +20,8 @@ function IFrameVideo(options) {
     iframeElement.allow = 'autoplay';
     containerElement.appendChild(iframeElement);
 
-    // Listen to message from child window
-    function onChildMessage(e) {
-        source = e.source;
-        var key = e.message ? 'message' : 'data';
-        var data = e[key];
-        if ((data || {}).propName) {
-            iframeProps[data.propName] = data.propValue;
-            onPropChanged(data.propName);
-        }
-    }
-
     var events = new EventEmitter();
     var destroyed = false;
-    var stream = null;
-    var source = false;
-
-    var iframeProps = {
-        paused: false,
-        time: 0,
-        duration: 0,
-        buffering: 0,
-        buffered: false,
-        volume: 100,
-        muted: false,
-        playbackSpeed: 1.0
-    };
-
     var observedProps = {
         stream: false,
         paused: false,
@@ -63,40 +34,26 @@ function IFrameVideo(options) {
         playbackSpeed: false
     };
 
-    function getProp(propName) {
-        switch (propName) {
-            case 'stream': {
-                return stream;
-            }
-            case 'paused': {
-                return iframeProps.paused;
-            }
-            case 'time': {
-                return iframeProps.time;
-            }
-            case 'duration': {
-                return iframeProps.duration;
-            }
-            case 'buffered': {
-                return iframeProps.buffered;
-            }
-            case 'buffering': {
-                return iframeProps.buffering;
-            }
-            case 'volume': {
-                return iframeProps.volume;
-            }
-            case 'muted': {
-                return iframeProps.muted;
-            }
-            case 'playbackSpeed': {
-                return iframeProps.playbackSpeed;
-            }
-
-            default: {
-                return null;
-            }
+    function onMessage(event) {
+        if (event.source !== iframeElement.contentWindow) {
+            return;
         }
+
+        var data = event.data || event.message;
+        if (!data || typeof data.event !== 'string') {
+            return;
+        }
+
+        var eventName = data.event;
+        var args = Array.isArray(data.args) ? data.args : [];
+        if ((eventName === 'propValue' || eventName === 'propChanged') && args[0] === 'stream') {
+            return;
+        }
+
+        events.emit.apply(events, [eventName].concat(args));
+    }
+    function sendMessage(action) {
+        iframeElement.contentWindow.postMessage(action, '*');
     }
     function onError(error) {
         events.emit('error', error);
@@ -104,20 +61,14 @@ function IFrameVideo(options) {
             command('unload');
         }
     }
-    function onPropChanged(propName) {
+    function onPropChanged(propName, propValue) {
         if (observedProps[propName]) {
-            events.emit('propChanged', propName, getProp(propName));
+            events.emit('propChanged', propName, propValue);
         }
     }
     function observeProp(propName) {
         if (observedProps.hasOwnProperty(propName)) {
-            events.emit('propValue', propName, getProp(propName));
             observedProps[propName] = true;
-        }
-    }
-    function setProp(propName, propValue) {
-        if (source) {
-            source.postMessage({ propName: propName, propValue: propValue }, '*');
         }
     }
     function command(commandName, commandArgs) {
@@ -125,32 +76,47 @@ function IFrameVideo(options) {
             case 'load': {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.playerFrameUrl === 'string') {
-                    stream = commandArgs.stream;
-                    onPropChanged('stream');
-                    eventer(messageEvent, onChildMessage, false);
+                    onPropChanged('stream', commandArgs.stream);
+                    window.addEventListener('message', onMessage, false);
                     iframeElement.src = commandArgs.stream.playerFrameUrl;
+                    return false;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
                         stream: commandArgs ? commandArgs.stream : null
                     }));
+                    return true;
                 }
-                break;
             }
             case 'unload': {
-                stream = null;
-                source = null;
-                window.removeEventListener(messageEvent, onChildMessage);
+                window.removeEventListener('message', onMessage);
                 iframeElement.removeAttribute('src');
-                onPropChanged('stream');
-                break;
+                onPropChanged('stream', null);
+                onPropChanged('paused', null);
+                onPropChanged('time', null);
+                onPropChanged('duration', null);
+                onPropChanged('buffering', null);
+                onPropChanged('buffered', null);
+                onPropChanged('volume', null);
+                onPropChanged('muted', null);
+                onPropChanged('playbackSpeed', null);
+                return true;
             }
             case 'destroy': {
                 command('unload');
                 destroyed = true;
+                onPropChanged('stream', null);
+                onPropChanged('paused', null);
+                onPropChanged('time', null);
+                onPropChanged('duration', null);
+                onPropChanged('buffering', null);
+                onPropChanged('buffered', null);
+                onPropChanged('volume', null);
+                onPropChanged('muted', null);
+                onPropChanged('playbackSpeed', null);
                 events.removeAllListeners();
                 containerElement.removeChild(iframeElement);
-                break;
+                return true;
             }
         }
     }
@@ -172,14 +138,18 @@ function IFrameVideo(options) {
             switch (action.type) {
                 case 'observeProp': {
                     observeProp(action.propName);
+                    sendMessage(action);
                     return;
                 }
                 case 'setProp': {
-                    setProp(action.propName, action.propValue);
+                    sendMessage(action);
                     return;
                 }
                 case 'command': {
-                    command(action.commandName, action.commandArgs);
+                    if (!command(action.commandName, action.commandArgs)) {
+                        sendMessage(action);
+                    }
+
                     return;
                 }
             }
@@ -198,7 +168,7 @@ IFrameVideo.manifest = {
     external: false,
     props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
-    events: ['propValue', 'propChanged', 'error']
+    events: ['propValue', 'propChanged', 'ended', 'error']
 };
 
 module.exports = IFrameVideo;
