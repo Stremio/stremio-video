@@ -46,10 +46,6 @@ function IFrameVideo(options) {
 
         var eventName = data.event;
         var args = Array.isArray(data.args) ? data.args : [];
-        if ((eventName === 'propValue' || eventName === 'propChanged') && args[0] === 'stream') {
-            return;
-        }
-
         events.emit.apply(events, [eventName].concat(args));
     }
     function sendMessage(action) {
@@ -76,7 +72,6 @@ function IFrameVideo(options) {
             case 'load': {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.playerFrameUrl === 'string') {
-                    onPropChanged('stream', commandArgs.stream);
                     window.addEventListener('message', onMessage, false);
                     iframeElement.src = commandArgs.stream.playerFrameUrl;
                     return false;
