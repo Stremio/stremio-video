@@ -73,18 +73,26 @@ function IFrameVideo(options) {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.playerFrameUrl === 'string') {
                     window.addEventListener('message', onMessage, false);
+                    iframeElement.onload = function() {
+                        sendMessage({
+                            type: 'command',
+                            commandName: commandName,
+                            commandArgs: commandArgs
+                        });
+                    };
                     iframeElement.src = commandArgs.stream.playerFrameUrl;
-                    return false;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
                         stream: commandArgs ? commandArgs.stream : null
                     }));
-                    return true;
                 }
+
+                return true;
             }
             case 'unload': {
                 window.removeEventListener('message', onMessage);
+                iframeElement.onload = null;
                 iframeElement.removeAttribute('src');
                 onPropChanged('stream', null);
                 onPropChanged('paused', null);
