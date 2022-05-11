@@ -160,7 +160,7 @@ IFrameVideo.canPlayStream = function(stream) {
 
 IFrameVideo.manifest = {
     name: 'IFrameVideo',
-    external: false,
+    external: true,
     props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error']
