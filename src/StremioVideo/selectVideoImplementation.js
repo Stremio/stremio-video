@@ -28,7 +28,7 @@ function selectVideoImplementation(commandArgs, options) {
     }
 
     if (typeof global.tizen !== 'undefined' && typeof commandArgs.stream.url === 'string') {
-        return withHTMLSubtitles(TizenVideo);
+        return TizenVideo;
     }
 
     if (typeof commandArgs.stream.url === 'string') {

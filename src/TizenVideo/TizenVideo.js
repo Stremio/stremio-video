@@ -7,10 +7,10 @@ var ERROR = require('../error');
 var getContentType = require('./getContentType');
 var HLS_CONFIG = require('./hlsConfig');
 
-let isBuffering = false;
-
-function HTMLVideo(options) {
+function TizenVideo(options) {
     options = options || {};
+
+    let isBuffering = false;
 
     var containerElement = options.containerElement;
     if (!(containerElement instanceof HTMLElement)) {
@@ -43,8 +43,8 @@ function HTMLVideo(options) {
         },
         onbufferingcomplete: function() {
             console.log("Buffering complete.");
-            onPropChanged('buffering');
             isBuffering = false;
+            onPropChanged('buffering');
         },
         oncurrentplaytime: function(currentTime) {
             console.log("Current Playtime : " + currentTime);
@@ -135,7 +135,9 @@ function HTMLVideo(options) {
     //         track.oncuechange = onCueChange;
     //     });
     // };
+
     containerElement.appendChild(objElement);
+//    document.body.appendChild(objElement);
 
     var hls = null;
     var events = new EventEmitter();
@@ -189,7 +191,7 @@ function HTMLVideo(options) {
                     return null;
                 }
 
-                return Math.floor(duration * 1000);
+                return Math.floor(duration);
             }
             case 'buffering': {
                 if (stream === null) {
@@ -392,6 +394,10 @@ function HTMLVideo(options) {
                     propValue ? webapis.avplay.pause() : webapis.avplay.play();
                 }
 
+                setTimeout(() => {
+                    onPropChanged('paused');
+                })
+
                 break;
             }
             case 'time': {
@@ -516,23 +522,23 @@ function HTMLVideo(options) {
     function command(commandName, commandArgs) {
         switch (commandName) {
             case 'load': {
-                command('unload');
+//                command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     stream = commandArgs.stream;
                     onPropChanged('stream');
 //                    videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
-                    webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
+//                    webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
 //                    videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
-                    onPropChanged('buffering');
-                    onPropChanged('subtitlesTracks');
-                    onPropChanged('selectedSubtitlesTrackId');
-                    onPropChanged('audioTracks');
-                    onPropChanged('selectedAudioTrackId');
-                    getContentType(stream)
-                        .then(function(contentType) {
+//                    onPropChanged('buffering');
+//                    onPropChanged('subtitlesTracks');
+//                    onPropChanged('selectedSubtitlesTrackId');
+//                    onPropChanged('audioTracks');
+//                    onPropChanged('selectedAudioTrackId');
+//                    getContentType(stream)
+//                        .then(function(contentType) {
                             if (stream !== commandArgs.stream) {
                                 return;
                             }
@@ -552,23 +558,24 @@ function HTMLVideo(options) {
                             // } else {
                                 webapis.avplay.open(stream.url);
                                 webapis.avplay.setDisplayRect(0, 0, 1920, 1080); //call this method after open() - To be called in these states - "IDLE", "PAUSE"
+                                webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
                                 webapis.avplay.prepare();
                                 onPropChanged('duration');
                                 webapis.avplay.play();
 //                            }
-                        })
-                        .catch(function() {
-                            if (stream !== commandArgs.stream) {
-                                return;
-                            }
+//                        })
+//                        .catch(function() {
+//                            if (stream !== commandArgs.stream) {
+//                                return;
+//                            }
 
-                            webapis.avplay.open(stream.url);
-                            webapis.avplay.setDisplayRect(0, 0, 1920, 1080); //call this method after open() - To be called in these states - "IDLE", "PAUSE"
-                            webapis.avplay.prepare();
-                            onPropChanged('duration');
-                            webapis.avplay.play();
+//                            webapis.avplay.open(stream.url);
+//                            webapis.avplay.setDisplayRect(0, 0, 1920, 1080); //call this method after open() - To be called in these states - "IDLE", "PAUSE"
+//                            webapis.avplay.prepare();
+//                            onPropChanged('duration');
+//                            webapis.avplay.play();
 //                            videoElement.src = stream.url;
-                        });
+//                        });
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
@@ -589,8 +596,8 @@ function HTMLVideo(options) {
                 //     hls = null;
                 // }
 //                videoElement.removeAttribute('src');
-                webapis.avplay.pause();
-                webapis.avplay.seekTo(0);
+//                webapis.avplay.pause();
+//                webapis.avplay.seekTo(0);
                 webapis.avplay.stop();
 //                videoElement.currentTime = 0;
                 onPropChanged('stream');
@@ -674,7 +681,7 @@ function HTMLVideo(options) {
     };
 }
 
-HTMLVideo.canPlayStream = function(stream) {
+TizenVideo.canPlayStream = function(stream) {
     return Promise.resolve(true);
 
     if (!stream || (stream.behaviorHints && stream.behaviorHints.notWebReady)) {
@@ -691,12 +698,12 @@ HTMLVideo.canPlayStream = function(stream) {
         });
 };
 
-HTMLVideo.manifest = {
-    name: 'HTMLVideo',
+TizenVideo.manifest = {
+    name: 'TizenVideo',
     external: false,
     props: ['stream', 'paused', 'time', 'duration', 'buffering'],
     commands: ['load', 'unload', 'destroy'],
-    events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
+    events: ['propValue', 'propChanged', 'ended', 'error']
 };
 
-module.exports = HTMLVideo;
+module.exports = TizenVideo;
