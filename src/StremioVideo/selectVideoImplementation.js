@@ -23,6 +23,10 @@ function selectVideoImplementation(commandArgs, options) {
         return IFrameVideo;
     }
 
+    if (typeof global.tizen !== 'undefined' && typeof commandArgs.streamingServerURL === 'string') {
+        return withStreamingServer(TizenVideo);
+    }
+
     if (typeof commandArgs.streamingServerURL === 'string') {
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
     }
