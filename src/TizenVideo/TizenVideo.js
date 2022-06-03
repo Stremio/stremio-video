@@ -10,7 +10,7 @@ var HLS_CONFIG = require('./hlsConfig');
 function TizenVideo(options) {
     options = options || {};
 
-    let isBuffering = false;
+    var isBuffering = false;
 
     var containerElement = options.containerElement;
     if (!(containerElement instanceof HTMLElement)) {
