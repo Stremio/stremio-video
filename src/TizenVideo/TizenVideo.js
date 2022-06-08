@@ -10,44 +10,88 @@ var HLS_CONFIG = require('./hlsConfig');
 function TizenVideo(options) {
     options = options || {};
 
-    var isBuffering = false;
+    var isBuffering = true;
+    var videoSpeed = 1;
+    var currentSubTrack = null;
+    var currentAudioTrack = null;
 
     var containerElement = options.containerElement;
     if (!(containerElement instanceof HTMLElement)) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
-    var styleElement = document.createElement('style');
-    containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: rgb(34, 34, 34) 1px 1px 0.1em; }');
+    var size = 100;
+    var offset = 0;
+    var textColor = 'rgb(255, 255, 255)';
+    var backgroundColor = 'rgba(0, 0, 0, 0)';
+    var outlineColor = 'rgb(34, 34, 34)';
+
     var objElement = document.createElement('object');
     objElement.type = 'application/avplayer';
     objElement.style.width = '100%';
     objElement.style.height = '100%';
     objElement.style.backgroundColor = 'black';
-//    videoElement.style.width = '100%';
-//    videoElement.style.height = '100%';
-//    videoElement.style.backgroundColor = 'black';
-//    videoElement.crossOrigin = 'anonymous';
-//    videoElement.controls = false;
+
+    var lastSub;
+    var disabledSubs = false;
+
+    function refreshSubtitle() {
+        if (lastSub) {
+            var lastSubDurationDiff = lastSub.duration - (getProp('time') - lastSub.now);
+            if (lastSubDurationDiff > 0) renderSubtitle(lastSubDurationDiff, lastSub.text);
+        }
+    }
+
+    function renderSubtitle(duration, text) {
+        if (disabledSubs) return;
+        // we ignore custom delay here, it's not needed for embedded subs
+        lastSub = { duration: duration, text, now: getProp('time') };
+        if (subtitleTimeout) {
+            clearTimeout(subtitleTimeout);
+            subtitleTimeout = false;
+        }
+
+        while (subtitlesElement.hasChildNodes()) {
+            subtitlesElement.removeChild(subtitlesElement.lastChild);
+        }
+
+        subtitlesElement.style.bottom = offset + '%';
+        var cueNode = document.createElement('span');
+        cueNode.innerHTML = text;
+        cueNode.style.display = 'inline-block';
+        cueNode.style.padding = '0.2em';
+        cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
+        cueNode.style.color = textColor;
+        cueNode.style.backgroundColor = backgroundColor;
+        cueNode.style.textShadow = '1px 1px 0.1em ' + outlineColor;
+
+        subtitlesElement.appendChild(cueNode);
+        subtitlesElement.appendChild(document.createElement('br'));
+
+        if (duration) {
+            subtitleTimeout = setTimeout(function() {
+                while (subtitlesElement.hasChildNodes()) {
+                    subtitlesElement.removeChild(subtitlesElement.lastChild);
+                }
+            }, parseInt(duration));
+        }
+    }
+
+    var subtitleTimeout = false;
     var Listener = {
         onbufferingstart: function() {
-            console.log("Buffering start.");
-            onPropChanged('buffering');
             isBuffering = true;
+            onPropChanged('buffering');
         },
         onbufferingprogress: function(percent) {
-            console.log("Buffering progress data : " + percent);
-            onPropChanged('buffering');
             isBuffering = true;
+            onPropChanged('buffering');
         },
         onbufferingcomplete: function() {
-            console.log("Buffering complete.");
             isBuffering = false;
             onPropChanged('buffering');
         },
         oncurrentplaytime: function(currentTime) {
-            console.log("Current Playtime : " + currentTime);
             onPropChanged('time');
         },
         onevent: function(eventType, eventData) {
@@ -58,92 +102,34 @@ function TizenVideo(options) {
             onVideoError();
         },
         onsubtitlechange: function(duration, text, data3, data4) {
-            console.log("Subtitle Changed.");
+            renderSubtitle(duration, text);
         },
         ondrmevent: function(drmEvent, drmData) {
             console.log("DRM callback: " + drmEvent + ", data: " + drmData);
         },
         onstreamcompleted: function() {
-            console.log("Stream Completed");
             onEnded();
         }
     };
     webapis.avplay.setListener(Listener);
-    // videoElement.onerror = function() {
-    //     onVideoError();
-    // };
-    // videoElement.onended = function() {
-    //     onEnded();
-    // };
-    // videoElement.onpause = function() {
-    //     onPropChanged('paused');
-    // };
-    // videoElement.onplay = function() {
-    //     onPropChanged('paused');
-    // };
-    // videoElement.ontimeupdate = function() {
-    //     onPropChanged('time');
-    //     onPropChanged('buffered');
-    // };
-    // videoElement.ondurationchange = function() {
-    //     onPropChanged('duration');
-    // };
-    // videoElement.onwaiting = function() {
-    //     onPropChanged('buffering');
-    //     onPropChanged('buffered');
-    // };
-    // videoElement.onseeking = function() {
-    //     onPropChanged('buffering');
-    //     onPropChanged('buffered');
-    // };
-    // videoElement.onseeked = function() {
-    //     onPropChanged('buffering');
-    //     onPropChanged('buffered');
-    // };
-    // videoElement.onstalled = function() {
-    //     onPropChanged('buffering');
-    //     onPropChanged('buffered');
-    // };
-    // videoElement.onplaying = function() {
-    //     onPropChanged('buffering');
-    //     onPropChanged('buffered');
-    // };
-    // videoElement.oncanplay = function() {
-    //     onPropChanged('buffering');
-    //     onPropChanged('buffered');
-    // };
-    // videoElement.canplaythrough = function() {
-    //     onPropChanged('buffering');
-    //     onPropChanged('buffered');
-    // };
-    // videoElement.onloadeddata = function() {
-    //     onPropChanged('buffering');
-    //     onPropChanged('buffered');
-    // };
-    // videoElement.onvolumechange = function() {
-    //     onPropChanged('volume');
-    //     onPropChanged('muted');
-    // };
-    // videoElement.onratechange = function() {
-    //     onPropChanged('playbackSpeed');
-    // };
-    // videoElement.textTracks.onchange = function() {
-    //     onPropChanged('subtitlesTracks');
-    //     onPropChanged('selectedSubtitlesTrackId');
-    //     onCueChange();
-    //     Array.from(videoElement.textTracks).forEach(function(track) {
-    //         track.oncuechange = onCueChange;
-    //     });
-    // };
 
     containerElement.appendChild(objElement);
-//    document.body.appendChild(objElement);
+
+    var subtitlesElement = document.createElement('div');
+    subtitlesElement.style.position = 'absolute';
+    subtitlesElement.style.right = '0';
+    subtitlesElement.style.bottom = '0';
+    subtitlesElement.style.left = '0';
+    subtitlesElement.style.zIndex = '1';
+    subtitlesElement.style.textAlign = 'center';
+    containerElement.style.position = 'relative';
+    containerElement.style.zIndex = '0';
+    containerElement.appendChild(subtitlesElement);
 
     var hls = null;
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
-    var subtitlesOffset = 0;
     var observedProps = {
         stream: false,
         paused: false,
@@ -151,18 +137,18 @@ function TizenVideo(options) {
         duration: false,
         buffering: false,
         // buffered: false,
-        // subtitlesTracks: false,
-        // selectedSubtitlesTrackId: false,
-        // subtitlesOffset: false,
-        // subtitlesSize: false,
-        // subtitlesTextColor: false,
-        // subtitlesBackgroundColor: false,
-        // subtitlesOutlineColor: false,
-        // audioTracks: false,
-        // selectedAudioTrackId: false,
+        subtitlesTracks: false,
+        selectedSubtitlesTrackId: false,
+        subtitlesOffset: false,
+        subtitlesSize: false,
+        subtitlesTextColor: false,
+        subtitlesBackgroundColor: false,
+        subtitlesOutlineColor: false,
+        audioTracks: false,
+        selectedAudioTrackId: false,
         // volume: false,
         // muted: false,
-        // playbackSpeed: false
+        playbackSpeed: false
     };
 
     function getProp(propName) {
@@ -200,106 +186,144 @@ function TizenVideo(options) {
 
                 return isBuffering;
             }
-            // case 'subtitlesTracks': {
-            //     if (stream === null) {
-            //         return [];
-            //     }
+            case 'subtitlesTracks': {
+                if (stream === null) {
+                    return [];
+                }
 
-            //     return Array.from(videoElement.textTracks)
-            //         .map(function(track, index) {
-            //             return Object.freeze({
-            //                 id: 'EMBEDDED_' + String(index),
-            //                 lang: track.language,
-            //                 label: track.label,
-            //                 origin: 'EMBEDDED',
-            //                 embedded: true
-            //             });
-            //         });
-            // }
-            // case 'selectedSubtitlesTrackId': {
-            //     if (stream === null) {
-            //         return null;
-            //     }
+                var totalTrackInfo = webapis.avplay.getTotalTrackInfo();
+                var textTracks = [];
 
-            //     return Array.from(videoElement.textTracks)
-            //         .reduce(function(result, track, index) {
-            //             if (result === null && track.mode === 'showing') {
-            //                 return 'EMBEDDED_' + String(index);
-            //             }
+                for (var i=0; i < totalTrackInfo.length; i++) {
+                    if (totalTrackInfo[i].type == 'TEXT') {
+                        var textTrack = totalTrackInfo[i];
+                        var textTrackId = 'EMBEDDED_' + String(textTrack.index)
+                        if (!currentSubTrack && !textTracks.length) {
+                            currentSubTrack = textTrackId;
+                        }
+                        var extra = {}
+                        try {
+                            extra = JSON.parse(textTrack.extra_info)
+                        } catch(e) {}
+                        var textTrackLang = (extra.track_lang || '').trim();
+                        textTracks.push({
+                            id: textTrackId,
+                            lang: textTrackLang,
+                            label: textTrackLang,
+                            origin: 'EMBEDDED',
+                            embedded: true,
+                            mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
+                        })
+                    }
+                }
 
-            //             return result;
-            //         }, null);
-            // }
-            // case 'subtitlesOffset': {
-            //     if (destroyed) {
-            //         return null;
-            //     }
+                return textTracks;
+            }
+            case 'selectedSubtitlesTrackId': {
+                if (stream === null) {
+                    return null;
+                }
 
-            //     return subtitlesOffset;
-            // }
-            // case 'subtitlesSize': {
-            //     if (destroyed) {
-            //         return null;
-            //     }
+                var currentTracks = webapis.avplay.getCurrentStreamInfo();
+                var currentIndex;
 
-            //     return parseInt(styleElement.sheet.cssRules[0].style.fontSize, 10) * 25;
-            // }
-            // case 'subtitlesTextColor': {
-            //     if (destroyed) {
-            //         return null;
-            //     }
+                for (var i = 0; i < currentTracks.length; i++) {
+                    if(currentTracks[i].type == 'TEXT'){
+                         currentIndex = currentTracks[i].index;
 
-            //     return styleElement.sheet.cssRules[0].style.color;
-            // }
-            // case 'subtitlesBackgroundColor': {
-            //     if (destroyed) {
-            //         return null;
-            //     }
+                         break;
+                    }
+                }
 
-            //     return styleElement.sheet.cssRules[0].style.backgroundColor;
-            // }
-            // case 'subtitlesOutlineColor': {
-            //     if (destroyed) {
-            //         return null;
-            //     }
+                return currentIndex ? 'EMBEDDED_' + String(currentIndex) : null;
 
-            //     return styleElement.sheet.cssRules[0].style.textShadow.slice(0, styleElement.sheet.cssRules[0].style.textShadow.indexOf(')') + 1);
-            // }
-            // case 'audioTracks': {
-            //     if (hls === null || !Array.isArray(hls.audioTracks)) {
-            //         return [];
-            //     }
+            }
+            case 'subtitlesOffset': {
+                if (destroyed) {
+                    return null;
+                }
 
-            //     return hls.audioTracks
-            //         .map(function(track) {
-            //             return Object.freeze({
-            //                 id: 'EMBEDDED_' + String(track.id),
-            //                 lang: typeof track.lang === 'string' && track.lang.length > 0 ?
-            //                     track.lang
-            //                     :
-            //                     typeof track.name === 'string' && track.name.length > 0 ?
-            //                         track.name
-            //                         :
-            //                         String(track.id),
-            //                 label: typeof track.name === 'string' && track.name.length > 0 ?
-            //                     track.name
-            //                     :
-            //                     typeof track.lang === 'string' && track.lang.length > 0 ?
-            //                         track.lang
-            //                         :
-            //                         String(track.id),
-            //                 origin: 'EMBEDDED',
-            //                 embedded: true
-            //             });
-            //         });
-            // }
-            // case 'selectedAudioTrackId': {
-            //     if (hls === null || hls.audioTrack === null || !isFinite(hls.audioTrack) || hls.audioTrack === -1) {
-            //         return null;
-            //     }
+                return offset;
+            }
+            case 'subtitlesSize': {
+                if (destroyed) {
+                    return null;
+                }
 
-            //     return 'EMBEDDED_' + String(hls.audioTrack);
-            // }
+                return size;
+            }
+            case 'subtitlesTextColor': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return textColor;
+            }
+            case 'subtitlesBackgroundColor': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return backgroundColor;
+            }
+            case 'subtitlesOutlineColor': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return outlineColor;
+            }
+            case 'audioTracks': {
+                if (stream === null) {
+                    return [];
+                }
+
+                var totalTrackInfo = webapis.avplay.getTotalTrackInfo();
+                var audioTracks = [];
+
+                for (var i=0; i < totalTrackInfo.length; i++) {
+                    if (totalTrackInfo[i].type == 'AUDIO') {
+                        var audioTrack = totalTrackInfo[i];
+                        var audioTrackId = 'EMBEDDED_' + String(audioTrack.index)
+                        if (!currentAudioTrack && !audioTracks.length) {
+                            currentAudioTrack = audioTrackId;
+                        }
+                        var extra = {}
+                        try {
+                            extra = JSON.parse(audioTrack.extra_info)
+                        } catch(e) {}
+                        var audioTrackLang = extra.language || '';
+                        audioTracks.push({
+                            id: audioTrackId,
+                            lang: audioTrackLang,
+                            label: audioTrackLang,
+                            origin: 'EMBEDDED',
+                            embedded: true,
+                            mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
+                        })
+                    }
+                }
+
+                return audioTracks;
+            }
+            case 'selectedAudioTrackId': {
+                if (stream === null) {
+                    return null;
+                }
+
+                var currentTracks = webapis.avplay.getCurrentStreamInfo();
+                var currentIndex;
+
+                for (var i = 0; i < currentTracks.length; i++) {
+                    if(currentTracks[i].type == 'AUDIO'){
+                         currentIndex = currentTracks[i].index;
+
+                         break;
+                    }
+                }
+
+                return currentIndex ? 'EMBEDDED_' + String(currentIndex) : null;
+            }
             // case 'volume': {
             //     if (destroyed || videoElement.volume === null || !isFinite(videoElement.volume)) {
             //         return null;
@@ -314,26 +338,18 @@ function TizenVideo(options) {
 
             //     return !!videoElement.muted;
             // }
-            // case 'playbackSpeed': {
-            //     if (destroyed || videoElement.playbackRate === null || !isFinite(videoElement.playbackRate)) {
-            //         return null;
-            //     }
+            case 'playbackSpeed': {
+                if (destroyed || videoSpeed === null || !isFinite(videoSpeed)) {
+                    return null;
+                }
 
-            //     return videoElement.playbackRate;
-            // }
+                return videoSpeed;
+            }
             default: {
                 return null;
             }
         }
     }
-    // function onCueChange() {
-    //     Array.from(videoElement.textTracks).forEach(function(track) {
-    //         Array.from(track.cues || []).forEach(function(cue) {
-    //             cue.snapToLines = false;
-    //             cue.line = 100 - subtitlesOffset;
-    //         });
-    //     });
-    // }
     function onVideoError() {
         if (destroyed) {
             return;
@@ -341,27 +357,6 @@ function TizenVideo(options) {
 
         var error;
         error = ERROR.UNKNOWN_ERROR;
-        // switch (videoElement.error.code) {
-        //     case 1: {
-        //         error = ERROR.HTML_VIDEO.MEDIA_ERR_ABORTED;
-        //         break;
-        //     }
-        //     case 2: {
-        //         error = ERROR.HTML_VIDEO.MEDIA_ERR_NETWORK;
-        //         break;
-        //     }
-        //     case 3: {
-        //         error = ERROR.HTML_VIDEO.MEDIA_ERR_DECODE;
-        //         break;
-        //     }
-        //     case 4: {
-        //         error = ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED;
-        //         break;
-        //     }
-        //     default: {
-        //         error = ERROR.UNKNOWN_ERROR;
-        //     }
-        // }
         onError(Object.assign({}, error, {
             critical: true,
             error: error
@@ -391,10 +386,17 @@ function TizenVideo(options) {
         switch (propName) {
             case 'paused': {
                 if (stream !== null) {
-                    propValue ? webapis.avplay.pause() : webapis.avplay.play();
+                    var willPause = !!propValue;
+                    willPause ? webapis.avplay.pause() : webapis.avplay.play();
+                    if (willPause) {
+                        if (subtitleTimeout)
+                            clearTimeout(subtitleTimeout);
+                    } else {
+                        refreshSubtitle();
+                    }
                 }
 
-                setTimeout(() => {
+                setTimeout(function() {
                     onPropChanged('paused');
                 })
 
@@ -402,102 +404,131 @@ function TizenVideo(options) {
             }
             case 'time': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
-                    webapis.avplay.seekTo(parseInt(propValue, 10))
-//                    videoElement.currentTime = parseInt(propValue, 10) / 1000;
+                    webapis.avplay.seekTo(parseInt(propValue, 10));
+                    renderSubtitle(0,'');
                 }
 
                 break;
             }
-            // case 'selectedSubtitlesTrackId': {
-            //     if (stream !== null) {
-            //         Array.from(videoElement.textTracks)
-            //             .forEach(function(track, index) {
-            //                 track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
-            //             });
-            //         var selecterdSubtitlesTrack = getProp('subtitlesTracks')
-            //             .find(function(track) {
-            //                 return track.id === propValue;
-            //             });
-            //         if (selecterdSubtitlesTrack) {
-            //             events.emit('subtitlesTrackLoaded', selecterdSubtitlesTrack);
-            //         }
-            //     }
+            case 'selectedSubtitlesTrackId': {
+                if (stream !== null) {
+                    if ((currentSubTrack || '').indexOf('EMBEDDED_') === 0) {
+                        if ((propValue || '').indexOf('EMBEDDED_') === -1) {
+                            renderSubtitle(0,'');
+                            disabledSubs = true;
+                            return;
+                        }
+                        disabledSubs = false;
+                        var totalTrackInfo = webapis.avplay.getTotalTrackInfo();
+                        var textTracks = [];
 
-            //     break;
-            // }
-            // case 'subtitlesOffset': {
-            //     if (propValue !== null && isFinite(propValue)) {
-            //         subtitlesOffset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
-            //         onCueChange();
-            //         onPropChanged('subtitlesOffset');
-            //     }
+                        currentSubTrack = propValue;
 
-            //     break;
-            // }
-            // case 'subtitlesSize': {
-            //     if (propValue !== null && isFinite(propValue)) {
-            //         styleElement.sheet.cssRules[0].style.fontSize = Math.floor(Math.max(0, parseInt(propValue, 10)) / 25) + 'vmin';
-            //         onPropChanged('subtitlesSize');
-            //     }
+                        var selectedSubtitlesTrack = getProp('subtitlesTracks')
+                            .find(function(track) {
+                                return track.id === propValue;
+                            });
 
-            //     break;
-            // }
-            // case 'subtitlesTextColor': {
-            //     if (typeof propValue === 'string') {
-            //         try {
-            //             styleElement.sheet.cssRules[0].style.color = Color(propValue).rgb().string();
-            //         } catch (error) {
-            //             // eslint-disable-next-line no-console
-            //             console.error('HTMLVideo', error);
-            //         }
+                        webapis.avplay.setSelectTrack('TEXT', parseInt(currentSubTrack.replace('EMBEDDED_','')));
 
-            //         onPropChanged('subtitlesTextColor');
-            //     }
+                        if (selectedSubtitlesTrack) {
+                            setTimeout(function() {
+                                events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
+                                onPropChanged('selectedSubtitlesTrackId');
+                            }, 1000);
+                        }
+                    }
+                }
 
-            //     break;
-            // }
-            // case 'subtitlesBackgroundColor': {
-            //     if (typeof propValue === 'string') {
-            //         try {
-            //             styleElement.sheet.cssRules[0].style.backgroundColor = Color(propValue).rgb().string();
-            //         } catch (error) {
-            //             // eslint-disable-next-line no-console
-            //             console.error('HTMLVideo', error);
-            //         }
+                break;
+            }
+            case 'subtitlesOffset': {
+                if (propValue !== null && isFinite(propValue)) {
+                    offset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
+                    refreshSubtitle();
+                    onPropChanged('subtitlesOffset');
+                }
 
-            //         onPropChanged('subtitlesBackgroundColor');
-            //     }
+                break;
+            }
+            case 'subtitlesSize': {
+                if (propValue !== null && isFinite(propValue)) {
+                    size = Math.max(0, parseInt(propValue, 10));
+                    refreshSubtitle();
+                    onPropChanged('subtitlesSize');
+                }
 
-            //     break;
-            // }
-            // case 'subtitlesOutlineColor': {
-            //     if (typeof propValue === 'string') {
-            //         try {
-            //             styleElement.sheet.cssRules[0].style.textShadow = Color(propValue).rgb().string() + ' 1px 1px 0.1em';
-            //         } catch (error) {
-            //             // eslint-disable-next-line no-console
-            //             console.error('HTMLVideo', error);
-            //         }
+                break;
+            }
+            case 'subtitlesTextColor': {
+                if (typeof propValue === 'string') {
+                    try {
+                        textColor = Color(propValue).rgb().string();
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('Tizen player with HTML Subtitles', error);
+                    }
 
-            //         onPropChanged('subtitlesOutlineColor');
-            //     }
+                    refreshSubtitle();
+                    onPropChanged('subtitlesTextColor');
+                }
 
-            //     break;
-            // }
-            // case 'selectedAudioTrackId': {
-            //     if (hls !== null) {
-            //         var selecterdAudioTrack = getProp('audioTracks')
-            //             .find(function(track) {
-            //                 return track.id === propValue;
-            //             });
-            //         hls.audioTrack = selecterdAudioTrack ? parseInt(selecterdAudioTrack.id.split('_').pop(), 10) : -1;
-            //         if (selecterdAudioTrack) {
-            //             events.emit('audioTrackLoaded', selecterdAudioTrack);
-            //         }
-            //     }
+                break;
+            }
+            case 'subtitlesBackgroundColor': {
+                if (typeof propValue === 'string') {
+                    try {
+                        backgroundColor = Color(propValue).rgb().string();
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('Tizen player with HTML Subtitles', error);
+                    }
 
-            //     break;
-            // }
+                    refreshSubtitle();
+
+                    onPropChanged('subtitlesBackgroundColor');
+                }
+
+                break;
+            }
+            case 'subtitlesOutlineColor': {
+                if (typeof propValue === 'string') {
+                    try {
+                        outlineColor = Color(propValue).rgb().string();
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('Tizen player with HTML Subtitles', error);
+                    }
+
+                    refreshSubtitle();
+
+                    onPropChanged('subtitlesOutlineColor');
+                }
+
+                break;
+            }
+            case 'selectedAudioTrackId': {
+                if (stream !== null) {
+
+                    currentAudioTrack = propValue;
+
+                    var selectedAudioTrack = getProp('audioTracks')
+                        .find(function(track) {
+                            return track.id === propValue;
+                        });
+
+                    webapis.avplay.setSelectTrack('AUDIO', parseInt(currentAudioTrack.replace('EMBEDDED_','')));
+
+                    if (selectedAudioTrack) {
+                        setTimeout(function() {
+                            events.emit('audioTrackLoaded', selectedAudioTrack);
+                            onPropChanged('selectedAudioTrackId');
+                        }, 1000)
+                    }
+                }
+
+                break;
+            }
             // case 'volume': {
             //     if (propValue !== null && isFinite(propValue)) {
             //         videoElement.muted = false;
@@ -510,13 +541,19 @@ function TizenVideo(options) {
             //     videoElement.muted = !!propValue;
             //     break;
             // }
-            // case 'playbackSpeed': {
-            //     if (propValue !== null && isFinite(propValue)) {
-            //         videoElement.playbackRate = parseFloat(propValue);
-            //     }
+            case 'playbackSpeed': {
+                if (propValue !== null && isFinite(propValue)) {
+                    videoSpeed = parseFloat(propValue);
+                    try {
+                        webapis.avplay.setSpeed(videoSpeed);
+                    } catch (e) {
+                        console.log(e);
+                    }
+                    setTimeout(function() { onPropChanged('playbackSpeed') });
+                }
 
-            //     break;
-            // }
+                break;
+            }
         }
     }
     function command(commandName, commandArgs) {
@@ -525,57 +562,28 @@ function TizenVideo(options) {
 //                command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     stream = commandArgs.stream;
+
+                    if (stream !== commandArgs.stream) {
+                        return;
+                    }
+                    onPropChanged('buffering');
+
+                    webapis.avplay.open(stream.url);
+                    webapis.avplay.setDisplayRect(0, 0, 1920, 1080); //call this method after open() - To be called in these states - "IDLE", "PAUSE"
+                    webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
+                    webapis.avplay.prepare();
+                    onPropChanged('duration');
+                    webapis.avplay.play();
+
                     onPropChanged('stream');
-//                    videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
-//                    webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
-//                    videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
-//                    onPropChanged('buffering');
-//                    onPropChanged('subtitlesTracks');
-//                    onPropChanged('selectedSubtitlesTrackId');
-//                    onPropChanged('audioTracks');
-//                    onPropChanged('selectedAudioTrackId');
-//                    getContentType(stream)
-//                        .then(function(contentType) {
-                            if (stream !== commandArgs.stream) {
-                                return;
-                            }
+                    onPropChanged('subtitlesTracks');
+                    onPropChanged('selectedSubtitlesTrackId');
+                    onPropChanged('audioTracks');
+                    onPropChanged('selectedAudioTrackId');
 
-                            // if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
-                            //     hls = new Hls(HLS_CONFIG);
-                            //     hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
-                            //         onPropChanged('audioTracks');
-                            //         onPropChanged('selectedAudioTrackId');
-                            //     });
-                            //     hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
-                            //         onPropChanged('audioTracks');
-                            //         onPropChanged('selectedAudioTrackId');
-                            //     });
-                            //     hls.loadSource(stream.url);
-                            //     hls.attachMedia(videoElement);
-                            // } else {
-                                webapis.avplay.open(stream.url);
-                                webapis.avplay.setDisplayRect(0, 0, 1920, 1080); //call this method after open() - To be called in these states - "IDLE", "PAUSE"
-                                webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
-                                webapis.avplay.prepare();
-                                onPropChanged('duration');
-                                webapis.avplay.play();
-//                            }
-//                        })
-//                        .catch(function() {
-//                            if (stream !== commandArgs.stream) {
-//                                return;
-//                            }
-
-//                            webapis.avplay.open(stream.url);
-//                            webapis.avplay.setDisplayRect(0, 0, 1920, 1080); //call this method after open() - To be called in these states - "IDLE", "PAUSE"
-//                            webapis.avplay.prepare();
-//                            onPropChanged('duration');
-//                            webapis.avplay.play();
-//                            videoElement.src = stream.url;
-//                        });
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
@@ -586,62 +594,31 @@ function TizenVideo(options) {
             }
             case 'unload': {
                 stream = null;
-//                Array.from(videoElement.textTracks).forEach(function(track) {
-//                    track.oncuechange = null;
-//                });
-                // if (hls !== null) {
-                //     hls.removeAllListeners();
-                //     hls.detachMedia(videoElement);
-                //     hls.destroy();
-                //     hls = null;
-                // }
-//                videoElement.removeAttribute('src');
-//                webapis.avplay.pause();
-//                webapis.avplay.seekTo(0);
                 webapis.avplay.stop();
-//                videoElement.currentTime = 0;
                 onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
-                // onPropChanged('subtitlesTracks');
-                // onPropChanged('selectedSubtitlesTrackId');
-                // onPropChanged('audioTracks');
-                // onPropChanged('selectedAudioTrackId');
+                onPropChanged('subtitlesTracks');
+                onPropChanged('selectedSubtitlesTrackId');
+                onPropChanged('audioTracks');
+                onPropChanged('selectedAudioTrackId');
                 break;
             }
             case 'destroy': {
                 command('unload');
                 destroyed = true;
-//                onPropChanged('subtitlesOffset');
-//                onPropChanged('subtitlesSize');
-//                onPropChanged('subtitlesTextColor');
-//                onPropChanged('subtitlesBackgroundColor');
-//                onPropChanged('subtitlesOutlineColor');
+                onPropChanged('subtitlesOffset');
+                onPropChanged('subtitlesSize');
+                onPropChanged('subtitlesTextColor');
+                onPropChanged('subtitlesBackgroundColor');
+                onPropChanged('subtitlesOutlineColor');
 //                onPropChanged('volume');
 //                onPropChanged('muted');
-//                onPropChanged('playbackSpeed');
+                onPropChanged('playbackSpeed');
 //                events.removeAllListeners();
-                // videoElement.onerror = null;
-                // videoElement.onended = null;
-                // videoElement.onpause = null;
-                // videoElement.onplay = null;
-                // videoElement.ontimeupdate = null;
-                // videoElement.ondurationchange = null;
-                // videoElement.onwaiting = null;
-                // videoElement.onseeking = null;
-                // videoElement.onseeked = null;
-                // videoElement.onstalled = null;
-                // videoElement.onplaying = null;
-                // videoElement.oncanplay = null;
-                // videoElement.canplaythrough = null;
-                // videoElement.onloadeddata = null;
-                // videoElement.onvolumechange = null;
-                // videoElement.onratechange = null;
-                // videoElement.textTracks.onchange = null;
                 containerElement.removeChild(objElement);
-                containerElement.removeChild(styleElement);
                 break;
             }
         }
@@ -701,9 +678,9 @@ TizenVideo.canPlayStream = function(stream) {
 TizenVideo.manifest = {
     name: 'TizenVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
-    events: ['propValue', 'propChanged', 'ended', 'error']
+    events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
 
 module.exports = TizenVideo;
