@@ -22,7 +22,6 @@ function HTMLVideo(options) {
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
     videoElement.style.backgroundColor = 'black';
-    videoElement.crossOrigin = 'anonymous';
     videoElement.controls = false;
     videoElement.onerror = function() {
         onVideoError();
