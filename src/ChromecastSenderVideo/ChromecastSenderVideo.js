@@ -74,8 +74,7 @@ function ChromecastSenderVideo(options) {
     function onTransportError(error, action) {
         events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.MESSAGE_SEND_FAILED, {
             error: error,
-            action: action,
-            message: 'Chromecast transport error'
+            action: action
         }));
     }
     function onMessage(message) {
@@ -85,14 +84,14 @@ function ChromecastSenderVideo(options) {
         } catch (error) {
             events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
                 error: error,
-                message: message
+                args: message
             }));
             return;
         }
 
         if (!parsedMessage || typeof parsedMessage.event !== 'string') {
             events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
-                message: message
+                args: message
             }));
             return;
         }
