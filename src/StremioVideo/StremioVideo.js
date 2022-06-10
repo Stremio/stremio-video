@@ -101,4 +101,6 @@ function StremioVideo() {
     };
 }
 
+StremioVideo.ERROR = ERROR;
+
 module.exports = StremioVideo;
