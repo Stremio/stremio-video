@@ -82,14 +82,22 @@ function StremioVideo() {
             }
 
             if (action.type === 'command' && action.commandName === 'destroy') {
-                destroyed = true;
-                events.removeAllListeners();
+                video = null;
             }
 
             return;
         }
 
         throw new Error('Invalid action dispatched: ' + JSON.stringify(action));
+    };
+    this.destroy = function() {
+        destroyed = true;
+        if (video !== null) {
+            video.dispatch({ type: 'command', commandName: 'destroy' });
+            video = null;
+        }
+
+        events.removeAllListeners();
     };
 }
 
