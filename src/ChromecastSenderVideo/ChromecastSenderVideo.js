@@ -78,26 +78,15 @@ function ChromecastSenderVideo(options) {
         }));
     }
     function onMessage(message) {
-        var parsedMessage;
-        try {
-            parsedMessage = JSON.parse(message);
-        } catch (error) {
-            events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
-                error: error,
-                args: message
-            }));
-            return;
-        }
-
-        if (!parsedMessage || typeof parsedMessage.event !== 'string') {
+        if (!message || typeof message.event !== 'string') {
             events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
                 args: message
             }));
             return;
         }
 
-        var args = Array.isArray(parsedMessage.args) ? parsedMessage.args : [];
-        events.emit.apply(events, [parsedMessage.event].concat(args));
+        var args = Array.isArray(message.args) ? message.args : [];
+        events.emit.apply(events, [message.event].concat(args));
     }
     function onPropChanged(propName, propValue) {
         if (observedProps[propName]) {
