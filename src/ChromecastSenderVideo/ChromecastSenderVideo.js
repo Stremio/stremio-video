@@ -39,6 +39,7 @@ function ChromecastSenderVideo(options) {
     deviceNameContainerElement.appendChild(deviceNameLabelElement);
     containerElement.appendChild(deviceNameContainerElement);
     chromecastTransport.on('message', onMessage);
+    chromecastTransport.on('message-error', onMessageReceivedError);
 
     var events = new EventEmitter();
     var destroyed = false;
@@ -71,17 +72,20 @@ function ChromecastSenderVideo(options) {
         extraSubtitlesOutlineColor: false
     };
 
-    function onTransportError(error, action) {
+    function onMessageSendError(error, action) {
         events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.MESSAGE_SEND_FAILED, {
             error: error,
             action: action
         }));
     }
+    function onMessageReceivedError(error) {
+        events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
+            error: error
+        }));
+    }
     function onMessage(message) {
         if (!message || typeof message.event !== 'string') {
-            events.emit('error', Object.assign({}, ERROR.CHROMECAST_SENDER_VIDEO.INVALID_MESSAGE_RECEIVED, {
-                args: message
-            }));
+            onMessageReceivedError(new Error('Invalid message: ' + message));
             return;
         }
 
@@ -153,20 +157,20 @@ function ChromecastSenderVideo(options) {
                 case 'observeProp': {
                     observeProp(action.propName);
                     chromecastTransport.sendMessage(action).catch(function(error) {
-                        onTransportError(error, action);
+                        onMessageSendError(error, action);
                     });
                     return;
                 }
                 case 'setProp': {
                     chromecastTransport.sendMessage(action).catch(function(error) {
-                        onTransportError(error, action);
+                        onMessageSendError(error, action);
                     });
                     return;
                 }
                 case 'command': {
                     command(action.commandName, action.commandArgs);
                     chromecastTransport.sendMessage(action).catch(function(error) {
-                        onTransportError(error, action);
+                        onMessageSendError(error, action);
                     });
                     return;
                 }
