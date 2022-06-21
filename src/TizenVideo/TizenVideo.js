@@ -42,7 +42,11 @@ function TizenVideo(options) {
     function renderSubtitle(duration, text) {
         if (disabledSubs) return;
         // we ignore custom delay here, it's not needed for embedded subs
-        lastSub = { duration: duration, text, now: getProp('time') };
+        lastSub = {
+            duration: duration,
+            text: text,
+            now: getProp('time'),
+        };
         if (subtitleTimeout) {
             clearTimeout(subtitleTimeout);
             subtitleTimeout = false;
@@ -80,7 +84,7 @@ function TizenVideo(options) {
             isBuffering = true;
             onPropChanged('buffering');
         },
-        onbufferingprogress: function(percent) {
+        onbufferingprogress: function() {
             isBuffering = true;
             onPropChanged('buffering');
         },
@@ -88,27 +92,20 @@ function TizenVideo(options) {
             isBuffering = false;
             onPropChanged('buffering');
         },
-        oncurrentplaytime: function(currentTime) {
+        oncurrentplaytime: function() {
             onPropChanged('time');
         },
-        onevent: function(eventType, eventData) {
-            console.log("event type : " + eventType + ", data: " + eventData);
-        },
-        onerror: function(eventType) {
-            console.log("event type error : " + eventType);
+        onerror: function() {
             onVideoError();
         },
-        onsubtitlechange: function(duration, text, data3, data4) {
+        onsubtitlechange: function(duration, text) {
             renderSubtitle(duration, text);
-        },
-        ondrmevent: function(drmEvent, drmData) {
-            console.log("DRM callback: " + drmEvent + ", data: " + drmData);
         },
         onstreamcompleted: function() {
             onEnded();
         }
     };
-    webapis.avplay.setListener(Listener);
+    window.webapis.avplay.setListener(Listener);
 
     containerElement.appendChild(objElement);
 
@@ -154,10 +151,10 @@ function TizenVideo(options) {
                     return null;
                 }
 
-                return !!(webapis.avplay.getState() === "PAUSED");
+                return !!(window.webapis.avplay.getState() === 'PAUSED');
             }
             case 'time': {
-                var currentTime = webapis.avplay.getCurrentTime();
+                var currentTime = window.webapis.avplay.getCurrentTime();
                 if (stream === null || currentTime === null || !isFinite(currentTime)) {
                     return null;
                 }
@@ -165,7 +162,7 @@ function TizenVideo(options) {
                 return Math.floor(currentTime);
             }
             case 'duration': {
-                var duration = webapis.avplay.getDuration();
+                var duration = window.webapis.avplay.getDuration();
                 if (stream === null || duration === null || !isFinite(duration)) {
                     return null;
                 }
@@ -184,19 +181,19 @@ function TizenVideo(options) {
                     return [];
                 }
 
-                var totalTrackInfo = webapis.avplay.getTotalTrackInfo();
+                var totalTrackInfo = window.webapis.avplay.getTotalTrackInfo();
                 var textTracks = [];
 
-                for (var i=0; i < totalTrackInfo.length; i++) {
-                    if (totalTrackInfo[i].type == 'TEXT') {
+                for (var i = 0; i < totalTrackInfo.length; i++) {
+                    if (totalTrackInfo[i].type === 'TEXT') {
                         var textTrack = totalTrackInfo[i];
-                        var textTrackId = 'EMBEDDED_' + String(textTrack.index)
+                        var textTrackId = 'EMBEDDED_' + String(textTrack.index);
                         if (!currentSubTrack && !textTracks.length) {
                             currentSubTrack = textTrackId;
                         }
-                        var extra = {}
+                        var extra = {};
                         try {
-                            extra = JSON.parse(textTrack.extra_info)
+                            extra = JSON.parse(textTrack.extra_info);
                         } catch(e) {}
                         var textTrackLang = (extra.track_lang || '').trim();
                         textTracks.push({
@@ -206,7 +203,7 @@ function TizenVideo(options) {
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
-                        })
+                        });
                     }
                 }
 
@@ -217,14 +214,14 @@ function TizenVideo(options) {
                     return null;
                 }
 
-                var currentTracks = webapis.avplay.getCurrentStreamInfo();
+                var currentTracks = window.webapis.avplay.getCurrentStreamInfo();
                 var currentIndex;
 
                 for (var i = 0; i < currentTracks.length; i++) {
-                    if(currentTracks[i].type == 'TEXT'){
-                         currentIndex = currentTracks[i].index;
+                    if (currentTracks[i].type === 'TEXT') {
+                        currentIndex = currentTracks[i].index;
 
-                         break;
+                        break;
                     }
                 }
 
@@ -271,19 +268,19 @@ function TizenVideo(options) {
                     return [];
                 }
 
-                var totalTrackInfo = webapis.avplay.getTotalTrackInfo();
+                var totalTrackInfo = window.webapis.avplay.getTotalTrackInfo();
                 var audioTracks = [];
 
-                for (var i=0; i < totalTrackInfo.length; i++) {
-                    if (totalTrackInfo[i].type == 'AUDIO') {
+                for (var i = 0; i < totalTrackInfo.length; i++) {
+                    if (totalTrackInfo[i].type === 'AUDIO') {
                         var audioTrack = totalTrackInfo[i];
-                        var audioTrackId = 'EMBEDDED_' + String(audioTrack.index)
+                        var audioTrackId = 'EMBEDDED_' + String(audioTrack.index);
                         if (!currentAudioTrack && !audioTracks.length) {
                             currentAudioTrack = audioTrackId;
                         }
-                        var extra = {}
+                        var extra = {};
                         try {
-                            extra = JSON.parse(audioTrack.extra_info)
+                            extra = JSON.parse(audioTrack.extra_info);
                         } catch(e) {}
                         var audioTrackLang = extra.language || '';
                         audioTracks.push({
@@ -293,7 +290,7 @@ function TizenVideo(options) {
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
-                        })
+                        });
                     }
                 }
 
@@ -304,14 +301,14 @@ function TizenVideo(options) {
                     return null;
                 }
 
-                var currentTracks = webapis.avplay.getCurrentStreamInfo();
+                var currentTracks = window.webapis.avplay.getCurrentStreamInfo();
                 var currentIndex;
 
                 for (var i = 0; i < currentTracks.length; i++) {
-                    if(currentTracks[i].type == 'AUDIO'){
-                         currentIndex = currentTracks[i].index;
+                    if (currentTracks[i].type === 'AUDIO') {
+                        currentIndex = currentTracks[i].index;
 
-                         break;
+                        break;
                     }
                 }
 
@@ -366,10 +363,11 @@ function TizenVideo(options) {
             case 'paused': {
                 if (stream !== null) {
                     var willPause = !!propValue;
-                    willPause ? webapis.avplay.pause() : webapis.avplay.play();
+                    willPause ? window.webapis.avplay.pause() : window.webapis.avplay.play();
                     if (willPause) {
-                        if (subtitleTimeout)
+                        if (subtitleTimeout) {
                             clearTimeout(subtitleTimeout);
+                        }
                     } else {
                         refreshSubtitle();
                     }
@@ -377,14 +375,14 @@ function TizenVideo(options) {
 
                 setTimeout(function() {
                     onPropChanged('paused');
-                })
+                });
 
                 break;
             }
             case 'time': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
-                    webapis.avplay.seekTo(parseInt(propValue, 10));
-                    renderSubtitle(0,'');
+                    window.webapis.avplay.seekTo(parseInt(propValue, 10));
+                    renderSubtitle(0, '');
                 }
 
                 break;
@@ -393,13 +391,11 @@ function TizenVideo(options) {
                 if (stream !== null) {
                     if ((currentSubTrack || '').indexOf('EMBEDDED_') === 0) {
                         if ((propValue || '').indexOf('EMBEDDED_') === -1) {
-                            renderSubtitle(0,'');
+                            renderSubtitle(0, '');
                             disabledSubs = true;
                             return;
                         }
                         disabledSubs = false;
-                        var totalTrackInfo = webapis.avplay.getTotalTrackInfo();
-                        var textTracks = [];
 
                         currentSubTrack = propValue;
 
@@ -408,7 +404,7 @@ function TizenVideo(options) {
                                 return track.id === propValue;
                             });
 
-                        webapis.avplay.setSelectTrack('TEXT', parseInt(currentSubTrack.replace('EMBEDDED_','')));
+                        window.webapis.avplay.setSelectTrack('TEXT', parseInt(currentSubTrack.replace('EMBEDDED_', '')));
 
                         if (selectedSubtitlesTrack) {
                             setTimeout(function() {
@@ -498,13 +494,13 @@ function TizenVideo(options) {
                             return track.id === propValue;
                         });
 
-                    webapis.avplay.setSelectTrack('AUDIO', parseInt(currentAudioTrack.replace('EMBEDDED_','')));
+                    window.webapis.avplay.setSelectTrack('AUDIO', parseInt(currentAudioTrack.replace('EMBEDDED_', '')));
 
                     if (selectedAudioTrack) {
                         setTimeout(function() {
                             events.emit('audioTrackLoaded', selectedAudioTrack);
                             onPropChanged('selectedAudioTrackId');
-                        }, 1000)
+                        }, 1000);
                     }
                 }
 
@@ -514,11 +510,9 @@ function TizenVideo(options) {
                 if (propValue !== null && isFinite(propValue)) {
                     videoSpeed = parseFloat(propValue);
                     try {
-                        webapis.avplay.setSpeed(videoSpeed);
-                    } catch (e) {
-                        console.log(e);
-                    }
-                    setTimeout(function() { onPropChanged('playbackSpeed') });
+                        window.webapis.avplay.setSpeed(videoSpeed);
+                    } catch (e) {}
+                    setTimeout(function() { onPropChanged('playbackSpeed'); });
                 }
 
                 break;
@@ -528,7 +522,6 @@ function TizenVideo(options) {
     function command(commandName, commandArgs) {
         switch (commandName) {
             case 'load': {
-//                command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     stream = commandArgs.stream;
 
@@ -537,13 +530,13 @@ function TizenVideo(options) {
                     }
                     onPropChanged('buffering');
 
-                    webapis.avplay.open(stream.url);
-                    webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
-                    webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
-                    webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
-                    webapis.avplay.prepare();
+                    window.webapis.avplay.open(stream.url);
+                    window.webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
+                    window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
+                    window.webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
+                    window.webapis.avplay.prepare();
                     onPropChanged('duration');
-                    webapis.avplay.play();
+                    window.webapis.avplay.play();
 
                     onPropChanged('stream');
                     onPropChanged('paused');
@@ -564,7 +557,7 @@ function TizenVideo(options) {
             }
             case 'unload': {
                 stream = null;
-                webapis.avplay.stop();
+                window.webapis.avplay.stop();
                 onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
@@ -626,7 +619,7 @@ function TizenVideo(options) {
     };
 }
 
-TizenVideo.canPlayStream = function(stream) {
+TizenVideo.canPlayStream = function() {
     return Promise.resolve(true);
 };
 
