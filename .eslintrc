@@ -91,6 +91,7 @@
             {
                 "requireStringLiterals": true
             }
-        ]
+        ],
+        "no-redeclare": "off"
     }
 }
