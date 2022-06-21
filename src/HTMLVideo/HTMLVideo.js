@@ -2,7 +2,7 @@ var EventEmitter = require('eventemitter3');
 var Hls = require('hls.js');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
-var Color = require('color');
+var colord = require('colord').colord;
 var ERROR = require('../error');
 var getContentType = require('./getContentType');
 var HLS_CONFIG = require('./hlsConfig');
@@ -403,7 +403,7 @@ function HTMLVideo(options) {
             case 'subtitlesTextColor': {
                 if (typeof propValue === 'string') {
                     try {
-                        styleElement.sheet.cssRules[0].style.color = Color(propValue).rgb().string();
+                        styleElement.sheet.cssRules[0].style.color = colord(propValue).toRgbString();
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
@@ -417,7 +417,7 @@ function HTMLVideo(options) {
             case 'subtitlesBackgroundColor': {
                 if (typeof propValue === 'string') {
                     try {
-                        styleElement.sheet.cssRules[0].style.backgroundColor = Color(propValue).rgb().string();
+                        styleElement.sheet.cssRules[0].style.backgroundColor = colord(propValue).toRgbString();
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
@@ -431,7 +431,7 @@ function HTMLVideo(options) {
             case 'subtitlesOutlineColor': {
                 if (typeof propValue === 'string') {
                     try {
-                        styleElement.sheet.cssRules[0].style.textShadow = Color(propValue).rgb().string() + ' 1px 1px 0.1em';
+                        styleElement.sheet.cssRules[0].style.textShadow = colord(propValue).toRgbString() + ' 1px 1px 0.1em';
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);

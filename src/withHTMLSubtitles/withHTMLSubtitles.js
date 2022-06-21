@@ -1,7 +1,7 @@
 var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
-var Color = require('color');
+var colord = require('colord').colord;
 var ERROR = require('../error');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
@@ -283,7 +283,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesTextColor': {
                     if (typeof propValue === 'string') {
                         try {
-                            textColor = Color(propValue).rgb().string();
+                            textColor = colord(propValue).toRgbString();
                         } catch (error) {
                             // eslint-disable-next-line no-console
                             console.error('withHTMLSubtitles', error);
@@ -298,7 +298,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesBackgroundColor': {
                     if (typeof propValue === 'string') {
                         try {
-                            backgroundColor = Color(propValue).rgb().string();
+                            backgroundColor = colord(propValue).toRgbString();
                         } catch (error) {
                             // eslint-disable-next-line no-console
                             console.error('withHTMLSubtitles', error);
@@ -313,7 +313,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesOutlineColor': {
                     if (typeof propValue === 'string') {
                         try {
-                            outlineColor = Color(propValue).rgb().string();
+                            outlineColor = colord(propValue).toRgbString();
                         } catch (error) {
                             // eslint-disable-next-line no-console
                             console.error('withHTMLSubtitles', error);
