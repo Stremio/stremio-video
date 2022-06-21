@@ -373,9 +373,7 @@ function TizenVideo(options) {
                     }
                 }
 
-                setTimeout(function() {
-                    onPropChanged('paused');
-                });
+                onPropChanged('paused');
 
                 break;
             }
@@ -407,10 +405,8 @@ function TizenVideo(options) {
                         window.webapis.avplay.setSelectTrack('TEXT', parseInt(currentSubTrack.replace('EMBEDDED_', '')));
 
                         if (selectedSubtitlesTrack) {
-                            setTimeout(function() {
-                                events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
-                                onPropChanged('selectedSubtitlesTrackId');
-                            }, 1000);
+                            events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
+                            onPropChanged('selectedSubtitlesTrackId');
                         }
                     } else if (!propValue) {
                         disabledSubs = true;
@@ -497,10 +493,8 @@ function TizenVideo(options) {
                     window.webapis.avplay.setSelectTrack('AUDIO', parseInt(currentAudioTrack.replace('EMBEDDED_', '')));
 
                     if (selectedAudioTrack) {
-                        setTimeout(function() {
-                            events.emit('audioTrackLoaded', selectedAudioTrack);
-                            onPropChanged('selectedAudioTrackId');
-                        }, 1000);
+                        events.emit('audioTrackLoaded', selectedAudioTrack);
+                        onPropChanged('selectedAudioTrackId');
                     }
                 }
 
@@ -509,10 +503,12 @@ function TizenVideo(options) {
             case 'playbackSpeed': {
                 if (propValue !== null && isFinite(propValue)) {
                     videoSpeed = parseFloat(propValue);
+
                     try {
                         window.webapis.avplay.setSpeed(videoSpeed);
                     } catch (e) {}
-                    setTimeout(function() { onPropChanged('playbackSpeed'); });
+
+                    onPropChanged('playbackSpeed');
                 }
 
                 break;
