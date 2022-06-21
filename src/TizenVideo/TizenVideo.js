@@ -74,7 +74,7 @@ function TizenVideo(options) {
                 while (subtitlesElement.hasChildNodes()) {
                     subtitlesElement.removeChild(subtitlesElement.lastChild);
                 }
-            }, parseInt(duration));
+            }, parseInt(duration * videoSpeed));
         }
     }
 
