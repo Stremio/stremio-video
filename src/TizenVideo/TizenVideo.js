@@ -391,6 +391,7 @@ function TizenVideo(options) {
                         if ((propValue || '').indexOf('EMBEDDED_') === -1) {
                             renderSubtitle(1, '');
                             disabledSubs = true;
+                            onPropChanged('selectedSubtitlesTrackId');
                             return;
                         }
                         disabledSubs = false;
