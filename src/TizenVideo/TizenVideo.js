@@ -202,7 +202,7 @@ function TizenVideo(options) {
                             label: textTrackLang,
                             origin: 'EMBEDDED',
                             embedded: true,
-                            mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
+                            mode: !disabledSubs && textTrackId === currentSubTrack ? 'showing' : 'disabled',
                         });
                     }
                 }
@@ -380,7 +380,7 @@ function TizenVideo(options) {
             case 'time': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
                     window.webapis.avplay.seekTo(parseInt(propValue, 10));
-                    renderSubtitle(0, '');
+                    renderSubtitle(1, '');
                 }
 
                 break;
@@ -389,7 +389,7 @@ function TizenVideo(options) {
                 if (stream !== null) {
                     if ((currentSubTrack || '').indexOf('EMBEDDED_') === 0) {
                         if ((propValue || '').indexOf('EMBEDDED_') === -1) {
-                            renderSubtitle(0, '');
+                            renderSubtitle(1, '');
                             disabledSubs = true;
                             return;
                         }
@@ -409,7 +409,9 @@ function TizenVideo(options) {
                             onPropChanged('selectedSubtitlesTrackId');
                         }
                     } else if (!propValue) {
+                        renderSubtitle(1, '');
                         disabledSubs = true;
+                        onPropChanged('selectedSubtitlesTrackId');
                     }
                 }
 
