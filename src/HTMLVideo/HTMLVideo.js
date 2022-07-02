@@ -22,6 +22,7 @@ function HTMLVideo(options) {
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
     videoElement.style.backgroundColor = 'black';
+    videoElement.crossOrigin = 'anonymous';
     videoElement.controls = false;
     videoElement.onerror = function() {
         onVideoError();
@@ -361,7 +362,9 @@ function HTMLVideo(options) {
             }
             case 'time': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
-                    videoElement.currentTime = parseInt(propValue, 10) / 1000;
+                    try {
+                        videoElement.currentTime = parseInt(propValue, 10) / 1000;
+                    } catch(e) {}
                 }
 
                 break;
@@ -485,7 +488,9 @@ function HTMLVideo(options) {
                     stream = commandArgs.stream;
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
-                    videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
+                    try {
+                        videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
+                    } catch(e) {}
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
@@ -545,7 +550,9 @@ function HTMLVideo(options) {
                 }
                 videoElement.removeAttribute('src');
                 videoElement.load();
-                videoElement.currentTime = 0;
+                try {
+                    videoElement.currentTime = 0;
+                } catch(e) {}
                 onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
@@ -629,18 +636,7 @@ function HTMLVideo(options) {
 }
 
 HTMLVideo.canPlayStream = function(stream) {
-    if (!stream || (stream.behaviorHints && stream.behaviorHints.notWebReady)) {
-        return Promise.resolve(false);
-    }
-
-    return getContentType(stream)
-        .then(function(contentType) {
-            var video = document.createElement('video');
-            return !!video.canPlayType(contentType) || (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported());
-        })
-        .catch(function() {
-            return false;
-        });
+    return Promise.resolve(true);
 };
 
 HTMLVideo.manifest = {
