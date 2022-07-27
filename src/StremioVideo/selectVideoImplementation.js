@@ -1,4 +1,5 @@
 var ChromecastSenderVideo = require('../ChromecastSenderVideo');
+var ShellVideo = require('../ShellVideo');
 var HTMLVideo = require('../HTMLVideo');
 var TizenVideo = require('../TizenVideo');
 var IFrameVideo = require('../IFrameVideo');
@@ -21,6 +22,9 @@ function selectVideoImplementation(commandArgs, options) {
 
     if (typeof commandArgs.stream.playerFrameUrl === 'string') {
         return IFrameVideo;
+    }
+    if (options.shell && options.shell.active) {
+        return withStreamingServer(withHTMLSubtitles(ShellVideo));
     }
 
     if (typeof commandArgs.streamingServerURL === 'string') {
