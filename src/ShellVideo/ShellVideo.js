@@ -27,7 +27,7 @@ var stremioToMPVProps = {
 function ShellVideo(options) {
     options = options || {};
 
-    var ipc = options.shell.transport;
+    var ipc = options.shellTransport;
 
     var stremioProps = {};
     Object.keys(stremioToMPVProps).forEach(function(key) {
