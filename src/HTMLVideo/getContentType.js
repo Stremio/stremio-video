@@ -3,8 +3,8 @@ function getContentType(stream) {
         return Promise.reject(new Error('Invalid stream parameter!'));
     }
 
-    if (stream.behaviorHints && stream.behaviorHints.headers && typeof stream.behaviorHints.headers['content-type'] === 'string') {
-        return Promise.resolve(stream.behaviorHints.headers['content-type']);
+    if (stream.behaviorHints && stream.behaviorHints.proxyHeaders && stream.behaviorHints.proxyHeaders.response && typeof stream.behaviorHints.proxyHeaders.response['content-type'] === 'string') {
+        return Promise.resolve(stream.behaviorHints.proxyHeaders.response['content-type']);
     }
 
     return fetch(stream.url, { method: 'HEAD' })
