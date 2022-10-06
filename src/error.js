@@ -1,3 +1,9 @@
+var isSmartTV = false;
+
+if (typeof global.tizen !== 'undefined' || typeof global.webOS !== 'undefined') {
+    isSmartTV = true;
+}
+
 var ERROR = {
     CHROMECAST_SENDER_VIDEO: {
         INVALID_MESSAGE_RECEIVED: {
@@ -58,7 +64,7 @@ var ERROR = {
     WITH_STREAMING_SERVER: {
         CONVERT_FAILED: {
             code: 60,
-            message: 'Unable to convert stream'
+            message: isSmartTV ? 'Your device does not support this video' : 'Unable to convert stream'
         }
     },
     UNKNOWN_ERROR: {
