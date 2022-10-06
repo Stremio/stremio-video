@@ -17,6 +17,8 @@ function TizenVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
+    var promiseAudioTrackChange = false;
+
     var size = 100;
     var offset = 0;
     var textColor = 'rgb(255, 255, 255)';
@@ -151,7 +153,14 @@ function TizenVideo(options) {
                     return null;
                 }
 
-                return !!(window.webapis.avplay.getState() === 'PAUSED');
+                var isPaused = !!(window.webapis.avplay.getState() === 'PAUSED');
+
+                if (!isPaused && promiseAudioTrackChange) {
+                    window.webapis.avplay.setSelectTrack('AUDIO', parseInt(promiseAudioTrackChange.replace('EMBEDDED_', '')));
+                    promiseAudioTrackChange = false;
+                }
+
+                return isPaused;
             }
             case 'time': {
                 var currentTime = window.webapis.avplay.getCurrentTime();
@@ -301,8 +310,12 @@ function TizenVideo(options) {
                     return null;
                 }
 
+                if (promiseAudioTrackChange) {
+                    return promiseAudioTrackChange;
+                }
+
                 var currentTracks = window.webapis.avplay.getCurrentStreamInfo();
-                var currentIndex;
+                var currentIndex = false;
 
                 for (var i = 0; i < currentTracks.length; i++) {
                     if (currentTracks[i].type === 'AUDIO') {
@@ -312,7 +325,7 @@ function TizenVideo(options) {
                     }
                 }
 
-                return currentIndex ? 'EMBEDDED_' + String(currentIndex) : null;
+                return currentIndex !== false ? 'EMBEDDED_' + String(currentIndex) : null;
             }
             case 'playbackSpeed': {
                 if (destroyed || videoSpeed === null || !isFinite(videoSpeed)) {
@@ -374,6 +387,16 @@ function TizenVideo(options) {
                 }
 
                 onPropChanged('paused');
+
+                // the paused state is usually correct, but i have seen it not change on tizen 3
+                // which causes all kinds of issues in the UI: (only happens with some videos)
+                var lastKnownProp = getProp('paused');
+
+                setTimeout(function() {
+                    if (getProp('paused') !== lastKnownProp) {
+                        onPropChanged('paused');
+                    }
+                }, 1000);
 
                 break;
             }
@@ -493,8 +516,17 @@ function TizenVideo(options) {
                             return track.id === propValue;
                         });
 
-                    window.webapis.avplay.setSelectTrack('AUDIO', parseInt(currentAudioTrack.replace('EMBEDDED_', '')));
+                    if (getProp('paused')) {
+                        // issues before this logic:
+                        // tizen 3 does not allow changing audio track when paused
+                        // tizen 5 does, but it will only change getProp('selectedAudioTrackId') after playback starts
 
+                        // will be changed on next play event, until then we will overwrite the result of getProp('selectedAudioTrackId')
+                        promiseAudioTrackChange = propValue;
+                        onPropChanged('selectedAudioTrackId');
+                    } else {
+                        window.webapis.avplay.setSelectTrack('AUDIO', parseInt(currentAudioTrack.replace('EMBEDDED_', '')));
+                    }
                     if (selectedAudioTrack) {
                         events.emit('audioTrackLoaded', selectedAudioTrack);
                         onPropChanged('selectedAudioTrackId');

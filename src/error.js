@@ -58,7 +58,7 @@ var ERROR = {
     WITH_STREAMING_SERVER: {
         CONVERT_FAILED: {
             code: 60,
-            message: 'Unable to convert stream'
+            message: 'Streaming server failed to convert torrent stream'
         }
     },
     UNKNOWN_ERROR: {
