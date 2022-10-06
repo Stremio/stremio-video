@@ -388,6 +388,16 @@ function TizenVideo(options) {
 
                 onPropChanged('paused');
 
+                // the paused state is usually correct, but i have seen it not change on tizen 3
+                // which causes all kinds of issues in the UI: (only happens with some videos)
+                var lastKnownProp = getProp('paused');
+
+                setTimeout(function() {
+                    if (getProp('paused') !== lastKnownProp) {
+                        onPropChanged('paused');
+                    }
+                }, 1000);
+
                 break;
             }
             case 'time': {
