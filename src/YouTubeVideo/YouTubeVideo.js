@@ -39,6 +39,7 @@ function YouTubeVideo(options) {
     var selectedSubtitlesTrackId = null;
     var observedProps = {
         stream: false,
+        loaded: false,
         paused: false,
         time: false,
         duration: false,
@@ -189,6 +190,13 @@ function YouTubeVideo(options) {
         switch (propName) {
             case 'stream': {
                 return stream;
+            }
+            case 'loaded': {
+                if (stream === null) {
+                    return null;
+                }
+
+                return true;
             }
             case 'paused': {
                 if (stream === null || typeof video.getPlayerState !== 'function') {
@@ -360,6 +368,7 @@ function YouTubeVideo(options) {
                     if (ready) {
                         stream = commandArgs.stream;
                         onPropChanged('stream');
+                        onPropChanged('loaded');
                         var autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                         var time = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
                         if (autoplay && typeof video.loadVideoById === 'function') {
@@ -397,6 +406,7 @@ function YouTubeVideo(options) {
                 pendingLoadArgs = null;
                 stream = null;
                 onPropChanged('stream');
+                onPropChanged('loaded');
                 selectedSubtitlesTrackId = null;
                 if (ready && typeof video.stopVideo === 'function') {
                     video.stopVideo();
@@ -467,7 +477,7 @@ YouTubeVideo.canPlayStream = function(stream) {
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded']
 };
