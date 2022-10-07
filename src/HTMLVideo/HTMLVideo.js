@@ -47,10 +47,12 @@ function HTMLVideo(options) {
         onPropChanged('buffered');
     };
     videoElement.onseeking = function() {
+        onPropChanged('time');
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
     videoElement.onseeked = function() {
+        onPropChanged('time');
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
@@ -59,6 +61,7 @@ function HTMLVideo(options) {
         onPropChanged('buffered');
     };
     videoElement.onplaying = function() {
+        onPropChanged('time');
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
