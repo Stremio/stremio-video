@@ -355,6 +355,7 @@ function HTMLVideo(options) {
             case 'paused': {
                 if (stream !== null) {
                     propValue ? videoElement.pause() : videoElement.play();
+                    onPropChanged('paused');
                 }
 
                 break;
@@ -362,6 +363,7 @@ function HTMLVideo(options) {
             case 'time': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
                     videoElement.currentTime = parseInt(propValue, 10) / 1000;
+                    onPropChanged('time');
                 }
 
                 break;
@@ -377,6 +379,7 @@ function HTMLVideo(options) {
                             return track.id === propValue;
                         });
                     if (selecterdSubtitlesTrack) {
+                        onPropChanged('selectedSubtitlesTrackId');
                         events.emit('subtitlesTrackLoaded', selecterdSubtitlesTrack);
                     }
                 }
@@ -450,6 +453,7 @@ function HTMLVideo(options) {
                         });
                     hls.audioTrack = selecterdAudioTrack ? parseInt(selecterdAudioTrack.id.split('_').pop(), 10) : -1;
                     if (selecterdAudioTrack) {
+                        onPropChanged('selectedAudioTrackId');
                         events.emit('audioTrackLoaded', selecterdAudioTrack);
                     }
                 }
@@ -460,17 +464,21 @@ function HTMLVideo(options) {
                 if (propValue !== null && isFinite(propValue)) {
                     videoElement.muted = false;
                     videoElement.volume = Math.max(0, Math.min(100, parseInt(propValue, 10))) / 100;
+                    onPropChanged('muted');
+                    onPropChanged('volume');
                 }
 
                 break;
             }
             case 'muted': {
                 videoElement.muted = !!propValue;
+                onPropChanged('muted');
                 break;
             }
             case 'playbackSpeed': {
                 if (propValue !== null && isFinite(propValue)) {
                     videoElement.playbackRate = parseFloat(propValue);
+                    onPropChanged('playbackSpeed');
                 }
 
                 break;
