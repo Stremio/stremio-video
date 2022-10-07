@@ -24,6 +24,7 @@ function IFrameVideo(options) {
     var destroyed = false;
     var observedProps = {
         stream: false,
+        loaded: false,
         paused: false,
         time: false,
         duration: false,
@@ -95,6 +96,7 @@ function IFrameVideo(options) {
                 iframeElement.onload = null;
                 iframeElement.removeAttribute('src');
                 onPropChanged('stream', null);
+                onPropChanged('loaded', null);
                 onPropChanged('paused', null);
                 onPropChanged('time', null);
                 onPropChanged('duration', null);
@@ -108,15 +110,6 @@ function IFrameVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
-                onPropChanged('stream', null);
-                onPropChanged('paused', null);
-                onPropChanged('time', null);
-                onPropChanged('duration', null);
-                onPropChanged('buffering', null);
-                onPropChanged('buffered', null);
-                onPropChanged('volume', null);
-                onPropChanged('muted', null);
-                onPropChanged('playbackSpeed', null);
                 events.removeAllListeners();
                 containerElement.removeChild(iframeElement);
                 return true;
@@ -169,7 +162,7 @@ IFrameVideo.canPlayStream = function(stream) {
 IFrameVideo.manifest = {
     name: 'IFrameVideo',
     external: true,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'],
     commands: ['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded', 'extraSubtitlesTrackLoaded', 'implementationChanged']
 };
