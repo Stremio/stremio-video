@@ -73,6 +73,9 @@ function HTMLVideo(options) {
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
+    videoElement.onloadedmetadata = function() {
+        onPropChanged('loaded');
+    };
     videoElement.onloadeddata = function() {
         onPropChanged('buffering');
         onPropChanged('buffered');
@@ -101,6 +104,7 @@ function HTMLVideo(options) {
     var subtitlesOffset = 0;
     var observedProps = {
         stream: false,
+        loaded: false,
         paused: false,
         time: false,
         duration: false,
@@ -124,6 +128,13 @@ function HTMLVideo(options) {
         switch (propName) {
             case 'stream': {
                 return stream;
+            }
+            case 'loaded': {
+                if (stream === null) {
+                    return null;
+                }
+
+                return videoElement.readyState >= videoElement.HAVE_METADATA;
             }
             case 'paused': {
                 if (stream === null) {
@@ -495,6 +506,7 @@ function HTMLVideo(options) {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     stream = commandArgs.stream;
                     onPropChanged('stream');
+                    onPropChanged('loaded');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
                     videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
                     onPropChanged('paused');
@@ -558,6 +570,7 @@ function HTMLVideo(options) {
                 videoElement.load();
                 videoElement.currentTime = 0;
                 onPropChanged('stream');
+                onPropChanged('loaded');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
@@ -657,7 +670,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
