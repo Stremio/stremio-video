@@ -45,6 +45,7 @@ function ChromecastSenderVideo(options) {
     var destroyed = false;
     var observedProps = {
         stream: false,
+        loaded: false,
         paused: false,
         time: false,
         duration: false,
@@ -107,6 +108,7 @@ function ChromecastSenderVideo(options) {
             case 'destroy': {
                 destroyed = true;
                 onPropChanged('stream', null);
+                onPropChanged('loaded', null);
                 onPropChanged('paused', null);
                 onPropChanged('time', null);
                 onPropChanged('duration', null);
@@ -188,7 +190,7 @@ ChromecastSenderVideo.canPlayStream = function() {
 ChromecastSenderVideo.manifest = {
     name: 'ChromecastSenderVideo',
     external: true,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'],
     commands: ['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded', 'extraSubtitlesTrackLoaded', 'implementationChanged']
 };
