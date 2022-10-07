@@ -23,6 +23,7 @@ function selectVideoImplementation(commandArgs, options) {
     if (typeof commandArgs.stream.playerFrameUrl === 'string') {
         return IFrameVideo;
     }
+
     if (options.shellTransport) {
         return withStreamingServer(withHTMLSubtitles(ShellVideo));
     }
