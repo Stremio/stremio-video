@@ -2,6 +2,7 @@ var ChromecastSenderVideo = require('../ChromecastSenderVideo');
 var ShellVideo = require('../ShellVideo');
 var HTMLVideo = require('../HTMLVideo');
 var TizenVideo = require('../TizenVideo');
+var WebOsVideo = require('../WebOsVideo');
 var IFrameVideo = require('../IFrameVideo');
 var YouTubeVideo = require('../YouTubeVideo');
 var withStreamingServer = require('../withStreamingServer');
@@ -32,10 +33,16 @@ function selectVideoImplementation(commandArgs, options) {
         if (typeof global.tizen !== 'undefined') {
             return withStreamingServer(withHTMLSubtitles(TizenVideo));
         }
+        if (typeof global.webOS !== 'undefined') {
+            return withStreamingServer(withHTMLSubtitles(WebOsVideo));
+        }
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
     }
 
     if (typeof commandArgs.stream.url === 'string') {
+        if (typeof global.webOS !== 'undefined') {
+            return withHTMLSubtitles(WebOsVideo);
+        }
         if (typeof global.tizen !== 'undefined') {
             return withHTMLSubtitles(TizenVideo);
         }
