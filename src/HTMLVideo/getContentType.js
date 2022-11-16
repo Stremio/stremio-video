@@ -7,7 +7,7 @@ function getContentType(stream) {
         return Promise.resolve(stream.behaviorHints.proxyHeaders.response['content-type']);
     }
 
-    return fetch(stream.url, { method: 'HEAD' })
+    return fetch(stream.url, { method: 'HEAD', mode: 'no-cors' })
         .then(function(resp) {
             if (resp.ok) {
                 return resp.headers.get('content-type');
