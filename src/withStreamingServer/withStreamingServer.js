@@ -97,7 +97,29 @@ function withStreamingServer(Video) {
                         onPropChanged('stream');
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
                             .then(function(mediaURL) {
-                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : Video.canPlayStream({ url: mediaURL }))
+                                var formats = Array.isArray(commandArgs.formats) ?
+                                    commandArgs.formats
+                                    :
+                                    mediaCapabilities.formats;
+                                var videoCodecs = Array.isArray(commandArgs.videoCodecs) ?
+                                    commandArgs.videoCodecs
+                                    :
+                                    mediaCapabilities.videoCodecs;
+                                var audioCodecs = Array.isArray(commandArgs.audioCodecs) ?
+                                    commandArgs.audioCodecs
+                                    :
+                                    mediaCapabilities.audioCodecs;
+                                var maxAudioChannels = commandArgs.maxAudioChannels !== null && isFinite(commandArgs.maxAudioChannels) ?
+                                    commandArgs.maxAudioChannels
+                                    :
+                                    mediaCapabilities.maxAudioChannels;
+                                var canPlayStreamOptions = Object.assign({}, commandArgs, {
+                                    formats: formats,
+                                    videoCodecs: videoCodecs,
+                                    audioCodecs: audioCodecs,
+                                    maxAudioChannels: maxAudioChannels
+                                });
+                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : VideoWithStreamingServer.canPlayStream({ url: mediaURL }, canPlayStreamOptions))
                                     .catch(function(error) {
                                         console.warn('Media probe error', error);
                                         return false;
@@ -115,27 +137,15 @@ function withStreamingServer(Video) {
                                             queryParams.set('forceTranscoding', '1');
                                         }
 
-                                        var maxAudioChannels = commandArgs.maxAudioChannels !== null && isFinite(commandArgs.maxAudioChannels) ?
-                                            commandArgs.maxAudioChannels
-                                            :
-                                            mediaCapabilities.maxAudioChannels;
-                                        queryParams.set('maxAudioChannels', maxAudioChannels);
-
-                                        var videoCodecs = Array.isArray(commandArgs.videoCodecs) ?
-                                            commandArgs.videoCodecs
-                                            :
-                                            mediaCapabilities.videoCodecs;
                                         videoCodecs.forEach(function(videoCodec) {
                                             queryParams.append('videoCodecs', videoCodec);
                                         });
 
-                                        var audioCodecs = Array.isArray(commandArgs.audioCodecs) ?
-                                            commandArgs.audioCodecs
-                                            :
-                                            mediaCapabilities.audioCodecs;
                                         audioCodecs.forEach(function(audioCodec) {
                                             queryParams.append('audioCodecs', audioCodec);
                                         });
+
+                                        queryParams.set('maxAudioChannels', maxAudioChannels);
 
                                         return {
                                             url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
@@ -289,8 +299,38 @@ function withStreamingServer(Video) {
         };
     }
 
-    VideoWithStreamingServer.canPlayStream = function(stream) {
-        return Video.canPlayStream(stream);
+    VideoWithStreamingServer.canPlayStream = function(stream, options) {
+        return Video.canPlayStream(stream)
+            .then(function(canPlay) {
+                if (!canPlay) {
+                    throw new Error('Fallback using /hlsv2/probe');
+                }
+
+                return canPlay;
+            })
+            .catch(function() {
+                var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
+                return fetch(url.resolve(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
+                    .then(function(resp) {
+                        return resp.json();
+                    })
+                    .then(function(probe) {
+                        var isFormatSupported = options.formats.some(function(format) {
+                            return probe.format.name.indexOf(format) !== -1;
+                        });
+                        var areStreamsSupported = probe.streams.every(function(stream) {
+                            if (stream.track === 'audio') {
+                                return stream.channels <= options.maxAudioChannels &&
+                                    options.audioCodecs.indexOf(stream.codec) !== -1;
+                            } else if (stream.track === 'video') {
+                                return options.videoCodecs.indexOf(stream.codec) !== -1;
+                            }
+
+                            return true;
+                        });
+                        return isFormatSupported && areStreamsSupported;
+                    });
+            });
     };
 
     VideoWithStreamingServer.manifest = {
