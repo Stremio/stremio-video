@@ -52,6 +52,15 @@ function canPlay(config, options) {
         [];
 }
 
+function getMaxAudioChannels() {
+    if (!window.AudioContext) {
+        return 2;
+    }
+
+    var maxChannelCount = new AudioContext().destination.maxChannelCount;
+    return maxChannelCount > 0 ? maxChannelCount : 2;
+}
+
 function getMediaCapabilities() {
     var mediaElement = document.createElement('video');
     var videoCodecs = VIDEO_CODECS_CONFIG
@@ -72,10 +81,12 @@ function getMediaCapabilities() {
         .reduce(function(result, value) {
             return result.concat(value);
         }, []);
+    var maxAudioChannels = getMaxAudioChannels();
     return {
         videoCodecs: videoCodecs,
-        audioCodecs: audioCodecs
+        audioCodecs: audioCodecs,
+        maxAudioChannels: maxAudioChannels
     };
 }
 
-module.exports = getMediaCapabilities;
+module.exports = getMediaCapabilities();
