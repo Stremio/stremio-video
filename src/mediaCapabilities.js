@@ -86,7 +86,9 @@ function getMediaCapabilities() {
             return result.concat(value);
         }, []);
     var maxAudioChannels = getMaxAudioChannels();
+    var formats = ['mp4'];
     return {
+        formats: formats,
         videoCodecs: videoCodecs,
         audioCodecs: audioCodecs,
         maxAudioChannels: maxAudioChannels
