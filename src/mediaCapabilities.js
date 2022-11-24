@@ -57,6 +57,10 @@ function getMaxAudioChannels() {
         return 2;
     }
 
+    if (/firefox/i.test(window.navigator.userAgent)) {
+        return 6;
+    }
+
     var maxChannelCount = new AudioContext().destination.maxChannelCount;
     return maxChannelCount > 0 ? maxChannelCount : 2;
 }
