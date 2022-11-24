@@ -3,6 +3,7 @@ var url = require('url');
 var hat = require('hat');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
+var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var ERROR = require('../error');
 
@@ -113,9 +114,28 @@ function withStreamingServer(Video) {
                                         if (commandArgs.forceTranscoding) {
                                             queryParams.set('forceTranscoding', '1');
                                         }
-                                        if (commandArgs.maxAudioChannels !== null && isFinite(commandArgs.maxAudioChannels)) {
-                                            queryParams.set('maxAudioChannels', commandArgs.maxAudioChannels);
-                                        }
+
+                                        var maxAudioChannels = commandArgs.maxAudioChannels !== null && isFinite(commandArgs.maxAudioChannels) ?
+                                            commandArgs.maxAudioChannels
+                                            :
+                                            mediaCapabilities.maxAudioChannels;
+                                        queryParams.set('maxAudioChannels', maxAudioChannels);
+
+                                        var videoCodecs = Array.isArray(commandArgs.videoCodecs) ?
+                                            commandArgs.videoCodecs
+                                            :
+                                            mediaCapabilities.videoCodecs;
+                                        videoCodecs.forEach(function(videoCodec) {
+                                            queryParams.append('videoCodecs', videoCodec);
+                                        });
+
+                                        var audioCodecs = Array.isArray(commandArgs.audioCodecs) ?
+                                            commandArgs.audioCodecs
+                                            :
+                                            mediaCapabilities.audioCodecs;
+                                        audioCodecs.forEach(function(audioCodec) {
+                                            queryParams.append('audioCodecs', audioCodec);
+                                        });
 
                                         return {
                                             url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
