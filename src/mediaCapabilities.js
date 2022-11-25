@@ -67,26 +67,22 @@ function getMaxAudioChannels() {
 
 function getMediaCapabilities() {
     var mediaElement = document.createElement('video');
+    var formats = ['mp4'];
     var videoCodecs = VIDEO_CODEC_CONFIGS
         .map(function(config) {
-            return canPlay(config, {
-                mediaElement: mediaElement
-            });
+            return canPlay(config, { mediaElement: mediaElement });
         })
         .reduce(function(result, value) {
             return result.concat(value);
         }, []);
     var audioCodecs = AUDIO_CODEC_CONFIGS
         .map(function(config) {
-            return canPlay(config, {
-                mediaElement: mediaElement
-            });
+            return canPlay(config, { mediaElement: mediaElement });
         })
         .reduce(function(result, value) {
             return result.concat(value);
         }, []);
     var maxAudioChannels = getMaxAudioChannels();
-    var formats = ['mp4'];
     return {
         formats: formats,
         videoCodecs: videoCodecs,
