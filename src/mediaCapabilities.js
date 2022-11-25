@@ -1,4 +1,4 @@
-var VIDEO_CODECS_CONFIG = [
+var VIDEO_CODEC_CONFIGS = [
     {
         codec: 'h264',
         mime: 'video/mp4; codecs="avc1.42E01E"',
@@ -18,7 +18,7 @@ var VIDEO_CODECS_CONFIG = [
     }
 ];
 
-var AUDIO_CODECS_CONFIG = [
+var AUDIO_CODEC_CONFIGS = [
     {
         codec: 'aac',
         mime: 'audio/mp4; codecs="mp4a.40.2"'
@@ -67,7 +67,7 @@ function getMaxAudioChannels() {
 
 function getMediaCapabilities() {
     var mediaElement = document.createElement('video');
-    var videoCodecs = VIDEO_CODECS_CONFIG
+    var videoCodecs = VIDEO_CODEC_CONFIGS
         .map(function(config) {
             return canPlay(config, {
                 mediaElement: mediaElement
@@ -76,7 +76,7 @@ function getMediaCapabilities() {
         .reduce(function(result, value) {
             return result.concat(value);
         }, []);
-    var audioCodecs = AUDIO_CODECS_CONFIG
+    var audioCodecs = AUDIO_CODEC_CONFIGS
         .map(function(config) {
             return canPlay(config, {
                 mediaElement: mediaElement
