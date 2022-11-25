@@ -1,4 +1,4 @@
-var VIDEO_CODECS_CONFIG = [
+var VIDEO_CODEC_CONFIGS = [
     {
         codec: 'h264',
         mime: 'video/mp4; codecs="avc1.42E01E"',
@@ -18,7 +18,7 @@ var VIDEO_CODECS_CONFIG = [
     }
 ];
 
-var AUDIO_CODECS_CONFIG = [
+var AUDIO_CODEC_CONFIGS = [
     {
         codec: 'aac',
         mime: 'audio/mp4; codecs="mp4a.40.2"'
@@ -53,6 +53,10 @@ function canPlay(config, options) {
 }
 
 function getMaxAudioChannels() {
+    if (/firefox/i.test(window.navigator.userAgent)) {
+        return 6;
+    }
+
     if (!window.AudioContext) {
         return 2;
     }
@@ -63,26 +67,24 @@ function getMaxAudioChannels() {
 
 function getMediaCapabilities() {
     var mediaElement = document.createElement('video');
-    var videoCodecs = VIDEO_CODECS_CONFIG
+    var formats = ['mp4'];
+    var videoCodecs = VIDEO_CODEC_CONFIGS
         .map(function(config) {
-            return canPlay(config, {
-                mediaElement: mediaElement
-            });
+            return canPlay(config, { mediaElement: mediaElement });
         })
         .reduce(function(result, value) {
             return result.concat(value);
         }, []);
-    var audioCodecs = AUDIO_CODECS_CONFIG
+    var audioCodecs = AUDIO_CODEC_CONFIGS
         .map(function(config) {
-            return canPlay(config, {
-                mediaElement: mediaElement
-            });
+            return canPlay(config, { mediaElement: mediaElement });
         })
         .reduce(function(result, value) {
             return result.concat(value);
         }, []);
     var maxAudioChannels = getMaxAudioChannels();
     return {
+        formats: formats,
         videoCodecs: videoCodecs,
         audioCodecs: audioCodecs,
         maxAudioChannels: maxAudioChannels
