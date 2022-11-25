@@ -53,12 +53,12 @@ function canPlay(config, options) {
 }
 
 function getMaxAudioChannels() {
-    if (!window.AudioContext) {
-        return 2;
-    }
-
     if (/firefox/i.test(window.navigator.userAgent)) {
         return 6;
+    }
+
+    if (!window.AudioContext) {
+        return 2;
     }
 
     var maxChannelCount = new AudioContext().destination.maxChannelCount;
