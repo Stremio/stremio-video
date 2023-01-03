@@ -7,6 +7,7 @@ var IFrameVideo = require('../IFrameVideo');
 var YouTubeVideo = require('../YouTubeVideo');
 var withStreamingServer = require('../withStreamingServer');
 var withHTMLSubtitles = require('../withHTMLSubtitles');
+var withVideoParams = require('../withVideoParams');
 
 function selectVideoImplementation(commandArgs, options) {
     if (!commandArgs.stream || typeof commandArgs.stream.externalUrl === 'string') {
@@ -18,11 +19,11 @@ function selectVideoImplementation(commandArgs, options) {
     }
 
     if (typeof commandArgs.stream.ytId === 'string') {
-        return withHTMLSubtitles(YouTubeVideo);
+        return withVideoParams(withHTMLSubtitles(YouTubeVideo));
     }
 
     if (typeof commandArgs.stream.playerFrameUrl === 'string') {
-        return IFrameVideo;
+        return withVideoParams(IFrameVideo);
     }
 
     if (options.shellTransport) {
@@ -41,12 +42,12 @@ function selectVideoImplementation(commandArgs, options) {
 
     if (typeof commandArgs.stream.url === 'string') {
         if (typeof global.webOS !== 'undefined') {
-            return withHTMLSubtitles(WebOsVideo);
+            return withVideoParams(withHTMLSubtitles(WebOsVideo));
         }
         if (typeof global.tizen !== 'undefined') {
-            return withHTMLSubtitles(TizenVideo);
+            return withVideoParams(withHTMLSubtitles(TizenVideo));
         }
-        return withHTMLSubtitles(HTMLVideo);
+        return withVideoParams(withHTMLSubtitles(HTMLVideo));
     }
 
     return null;

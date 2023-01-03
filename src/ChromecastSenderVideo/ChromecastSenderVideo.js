@@ -63,6 +63,7 @@ function ChromecastSenderVideo(options) {
         volume: false,
         muted: false,
         playbackSpeed: false,
+        videoParams: false,
         extraSubtitlesTracks: false,
         selectedExtraSubtitlesTrackId: false,
         extraSubtitlesDelay: false,
@@ -126,6 +127,7 @@ function ChromecastSenderVideo(options) {
                 onPropChanged('volume', null);
                 onPropChanged('muted', null);
                 onPropChanged('playbackSpeed', null);
+                onPropChanged('videoParams', null);
                 onPropChanged('extraSubtitlesTracks', []);
                 onPropChanged('selectedExtraSubtitlesTrackId', null);
                 onPropChanged('extraSubtitlesDelay', null);
@@ -190,7 +192,7 @@ ChromecastSenderVideo.canPlayStream = function() {
 ChromecastSenderVideo.manifest = {
     name: 'ChromecastSenderVideo',
     external: true,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed', 'videoParams', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'],
     commands: ['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded', 'extraSubtitlesTrackLoaded', 'implementationChanged']
 };
