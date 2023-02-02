@@ -5,6 +5,7 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
+var fetchVideoParams = require('./fetchVideoParams');
 var ERROR = require('../error');
 
 function withStreamingServer(Video) {
@@ -27,10 +28,12 @@ function withStreamingServer(Video) {
         var loadArgs = null;
         var loaded = false;
         var actionsQueue = [];
+        var videoParams = null;
         var events = new EventEmitter();
         var destroyed = false;
         var observedProps = {
-            stream: false
+            stream: false,
+            videoParams: false
         };
 
         function flushActionsQueue() {
@@ -70,6 +73,9 @@ function withStreamingServer(Video) {
                 case 'stream': {
                     return loadArgs !== null ? loadArgs.stream : null;
                 }
+                case 'videoParams': {
+                    return videoParams;
+                }
                 default: {
                     return videoPropValue;
                 }
@@ -77,7 +83,8 @@ function withStreamingServer(Video) {
         }
         function observeProp(propName) {
             switch (propName) {
-                case 'stream': {
+                case 'stream':
+                case 'videoParams': {
                     events.emit('propValue', propName, getProp(propName, null));
                     observedProps[propName] = true;
                     return true;
@@ -127,7 +134,10 @@ function withStreamingServer(Video) {
                                     .then(function(canPlay) {
                                         if (canPlay) {
                                             return {
-                                                url: mediaURL
+                                                mediaURL: mediaURL,
+                                                stream: {
+                                                    url: mediaURL
+                                                }
                                             };
                                         }
 
@@ -148,27 +158,30 @@ function withStreamingServer(Video) {
                                         queryParams.set('maxAudioChannels', maxAudioChannels);
 
                                         return {
-                                            url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
-                                            subtitles: Array.isArray(commandArgs.stream.subtitles) ?
-                                                commandArgs.stream.subtitles.map(function(track) {
-                                                    return Object.assign({}, track, {
-                                                        url: typeof track.url === 'string' ?
-                                                            url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
-                                                            :
-                                                            track.url
-                                                    });
-                                                })
-                                                :
-                                                [],
-                                            behaviorHints: {
-                                                headers: {
-                                                    'content-type': 'application/vnd.apple.mpegurl'
+                                            mediaURL: mediaURL,
+                                            stream: {
+                                                url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
+                                                subtitles: Array.isArray(commandArgs.stream.subtitles) ?
+                                                    commandArgs.stream.subtitles.map(function(track) {
+                                                        return Object.assign({}, track, {
+                                                            url: typeof track.url === 'string' ?
+                                                                url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
+                                                                :
+                                                                track.url
+                                                        });
+                                                    })
+                                                    :
+                                                    [],
+                                                behaviorHints: {
+                                                    headers: {
+                                                        'content-type': 'application/vnd.apple.mpegurl'
+                                                    }
                                                 }
                                             }
                                         };
                                     });
                             })
-                            .then(function(stream) {
+                            .then(function(result) {
                                 if (commandArgs !== loadArgs) {
                                     return;
                                 }
@@ -177,11 +190,30 @@ function withStreamingServer(Video) {
                                     type: 'command',
                                     commandName: 'load',
                                     commandArgs: Object.assign({}, commandArgs, {
-                                        stream: stream
+                                        stream: result.stream
                                     })
                                 });
                                 loaded = true;
                                 flushActionsQueue();
+                                fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL)
+                                    .then(function(result) {
+                                        if (commandArgs !== loadArgs) {
+                                            return;
+                                        }
+
+                                        videoParams = result;
+                                        onPropChanged('videoParams');
+                                    })
+                                    .catch(function(error) {
+                                        if (commandArgs !== loadArgs) {
+                                            return;
+                                        }
+
+                                        // eslint-disable-next-line no-console
+                                        console.error(error);
+                                        videoParams = { hash: null, size: null };
+                                        onPropChanged('videoParams');
+                                    });
                             })
                             .catch(function(error) {
                                 if (commandArgs !== loadArgs) {
@@ -237,7 +269,9 @@ function withStreamingServer(Video) {
                     loadArgs = null;
                     loaded = false;
                     actionsQueue = [];
+                    videoParams = null;
                     onPropChanged('stream');
+                    onPropChanged('videoParams');
                     return false;
                 }
                 case 'destroy': {
@@ -336,7 +370,7 @@ function withStreamingServer(Video) {
     VideoWithStreamingServer.manifest = {
         name: Video.manifest.name + 'WithStreamingServer',
         external: Video.manifest.external,
-        props: Video.manifest.props.concat(['stream'])
+        props: Video.manifest.props.concat(['stream', 'videoParams'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
