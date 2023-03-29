@@ -107,6 +107,7 @@ function withStreamingServer(Video) {
                             .then(function(converted) {
                                 var mediaURL = converted.url;
                                 var infoHash = converted.infoHash;
+                                var fileIdx = converted.fileIdx;
                                 var formats = Array.isArray(commandArgs.formats) ?
                                     commandArgs.formats
                                     :
@@ -138,6 +139,8 @@ function withStreamingServer(Video) {
                                         if (canPlay) {
                                             return {
                                                 mediaURL: mediaURL,
+                                                infoHash: infoHash,
+                                                fileIdx: fileIdx,
                                                 stream: {
                                                     url: mediaURL
                                                 }
@@ -163,6 +166,7 @@ function withStreamingServer(Video) {
                                         return {
                                             mediaURL: mediaURL,
                                             infoHash: infoHash,
+                                            fileIdx: fileIdx,
                                             stream: {
                                                 url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
                                                 subtitles: Array.isArray(commandArgs.stream.subtitles) ?
@@ -202,7 +206,7 @@ function withStreamingServer(Video) {
 
                                 Promise.allSettled([
                                     fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL),
-                                    result.infoHash ? fetchFilename(commandArgs.streamingServerURL, result.infoHash) : null
+                                    fetchFilename(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx)
                                 ]).then(function(results) {
                                     if (commandArgs !== loadArgs) {
                                         return;

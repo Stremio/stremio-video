@@ -7,7 +7,10 @@ function buildTorrentUrl(streamingServerURL, infoHash, fileIdx, sources) {
         }))
         :
         '';
-    return url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx)) + query;
+    return { 
+        url: url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx)) + query,
+        fileIdx: fileIdx
+    };
 }
 
 function createTorrent(streamingServerURL, infoHash, fileIdx, sources, seriesInfo) {
