@@ -1,7 +1,7 @@
 var url = require('url');
 
 function fetchFilename(streamingServerURL, infoHash) {
-    return fetch(url.resolve(streamingServerURL, `/${infoHash}/stats.json`))
+    return fetch(url.resolve(streamingServerURL, '/'+infoHash+'/stats.json'))
         .then(function(resp) {
             if (resp.ok) {
                 return resp.json();

@@ -226,6 +226,8 @@ function withStreamingServer(Video) {
                                                 if (commandArgs !== loadArgs) {
                                                     return;
                                                 }
+
+                                                // eslint-disable-next-line no-console
                                                 console.error(error);
                                                 videoParams = result;
                                                 onPropChanged('videoParams');
