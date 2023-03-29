@@ -24,13 +24,13 @@ function convertStream(streamingServerURL, stream, seriesInfo) {
                     [];
                 createTorrent(streamingServerURL, parsedMagnetURI.infoHash, null, sources, seriesInfo)
                     .then(function(url) {
-                        resolve(url);
+                        resolve({ url: url, infoHash: parsedMagnetURI.infoHash });
                     })
                     .catch(function(error) {
                         reject(error);
                     });
             } else {
-                resolve(stream.url);
+                resolve({ url: stream.url });
             }
 
             return;
@@ -39,7 +39,7 @@ function convertStream(streamingServerURL, stream, seriesInfo) {
         if (typeof stream.infoHash === 'string') {
             createTorrent(streamingServerURL, stream.infoHash, stream.fileIdx, stream.announce, seriesInfo)
                 .then(function(url) {
-                    resolve(url);
+                    resolve({ url: url, infoHash: stream.infoHash });
                 })
                 .catch(function(error) {
                     reject(error);

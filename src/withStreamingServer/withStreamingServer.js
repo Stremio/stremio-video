@@ -6,6 +6,7 @@ var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
+var fetchFilename = require('./fetchFilename');
 var ERROR = require('../error');
 
 function withStreamingServer(Video) {
@@ -103,7 +104,9 @@ function withStreamingServer(Video) {
                         loadArgs = commandArgs;
                         onPropChanged('stream');
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
-                            .then(function(mediaURL) {
+                            .then(function(converted) {
+                                var mediaURL = converted.url;
+                                var infoHash = converted.infoHash;
                                 var formats = Array.isArray(commandArgs.formats) ?
                                     commandArgs.formats
                                     :
@@ -159,6 +162,7 @@ function withStreamingServer(Video) {
 
                                         return {
                                             mediaURL: mediaURL,
+                                            infoHash: infoHash,
                                             stream: {
                                                 url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
                                                 subtitles: Array.isArray(commandArgs.stream.subtitles) ?
@@ -195,14 +199,31 @@ function withStreamingServer(Video) {
                                 });
                                 loaded = true;
                                 flushActionsQueue();
-                                fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL)
+                                fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash)
                                     .then(function(result) {
                                         if (commandArgs !== loadArgs) {
                                             return;
                                         }
 
-                                        videoParams = result;
-                                        onPropChanged('videoParams');
+                                        fetchFilename(commandArgs.streamingServerURL, result.infoHash)
+                                            .then(function(filename) {
+                                                if (commandArgs !== loadArgs) {
+                                                    return;
+                                                }
+                                                if (filename) {
+                                                    result.filename = filename;
+                                                }
+                                                videoParams = result;
+                                                onPropChanged('videoParams');
+                                            })
+                                            .catch(function(error) {
+                                                if (commandArgs !== loadArgs) {
+                                                    return;
+                                                }
+                                                console.error(error);
+                                                videoParams = result;
+                                                onPropChanged('videoParams');
+                                            });
                                     })
                                     .catch(function(error) {
                                         if (commandArgs !== loadArgs) {
