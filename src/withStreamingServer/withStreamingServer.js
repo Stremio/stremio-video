@@ -208,7 +208,7 @@ function withStreamingServer(Video) {
                                         return;
                                     }
 
-                                    var result = { hash: null, size: null };
+                                    var result = { hash: null, size: null, filename: null };
 
                                     if (results[0].status === 'fulfilled' && results[0].value) {
                                         result = results[0].value;

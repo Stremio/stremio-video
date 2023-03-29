@@ -50,7 +50,7 @@ function withVideoParams(Video) {
                         return null;
                     }
 
-                    return { hash: null, size: null };
+                    return { hash: null, size: null, filename: null };
                 }
                 default: {
                     return videoPropValue;
