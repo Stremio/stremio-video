@@ -228,6 +228,20 @@ function withStreamingServer(Video) {
                                         console.error(results[1].reason);
                                     }
 
+                                    var behaviorHints = commandArgs.stream.behaviorHints || {}
+
+                                    if (behaviorHints.videoHash) {
+                                        result.hash = behaviorHints.videoHash
+                                    }
+
+                                    if (behaviorHints.videoSize) {
+                                        result.size = behaviorHints.videoSize
+                                    }
+
+                                    if (behaviorHints.filename) {
+                                        result.filename = behaviorHints.filename
+                                    }
+
                                     videoParams = result;
                                     onPropChanged('videoParams');
                                 });

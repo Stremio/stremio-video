@@ -50,7 +50,23 @@ function withVideoParams(Video) {
                         return null;
                     }
 
-                    return { hash: null, size: null, filename: null };
+                    var result = { hash: null, size: null, filename: null }
+
+                    var behaviorHints = stream.behaviorHints || {}
+
+                    if (behaviorHints.videoHash) {
+                        result.hash = behaviorHints.videoHash
+                    }
+
+                    if (behaviorHints.videoSize) {
+                        result.size = behaviorHints.videoSize
+                    }
+
+                    if (behaviorHints.filename) {
+                        result.filename = behaviorHints.filename
+                    }
+
+                    return result;
                 }
                 default: {
                     return videoPropValue;
