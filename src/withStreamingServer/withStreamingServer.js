@@ -199,50 +199,34 @@ function withStreamingServer(Video) {
                                 });
                                 loaded = true;
                                 flushActionsQueue();
-                                fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash)
-                                    .then(function(result) {
-                                        if (commandArgs !== loadArgs) {
-                                            return;
-                                        }
 
-                                        if (!result.infoHash) {
-                                            videoParams = result;
-                                            onPropChanged('videoParams');
-                                            return;
-                                        }
+                                Promise.allSettled([
+                                    fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL),
+                                    result.infoHash ? fetchFilename(commandArgs.streamingServerURL, result.infoHash) : null
+                                ]).then(function(results) {
+                                    if (commandArgs !== loadArgs) {
+                                        return;
+                                    }
 
-                                        fetchFilename(commandArgs.streamingServerURL, result.infoHash)
-                                            .then(function(filename) {
-                                                if (commandArgs !== loadArgs) {
-                                                    return;
-                                                }
-                                                if (filename) {
-                                                    result.filename = filename;
-                                                }
-                                                videoParams = result;
-                                                onPropChanged('videoParams');
-                                            })
-                                            .catch(function(error) {
-                                                if (commandArgs !== loadArgs) {
-                                                    return;
-                                                }
+                                    var result = { hash: null, size: null };
 
-                                                // eslint-disable-next-line no-console
-                                                console.error(error);
-                                                videoParams = result;
-                                                onPropChanged('videoParams');
-                                            });
-                                    })
-                                    .catch(function(error) {
-                                        if (commandArgs !== loadArgs) {
-                                            return;
-                                        }
-
+                                    if (results[0].status === 'fulfilled' && results[0].value) {
+                                        result = results[0].value;
+                                    } else if (results[0].reason) {
                                         // eslint-disable-next-line no-console
-                                        console.error(error);
-                                        videoParams = { hash: null, size: null };
-                                        onPropChanged('videoParams');
-                                    });
+                                        console.error(results[0].reason);
+                                    }
+
+                                    if (results[1].status === 'fulfilled' && results[1].value) {
+                                        result.filename = results[1].value;
+                                    } else if (results[1].reason) {
+                                        // eslint-disable-next-line no-console
+                                        console.error(results[1].reason);
+                                    }
+
+                                    videoParams = result;
+                                    onPropChanged('videoParams');
+                                });
                             })
                             .catch(function(error) {
                                 if (commandArgs !== loadArgs) {
