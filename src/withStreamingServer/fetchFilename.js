@@ -19,7 +19,7 @@ function fetchFilename(streamingServerURL, mediaUrl, infoHash, fileIdx) {
             });
     }
 
-    return Promise.resolve(decodeURIComponent(mediaUrl.split('/').pop()))
+    return Promise.resolve(decodeURIComponent(mediaUrl.split('/').pop()));
 }
 
 module.exports = fetchFilename;

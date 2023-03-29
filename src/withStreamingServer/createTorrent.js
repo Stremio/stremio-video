@@ -7,7 +7,7 @@ function buildTorrentUrl(streamingServerURL, infoHash, fileIdx, sources) {
         }))
         :
         '';
-    return { 
+    return {
         url: url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx)) + query,
         fileIdx: fileIdx
     };
