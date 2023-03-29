@@ -205,6 +205,12 @@ function withStreamingServer(Video) {
                                             return;
                                         }
 
+                                        if (!result.infoHash) {
+                                            videoParams = result;
+                                            onPropChanged('videoParams');
+                                            return;
+                                        }
+
                                         fetchFilename(commandArgs.streamingServerURL, result.infoHash)
                                             .then(function(filename) {
                                                 if (commandArgs !== loadArgs) {
