@@ -1,6 +1,9 @@
 var url = require('url');
 
 function fetchFilename(streamingServerURL, infoHash) {
+    if (!infoHash) {
+        throw new Error('Cannot retrieve filename from engine, input is not a torrent');
+    }
     return fetch(url.resolve(streamingServerURL, `/${infoHash}/stats.json`))
         .then(function(resp) {
             if (resp.ok) {
