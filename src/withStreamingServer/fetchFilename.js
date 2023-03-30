@@ -11,7 +11,7 @@ function fetchFilename(streamingServerURL, mediaUrl, infoHash, fileIdx) {
                 throw new Error(resp.status + ' (' + resp.statusText + ')');
             })
             .then(function(resp) {
-                if (!resp.streamName) {
+                if (typeof resp.streamName !== 'string') {
                     throw new Error('Could not retrieve filename from torrent');
                 }
 
