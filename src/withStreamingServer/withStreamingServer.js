@@ -104,10 +104,10 @@ function withStreamingServer(Video) {
                         loadArgs = commandArgs;
                         onPropChanged('stream');
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
-                            .then(function(converted) {
-                                var mediaURL = converted.url;
-                                var infoHash = converted.infoHash;
-                                var fileIdx = converted.fileIdx;
+                            .then(function(result) {
+                                var mediaURL = result.url;
+                                var infoHash = result.infoHash;
+                                var fileIdx = result.fileIdx;
                                 var formats = Array.isArray(commandArgs.formats) ?
                                     commandArgs.formats
                                     :
