@@ -1,6 +1,6 @@
 var url = require('url');
 
-function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
+function fetchOpensubtitlesParams(streamingServerURL, behaviorHints, mediaURL) {
     var hash = behaviorHints && typeof behaviorHints.videoHash === 'string' ? behaviorHints.videoHash : null;
     var size = behaviorHints && isFinite(behaviorHints.videoSize) ? behaviorHints.videoSize : null;
     if (typeof hash === 'string' && size !== null && isFinite(size)) {
@@ -40,7 +40,7 @@ function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
         });
 }
 
-function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
+function fetchFilename(streamingServerURL, behaviorHints, mediaURL, infoHash, fileIdx) {
     if (behaviorHints && typeof behaviorHints.filename === 'string') {
         return Promise.resolve(behaviorHints.filename);
     }
@@ -66,7 +66,7 @@ function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behavior
     return Promise.resolve(decodeURIComponent(mediaURL.split('/').pop()));
 }
 
-function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
+function fetchVideoParams(streamingServerURL, behaviorHints, mediaURL, infoHash, fileIdx) {
     return Promise.allSettled([
         fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints),
         fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints)
