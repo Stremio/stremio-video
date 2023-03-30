@@ -50,21 +50,10 @@ function withVideoParams(Video) {
                         return null;
                     }
 
-                    var value = { hash: null, size: null, filename: null };
-
-                    if (stream.behaviorHints && typeof behaviorHints.videoHash === 'string') {
-                        value.hash = behaviorHints.videoHash;
-                    }
-
-                    if (stream.behaviorHints && typeof behaviorHints.videoSize === 'string') {
-                        value.size = behaviorHints.videoSize;
-                    }
-
-                    if (stream.behaviorHints && typeof behaviorHints.filename === 'string') {
-                        value.filename = behaviorHints.filename;
-                    }
-
-                    return value;
+                    var hash = stream.behaviorHints && typeof stream.behaviorHints.videoHash === 'string' ? stream.behaviorHints.videoHash : null;
+                    var size = stream.behaviorHints && stream.behaviorHints.videoSize !== null && isFinite(stream.behaviorHints.videoSize) ? stream.behaviorHints.videoSize : null;
+                    var filename = stream.behaviorHints && typeof stream.behaviorHints.filename === 'string' ? stream.behaviorHints.filename : null;
+                    return { hash: hash, size: size, filename: filename };
                 }
                 default: {
                     return videoPropValue;
