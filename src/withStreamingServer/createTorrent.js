@@ -9,7 +9,9 @@ function buildTorrent(streamingServerURL, infoHash, fileIdx, sources) {
         '';
     return {
         url: url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx)) + query,
-        fileIdx: fileIdx
+        infoHash: infoHash,
+        fileIdx: fileIdx,
+        sources: sources
     };
 }
 
