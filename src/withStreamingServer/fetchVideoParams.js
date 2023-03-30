@@ -1,7 +1,11 @@
 var url = require('url');
 
 function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
-    // TODO handle behaviorHints
+    var hash = behaviorHints && typeof behaviorHints.videoHash === 'string' ? behaviorHints.videoHash : null;
+    var size = behaviorHints && isFinite(behaviorHints.videoSize) ? behaviorHints.videoSize : null;
+    if (typeof hash === 'string' && size !== null && isFinite(size)) {
+        return Promise.resolve({ hash: hash, size: size });
+    }
 
     var queryParams = new URLSearchParams([['videoUrl', mediaURL]]);
     return fetch(url.resolve(streamingServerURL, '/opensubHash?' + queryParams.toString()))
@@ -17,12 +21,29 @@ function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
                 throw new Error(resp.error);
             }
 
-            return resp.result;
+            return {
+                hash: typeof hash === 'string' ?
+                    hash
+                    :
+                    resp.result && typeof resp.result.hash === 'string' ?
+                        resp.result.hash
+                        :
+                        null,
+                size: size !== null && isFinite(size) ?
+                    size
+                    :
+                    resp.result && typeof resp.result.size ?
+                        resp.result.size
+                        :
+                        null
+            }
         });
 }
 
 function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
-    // TODO handle behaviorHints
+    if (behaviorHints && typeof behaviorHints.filename === 'string') {
+        return Promise.resolve(behaviorHints.filename);
+    }
 
     if (infoHash) {
         return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx) + '/stats.json'))
