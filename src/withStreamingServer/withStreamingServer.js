@@ -6,7 +6,6 @@ var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
-var fetchFilename = require('./fetchFilename');
 var ERROR = require('../error');
 
 function withStreamingServer(Video) {
