@@ -2,7 +2,7 @@ var url = require('url');
 
 function fetchFilename(streamingServerURL, mediaUrl, infoHash, fileIdx) {
     if (infoHash) {
-        return fetch(url.resolve(streamingServerURL, '/'+infoHash+'/'+fileIdx+'/stats.json'))
+        return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx) + '/stats.json'))
             .then(function(resp) {
                 if (resp.ok) {
                     return resp.json();
