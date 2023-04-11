@@ -218,7 +218,7 @@ function withStreamingServer(Video) {
 
                                         // eslint-disable-next-line no-console
                                         console.error(error);
-                                        videoParams = { hash: null, size: null };
+                                        videoParams = { hash: null, size: null, filename: null };
                                         onPropChanged('videoParams');
                                     });
                             })
