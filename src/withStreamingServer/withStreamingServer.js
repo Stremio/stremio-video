@@ -202,7 +202,7 @@ function withStreamingServer(Video) {
                                 });
                                 loaded = true;
                                 flushActionsQueue();
-                                fetchVideoParams(commandArgs.streamingServerURL, commandArgs.stream.behaviorHints, result.mediaURL, result.infoHash, result.fileIdx)
+                                fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints)
                                     .then(function(result) {
                                         if (commandArgs !== loadArgs) {
                                             return;

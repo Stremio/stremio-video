@@ -1,6 +1,6 @@
 var url = require('url');
 
-function fetchOpensubtitlesParams(streamingServerURL, behaviorHints, mediaURL) {
+function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
     var hash = behaviorHints && typeof behaviorHints.videoHash === 'string' ? behaviorHints.videoHash : null;
     var size = behaviorHints && isFinite(behaviorHints.videoSize) ? behaviorHints.videoSize : null;
     if (typeof hash === 'string' && size !== null && isFinite(size)) {
@@ -40,7 +40,7 @@ function fetchOpensubtitlesParams(streamingServerURL, behaviorHints, mediaURL) {
         });
 }
 
-function fetchFilename(streamingServerURL, behaviorHints, mediaURL, infoHash, fileIdx) {
+function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
     if (behaviorHints && typeof behaviorHints.filename === 'string') {
         return Promise.resolve(behaviorHints.filename);
     }
@@ -55,7 +55,7 @@ function fetchFilename(streamingServerURL, behaviorHints, mediaURL, infoHash, fi
                 throw new Error(resp.status + ' (' + resp.statusText + ')');
             })
             .then(function(resp) {
-                if (typeof resp.streamName !== 'string') {
+                if (!resp || typeof resp.streamName !== 'string') {
                     throw new Error('Could not retrieve filename from torrent');
                 }
 
@@ -66,7 +66,7 @@ function fetchFilename(streamingServerURL, behaviorHints, mediaURL, infoHash, fi
     return Promise.resolve(decodeURIComponent(mediaURL.split('/').pop()));
 }
 
-function fetchVideoParams(streamingServerURL, behaviorHints, mediaURL, infoHash, fileIdx) {
+function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
     return Promise.allSettled([
         fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints),
         fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints)
@@ -74,15 +74,15 @@ function fetchVideoParams(streamingServerURL, behaviorHints, mediaURL, infoHash,
         var result = { hash: null, size: null, filename: null };
 
         if (results[0].status === 'fulfilled') {
-            result.hash = typeof results[0].value === 'string' ? results[0].value : null;
-            result.size = typeof results[0].size === 'string' ? results[0].size : null;
+            result.hash = results[0].value.hash;
+            result.size = results[0].value.size;
         } else if (results[0].reason) {
             // eslint-disable-next-line no-console
             console.error(results[0].reason);
         }
 
         if (results[1].status === 'fulfilled') {
-            result.filename = typeof results[1].value === 'string' ? results[1].value : null;
+            result.filename = results[1].value;
         } else if (results[1].reason) {
             // eslint-disable-next-line no-console
             console.error(results[1].reason);
