@@ -103,7 +103,10 @@ function withStreamingServer(Video) {
                         loadArgs = commandArgs;
                         onPropChanged('stream');
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
-                            .then(function(mediaURL) {
+                            .then(function(result) {
+                                var mediaURL = result.url;
+                                var infoHash = result.infoHash;
+                                var fileIdx = result.fileIdx;
                                 var formats = Array.isArray(commandArgs.formats) ?
                                     commandArgs.formats
                                     :
@@ -135,6 +138,8 @@ function withStreamingServer(Video) {
                                         if (canPlay) {
                                             return {
                                                 mediaURL: mediaURL,
+                                                infoHash: infoHash,
+                                                fileIdx: fileIdx,
                                                 stream: {
                                                     url: mediaURL
                                                 }
@@ -159,6 +164,8 @@ function withStreamingServer(Video) {
 
                                         return {
                                             mediaURL: mediaURL,
+                                            infoHash: infoHash,
+                                            fileIdx: fileIdx,
                                             stream: {
                                                 url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
                                                 subtitles: Array.isArray(commandArgs.stream.subtitles) ?
@@ -195,7 +202,7 @@ function withStreamingServer(Video) {
                                 });
                                 loaded = true;
                                 flushActionsQueue();
-                                fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL)
+                                fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints)
                                     .then(function(result) {
                                         if (commandArgs !== loadArgs) {
                                             return;
@@ -211,7 +218,7 @@ function withStreamingServer(Video) {
 
                                         // eslint-disable-next-line no-console
                                         console.error(error);
-                                        videoParams = { hash: null, size: null };
+                                        videoParams = { hash: null, size: null, filename: null };
                                         onPropChanged('videoParams');
                                     });
                             })

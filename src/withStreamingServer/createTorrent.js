@@ -1,18 +1,23 @@
 var url = require('url');
 
-function buildTorrentUrl(streamingServerURL, infoHash, fileIdx, sources) {
+function buildTorrent(streamingServerURL, infoHash, fileIdx, sources) {
     var query = Array.isArray(sources) && sources.length > 0 ?
         '?' + new URLSearchParams(sources.map(function(source) {
             return ['tr', source];
         }))
         :
         '';
-    return url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx)) + query;
+    return {
+        url: url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx)) + query,
+        infoHash: infoHash,
+        fileIdx: fileIdx,
+        sources: sources
+    };
 }
 
 function createTorrent(streamingServerURL, infoHash, fileIdx, sources, seriesInfo) {
     if ((!Array.isArray(sources) || sources.length === 0) && (fileIdx !== null && isFinite(fileIdx))) {
-        return Promise.resolve(buildTorrentUrl(streamingServerURL, infoHash, fileIdx, sources));
+        return Promise.resolve(buildTorrent(streamingServerURL, infoHash, fileIdx, sources));
     }
 
     var body = {
@@ -58,7 +63,7 @@ function createTorrent(streamingServerURL, infoHash, fileIdx, sources, seriesInf
 
         throw new Error(resp.status + ' (' + resp.statusText + ')');
     }).then(function(resp) {
-        return buildTorrentUrl(streamingServerURL, infoHash, body.guessFileIdx ? resp.guessedFileIdx : fileIdx, body.peerSearch ? body.peerSearch.sources : []);
+        return buildTorrent(streamingServerURL, infoHash, body.guessFileIdx ? resp.guessedFileIdx : fileIdx, body.peerSearch ? body.peerSearch.sources : []);
     });
 }
 
