@@ -36,7 +36,7 @@ function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
                         resp.result.size
                         :
                         null
-            }
+            };
         });
 }
 
