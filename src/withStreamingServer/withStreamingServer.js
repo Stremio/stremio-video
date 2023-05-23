@@ -6,7 +6,6 @@ var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
-var fetchFilename = require('./fetchFilename');
 var ERROR = require('../error');
 
 function withStreamingServer(Video) {
@@ -104,10 +103,10 @@ function withStreamingServer(Video) {
                         loadArgs = commandArgs;
                         onPropChanged('stream');
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
-                            .then(function(converted) {
-                                var mediaURL = converted.url;
-                                var infoHash = converted.infoHash;
-                                var fileIdx = converted.fileIdx;
+                            .then(function(result) {
+                                var mediaURL = result.url;
+                                var infoHash = result.infoHash;
+                                var fileIdx = result.fileIdx;
                                 var formats = Array.isArray(commandArgs.formats) ?
                                     commandArgs.formats
                                     :
@@ -203,48 +202,25 @@ function withStreamingServer(Video) {
                                 });
                                 loaded = true;
                                 flushActionsQueue();
+                                fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints)
+                                    .then(function(result) {
+                                        if (commandArgs !== loadArgs) {
+                                            return;
+                                        }
 
-                                Promise.allSettled([
-                                    fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL),
-                                    fetchFilename(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx)
-                                ]).then(function(results) {
-                                    if (commandArgs !== loadArgs) {
-                                        return;
-                                    }
+                                        videoParams = result;
+                                        onPropChanged('videoParams');
+                                    })
+                                    .catch(function(error) {
+                                        if (commandArgs !== loadArgs) {
+                                            return;
+                                        }
 
-                                    var result = { hash: null, size: null, filename: null };
-
-                                    if (results[0].status === 'fulfilled' && results[0].value) {
-                                        result = results[0].value;
-                                    } else if (results[0].reason) {
                                         // eslint-disable-next-line no-console
-                                        console.error(results[0].reason);
-                                    }
-
-                                    if (results[1].status === 'fulfilled' && results[1].value) {
-                                        result.filename = results[1].value;
-                                    } else if (results[1].reason) {
-                                        // eslint-disable-next-line no-console
-                                        console.error(results[1].reason);
-                                    }
-
-                                    var behaviorHints = commandArgs.stream.behaviorHints || {};
-
-                                    if (behaviorHints.videoHash) {
-                                        result.hash = behaviorHints.videoHash;
-                                    }
-
-                                    if (behaviorHints.videoSize) {
-                                        result.size = behaviorHints.videoSize;
-                                    }
-
-                                    if (behaviorHints.filename) {
-                                        result.filename = behaviorHints.filename;
-                                    }
-
-                                    videoParams = result;
-                                    onPropChanged('videoParams');
-                                });
+                                        console.error(error);
+                                        videoParams = { hash: null, size: null, filename: null };
+                                        onPropChanged('videoParams');
+                                    });
                             })
                             .catch(function(error) {
                                 if (commandArgs !== loadArgs) {
