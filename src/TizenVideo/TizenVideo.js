@@ -204,7 +204,7 @@ function TizenVideo(options) {
                         try {
                             extra = JSON.parse(textTrack.extra_info);
                         } catch(e) {}
-                        var textTrackLang = extra.track_lang && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
+                        var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
                         textTracks.push({
                             id: textTrackId,
                             lang: textTrackLang,
@@ -291,7 +291,7 @@ function TizenVideo(options) {
                         try {
                             extra = JSON.parse(audioTrack.extra_info);
                         } catch(e) {}
-                        var audioTrackLang = extra.language && extra.language.length > 0 ? extra.language : null;
+                        var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
                         audioTracks.push({
                             id: audioTrackId,
                             lang: audioTrackLang,
