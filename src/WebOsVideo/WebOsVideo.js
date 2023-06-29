@@ -15,12 +15,11 @@ function luna(params, call, fail, method) {
     window.webOS.service.request(method || 'luna://com.webos.media', params);
 }
 
-function runWebOS(params, failed) {
-    // console.log('run web os', params);
+function launchVideoApp(params, success, failure) {
     window.webOS.service.request('luna://com.webos.applicationManager', {
         method: 'launch',
         parameters: {
-            'id': params.need,
+            'id': params.id,
             'params': {
                 'payload':[
                     {
@@ -46,19 +45,17 @@ function runWebOS(params, failed) {
             }
         },
         onSuccess: function () {
-            // console.log('The app is launched');
+            success && success();
         },
-        onFailure: function () { // function(inError)
-            // console.log('Player', 'Failed to launch the app ('+params.need+'): ', '[' + inError.errorCode + ']: ' + inError.errorText);
+        onFailure: function () {
+            failure && failure(new Error('Failed to launch' + params.id));
 
-            if (params.need === 'com.webos.app.photovideo') {
-                params.need = 'com.webos.app.smartshare';
-                runWebOS(params);
-            } else if(params.need === 'com.webos.app.smartshare') {
-                params.need = 'com.webos.app.mediadiscovery';
-                runWebOS(params);
-            } else if (params.need === 'com.webos.app.mediadiscovery') {
-                failed();
+            if (params.id === 'com.webos.app.photovideo') {
+                params.id = 'com.webos.app.smartshare';
+                launchVideoApp(params, success, failure);
+            } else if(params.id === 'com.webos.app.smartshare') {
+                params.id = 'com.webos.app.mediadiscovery';
+                launchVideoApp(params, success, failure);
             }
         }
     });
@@ -599,21 +596,27 @@ function WebOsVideo(options) {
             }
             case 3: {
                 error = ERROR.HTML_VIDEO.MEDIA_ERR_DECODE;
-                runWebOS({
-                    need: 'com.webos.app.photovideo',
+                launchVideoApp({
+                    id: 'com.webos.app.photovideo',
                     url: stream.url,
                     name: 'Stremio',
                     position: -1,
+                }, null, function(e) {
+                    // eslint-disable-next-line no-console
+                    console.error(e);
                 });
                 break;
             }
             case 4: {
                 error = ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED;
-                runWebOS({
-                    need: 'com.webos.app.photovideo',
+                launchVideoApp({
+                    id: 'com.webos.app.photovideo',
                     url: stream.url,
                     name: 'Stremio',
                     position: -1,
+                }, null, function(e) {
+                    // eslint-disable-next-line no-console
+                    console.error(e);
                 });
                 break;
             }
