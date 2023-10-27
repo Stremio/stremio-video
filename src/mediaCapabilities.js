@@ -67,7 +67,7 @@ function getMaxAudioChannels() {
 
 function getMediaCapabilities() {
     var mediaElement = document.createElement('video');
-    var formats = ['mp4'];
+    var formats = ['mp4', 'webm'];
     var videoCodecs = VIDEO_CODEC_CONFIGS
         .map(function(config) {
             return canPlay(config, { mediaElement: mediaElement });
