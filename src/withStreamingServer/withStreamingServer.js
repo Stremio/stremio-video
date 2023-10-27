@@ -359,17 +359,20 @@ function withStreamingServer(Video) {
                         var isFormatSupported = options.formats.some(function(format) {
                             return probe.format.name.indexOf(format) !== -1;
                         });
-                        var areStreamsSupported = probe.streams.every(function(stream) {
-                            if (stream.track === 'audio') {
-                                return stream.channels <= options.maxAudioChannels &&
-                                    options.audioCodecs.indexOf(stream.codec) !== -1;
-                            } else if (stream.track === 'video') {
-                                return options.videoCodecs.indexOf(stream.codec) !== -1;
-                            }
-
-                            return true;
+                        var videoStreams = probe.streams.filter(function(stream) {
+                            return stream.track === 'video';
                         });
-                        return isFormatSupported && areStreamsSupported;
+                        var areVideoStreamsSupported = videoStreams.length === 0 || videoStreams.some(function(stream) {
+                            return options.videoCodecs.indexOf(stream.codec) !== -1;
+                        });
+                        var audioStreams = probe.streams.filter(function(stream) {
+                            return stream.track === 'audio';
+                        });
+                        var areAudioStreamsSupported = audioStreams.length === 0 || audioStreams.some(function(stream) {
+                            return stream.channels <= options.maxAudioChannels &&
+                                options.audioCodecs.indexOf(stream.codec) !== -1;
+                        });
+                        return isFormatSupported && areVideoStreamsSupported && areAudioStreamsSupported;
                     });
             });
     };
