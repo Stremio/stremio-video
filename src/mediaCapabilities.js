@@ -101,7 +101,7 @@ function getMaxAudioChannels() {
         return 6;
     }
 
-    if (!window.AudioContext) {
+    if (!window.AudioContext || window.chrome) {
         return 2;
     }
 
