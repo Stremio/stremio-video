@@ -1,6 +1,7 @@
 var EventEmitter = require('eventemitter3');
 var url = require('url');
 var hat = require('hat');
+var mergeWith = require('lodash.mergewith');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
@@ -17,10 +18,10 @@ function withStreamingServer(Video) {
         video.on('propValue', onVideoPropEvent.bind(null, 'propValue'));
         video.on('propChanged', onVideoPropEvent.bind(null, 'propChanged'));
         Video.manifest.events
-            .filter(function(eventName) {
+            .filter(function (eventName) {
                 return !['error', 'propValue', 'propChanged'].includes(eventName);
             })
-            .forEach(function(eventName) {
+            .forEach(function (eventName) {
                 video.on(eventName, onOtherVideoEvent(eventName));
             });
 
@@ -52,7 +53,7 @@ function withStreamingServer(Video) {
             events.emit(eventName, propName, getProp(propName, propValue));
         }
         function onOtherVideoEvent(eventName) {
-            return function() {
+            return function () {
                 events.emit.apply(events, [eventName].concat(Array.from(arguments)));
             };
         }
@@ -103,38 +104,19 @@ function withStreamingServer(Video) {
                         loadArgs = commandArgs;
                         onPropChanged('stream');
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
-                            .then(function(result) {
+                            .then(function (result) {
                                 var mediaURL = result.url;
                                 var infoHash = result.infoHash;
                                 var fileIdx = result.fileIdx;
-                                var formats = Array.isArray(commandArgs.formats) ?
-                                    commandArgs.formats
-                                    :
-                                    mediaCapabilities.formats;
-                                var videoCodecs = Array.isArray(commandArgs.videoCodecs) ?
-                                    commandArgs.videoCodecs
-                                    :
-                                    mediaCapabilities.videoCodecs;
-                                var audioCodecs = Array.isArray(commandArgs.audioCodecs) ?
-                                    commandArgs.audioCodecs
-                                    :
-                                    mediaCapabilities.audioCodecs;
-                                var maxAudioChannels = commandArgs.maxAudioChannels !== null && isFinite(commandArgs.maxAudioChannels) ?
-                                    commandArgs.maxAudioChannels
-                                    :
-                                    mediaCapabilities.maxAudioChannels;
                                 var canPlayStreamOptions = Object.assign({}, commandArgs, {
-                                    formats: formats,
-                                    videoCodecs: videoCodecs,
-                                    audioCodecs: audioCodecs,
-                                    maxAudioChannels: maxAudioChannels
+                                    mediaCapabilities: mergeWith({}, mediaCapabilities, commandArgs.mediaCapabilities)
                                 });
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : VideoWithStreamingServer.canPlayStream({ url: mediaURL }, canPlayStreamOptions))
-                                    .catch(function(error) {
+                                    .catch(function (error) {
                                         console.warn('Media probe error', error);
                                         return false;
                                     })
-                                    .then(function(canPlay) {
+                                    .then(function (canPlay) {
                                         if (canPlay) {
                                             return {
                                                 mediaURL: mediaURL,
@@ -152,11 +134,11 @@ function withStreamingServer(Video) {
                                             queryParams.set('forceTranscoding', '1');
                                         }
 
-                                        videoCodecs.forEach(function(videoCodec) {
+                                        videoCodecs.forEach(function (videoCodec) {
                                             queryParams.append('videoCodecs', videoCodec);
                                         });
 
-                                        audioCodecs.forEach(function(audioCodec) {
+                                        audioCodecs.forEach(function (audioCodec) {
                                             queryParams.append('audioCodecs', audioCodec);
                                         });
 
@@ -169,7 +151,7 @@ function withStreamingServer(Video) {
                                             stream: {
                                                 url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
                                                 subtitles: Array.isArray(commandArgs.stream.subtitles) ?
-                                                    commandArgs.stream.subtitles.map(function(track) {
+                                                    commandArgs.stream.subtitles.map(function (track) {
                                                         return Object.assign({}, track, {
                                                             url: typeof track.url === 'string' ?
                                                                 url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
@@ -188,7 +170,7 @@ function withStreamingServer(Video) {
                                         };
                                     });
                             })
-                            .then(function(result) {
+                            .then(function (result) {
                                 if (commandArgs !== loadArgs) {
                                     return;
                                 }
@@ -203,7 +185,7 @@ function withStreamingServer(Video) {
                                 loaded = true;
                                 flushActionsQueue();
                                 fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints)
-                                    .then(function(result) {
+                                    .then(function (result) {
                                         if (commandArgs !== loadArgs) {
                                             return;
                                         }
@@ -211,7 +193,7 @@ function withStreamingServer(Video) {
                                         videoParams = result;
                                         onPropChanged('videoParams');
                                     })
-                                    .catch(function(error) {
+                                    .catch(function (error) {
                                         if (commandArgs !== loadArgs) {
                                             return;
                                         }
@@ -222,7 +204,7 @@ function withStreamingServer(Video) {
                                         onPropChanged('videoParams');
                                     });
                             })
-                            .catch(function(error) {
+                            .catch(function (error) {
                                 if (commandArgs !== loadArgs) {
                                     return;
                                 }
@@ -251,7 +233,7 @@ function withStreamingServer(Video) {
                                 type: 'command',
                                 commandName: 'addExtraSubtitlesTracks',
                                 commandArgs: Object.assign({}, commandArgs, {
-                                    tracks: commandArgs.tracks.map(function(track) {
+                                    tracks: commandArgs.tracks.map(function (track) {
                                         return Object.assign({}, track, {
                                             url: typeof track.url === 'string' ?
                                                 url.resolve(loadArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
@@ -304,14 +286,14 @@ function withStreamingServer(Video) {
             }
         }
 
-        this.on = function(eventName, listener) {
+        this.on = function (eventName, listener) {
             if (destroyed) {
                 throw new Error('Video is destroyed');
             }
 
             events.on(eventName, listener);
         };
-        this.dispatch = function(action) {
+        this.dispatch = function (action) {
             if (destroyed) {
                 throw new Error('Video is destroyed');
             }
@@ -340,39 +322,41 @@ function withStreamingServer(Video) {
         };
     }
 
-    VideoWithStreamingServer.canPlayStream = function(stream, options) {
+    VideoWithStreamingServer.canPlayStream = function (stream, options) {
         return Video.canPlayStream(stream)
-            .then(function(canPlay) {
+            .then(function (canPlay) {
                 if (!canPlay) {
                     throw new Error('Fallback using /hlsv2/probe');
                 }
 
                 return canPlay;
             })
-            .catch(function() {
+            .catch(function () {
                 var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
                 return fetch(url.resolve(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
-                    .then(function(resp) {
+                    .then(function (resp) {
                         return resp.json();
                     })
-                    .then(function(probe) {
-                        var isFormatSupported = options.formats.some(function(format) {
-                            return probe.format.name.indexOf(format) !== -1;
-                        });
-                        var videoStreams = probe.streams.filter(function(stream) {
+                    .then(function (probe) {
+                        var format = options.mediaCapabilities[probe.format.name]
+                        if (!format) {
+                            return false;
+                        }
+
+                        var videoStreams = probe.streams.filter(function (stream) {
                             return stream.track === 'video';
                         });
-                        var areVideoStreamsSupported = videoStreams.length === 0 || videoStreams.some(function(stream) {
-                            return options.videoCodecs.indexOf(stream.codec) !== -1;
+                        var areVideoStreamsSupported = videoStreams.length === 0 || videoStreams.some(function (stream) {
+                            return format.videoCodecs.indexOf(stream.codec) !== -1;
                         });
-                        var audioStreams = probe.streams.filter(function(stream) {
+                        var audioStreams = probe.streams.filter(function (stream) {
                             return stream.track === 'audio';
                         });
-                        var areAudioStreamsSupported = audioStreams.length === 0 || audioStreams.some(function(stream) {
-                            return stream.channels <= options.maxAudioChannels &&
-                                options.audioCodecs.indexOf(stream.codec) !== -1;
+                        var areAudioStreamsSupported = audioStreams.length === 0 || audioStreams.some(function (stream) {
+                            return stream.channels <= format.maxAudioChannels &&
+                                format.audioCodecs.indexOf(stream.codec) !== -1;
                         });
-                        return isFormatSupported && areVideoStreamsSupported && areAudioStreamsSupported;
+                        return areVideoStreamsSupported && areAudioStreamsSupported;
                     });
             });
     };
@@ -381,11 +365,11 @@ function withStreamingServer(Video) {
         name: Video.manifest.name + 'WithStreamingServer',
         external: Video.manifest.external,
         props: Video.manifest.props.concat(['stream', 'videoParams'])
-            .filter(function(value, index, array) { return array.indexOf(value) === index; }),
+            .filter(function (value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'])
-            .filter(function(value, index, array) { return array.indexOf(value) === index; }),
+            .filter(function (value, index, array) { return array.indexOf(value) === index; }),
         events: Video.manifest.events.concat(['propValue', 'propChanged', 'error'])
-            .filter(function(value, index, array) { return array.indexOf(value) === index; })
+            .filter(function (value, index, array) { return array.indexOf(value) === index; })
     };
 
     return VideoWithStreamingServer;
