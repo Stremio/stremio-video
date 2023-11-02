@@ -114,27 +114,27 @@ function getMediaCapabilities() {
     var maxAudioChannels = getMaxAudioChannels();
     return {
         mp4: {
-            videoCodecs: MP4_CONFIG.VIDEO_CODECS.map(function (config) {
+            videoCodecs: MP4_CONFIG.VIDEO_CODECS.map(function(config) {
                 return canPlay(config, { mediaElement: mediaElement });
-            }).reduce(function (result, value) {
+            }).reduce(function(result, value) {
                 return result.concat(value);
             }, []),
-            audioCodecs: MP4_CONFIG.AUDIO_CODEC.map(function (config) {
+            audioCodecs: MP4_CONFIG.AUDIO_CODEC.map(function(config) {
                 return canPlay(config, { mediaElement: mediaElement });
-            }).reduce(function (result, value) {
+            }).reduce(function(result, value) {
                 return result.concat(value);
             }, []),
             maxAudioChannels,
         },
         'matroska,webm': {
-            videoCodecs: MATROSKA_CONFIG.VIDEO_CODECS.map(function (config) {
+            videoCodecs: MATROSKA_CONFIG.VIDEO_CODECS.map(function(config) {
                 return canPlay(config, { mediaElement: mediaElement });
-            }).reduce(function (result, value) {
+            }).reduce(function(result, value) {
                 return result.concat(value);
             }, []),
-            audioCodecs: MATROSKA_CONFIG.AUDIO_CODEC.map(function (config) {
+            audioCodecs: MATROSKA_CONFIG.AUDIO_CODEC.map(function(config) {
                 return canPlay(config, { mediaElement: mediaElement });
-            }).reduce(function (result, value) {
+            }).reduce(function(result, value) {
                 return result.concat(value);
             }, []),
             maxAudioChannels,
