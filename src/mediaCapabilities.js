@@ -124,7 +124,7 @@ function getMediaCapabilities() {
             }).reduce(function(result, value) {
                 return result.concat(value);
             }, []),
-            maxAudioChannels,
+            maxAudioChannels
         },
         'matroska,webm': {
             videoCodecs: MATROSKA_CONFIG.VIDEO_CODECS.map(function(config) {
