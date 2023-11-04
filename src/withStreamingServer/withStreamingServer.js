@@ -149,7 +149,7 @@ function withStreamingServer(Video) {
                                             queryParams.append('audioCodecs', audioCodec);
                                         });
 
-                                        const maxAudioChannels = Object.keys(mediaCapabilities).reduce(function(result, format) {
+                                        var maxAudioChannels = Object.keys(mediaCapabilities).reduce(function(result, format) {
                                             return Math.max(result, mediaCapabilities[format].maxAudioChannels);
                                         }, 2);
                                         queryParams.set('maxAudioChannels', maxAudioChannels);
