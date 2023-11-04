@@ -4,7 +4,7 @@ var hat = require('hat');
 var mergeWith = require('lodash.mergewith');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
-var mediaCapabilities = require('../mediaCapabilities');
+var deviceMediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
 var ERROR = require('../error');
@@ -108,8 +108,9 @@ function withStreamingServer(Video) {
                                 var mediaURL = result.url;
                                 var infoHash = result.infoHash;
                                 var fileIdx = result.fileIdx;
+                                var mediaCapabilities =  mergeWith({}, deviceMediaCapabilities, commandArgs.mediaCapabilities)
                                 var canPlayStreamOptions = Object.assign({}, commandArgs, {
-                                    mediaCapabilities: mergeWith({}, mediaCapabilities, commandArgs.mediaCapabilities)
+                                    mediaCapabilities: mediaCapabilities
                                 });
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : VideoWithStreamingServer.canPlayStream({ url: mediaURL }, canPlayStreamOptions))
                                     .catch(function(error) {
@@ -134,14 +135,23 @@ function withStreamingServer(Video) {
                                             queryParams.set('forceTranscoding', '1');
                                         }
 
+                                        var videoCodecs = Object.keys(mediaCapabilities).reduce(function(result, format) {
+                                            return result.concat(mediaCapabilities[format].videoCodecs);
+                                        }, []);
                                         videoCodecs.forEach(function(videoCodec) {
                                             queryParams.append('videoCodecs', videoCodec);
                                         });
 
+                                        var audioCodecs = Object.keys(mediaCapabilities).reduce(function(result, format) {
+                                            return result.concat(mediaCapabilities[format].audioCodecs);
+                                        }, []);
                                         audioCodecs.forEach(function(audioCodec) {
                                             queryParams.append('audioCodecs', audioCodec);
                                         });
 
+                                        const maxAudioChannels = Object.keys(mediaCapabilities).reduce(function(result, format) {
+                                            return Math.max(result, mediaCapabilities[format].maxAudioChannels);
+                                        }, 2);
                                         queryParams.set('maxAudioChannels', maxAudioChannels);
 
                                         return {
