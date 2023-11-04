@@ -1,50 +1,50 @@
 var MP4_CONFIG = {
     VIDEO_CODECS: [
         {
-            codec: "h264",
+            codec: 'h264',
             force: window.chrome || window.cast,
             mime: 'video/mp4; codecs="avc1.42E01E"',
         },
         {
-            codec: "h265",
+            codec: 'h265',
             force: window.chrome || window.cast,
             mime: 'video/mp4; codecs="hev1.1.6.L150.B0"',
-            aliases: ["hevc"],
+            aliases: ['hevc'],
         },
         {
-            codec: "vp8",
+            codec: 'vp8',
             mime: 'video/mp4; codecs="vp8"',
         },
         {
-            codec: "vp9",
+            codec: 'vp9',
             mime: 'video/mp4; codecs="vp9"',
         },
     ],
     AUDIO_CODEC: [
         {
-            codec: "aac",
+            codec: 'aac',
             force: window.chrome || window.cast,
             mime: 'audio/mp4; codecs="mp4a.40.2"',
         },
         {
-            codec: "mp3",
+            codec: 'mp3',
             force: window.chrome || window.cast,
             mime: 'audio/mp4; codecs="mp3"',
         },
         {
-            codec: "ac3",
+            codec: 'ac3',
             mime: 'audio/mp4; codecs="ac-3"',
         },
         {
-            codec: "eac3",
+            codec: 'eac3',
             mime: 'audio/mp4; codecs="ec-3"',
         },
         {
-            codec: "vorbis",
+            codec: 'vorbis',
             mime: 'audio/mp4; codecs="vorbis"',
         },
         {
-            codec: "opus",
+            codec: 'opus',
             mime: 'audio/mp4; codecs="opus"',
         },
     ],
@@ -53,38 +53,38 @@ var MP4_CONFIG = {
 var MATROSKA_CONFIG = {
     VIDEO_CODECS: [
         {
-            codec: "h264",
+            codec: 'h264',
             force: window.chrome || window.cast,
         },
         {
-            codec: "h265",
+            codec: 'h265',
             force: window.chrome || window.cast,
-            aliases: ["hevc"],
+            aliases: ['hevc'],
         },
         {
-            codec: "vp8",
+            codec: 'vp8',
             mime: 'video/webm; codecs="vp8"',
         },
         {
-            codec: "vp9",
+            codec: 'vp9',
             mime: 'video/webm; codecs="vp9"',
         },
     ],
     AUDIO_CODEC: [
         {
-            codec: "aac",
+            codec: 'aac',
             force: window.chrome || window.cast,
         },
         {
-            codec: "mp3",
+            codec: 'mp3',
             force: window.chrome || window.cast,
         },
         {
-            codec: "vorbis",
+            codec: 'vorbis',
             mime: 'audio/webm; codecs="vorbis"',
         },
         {
-            codec: "opus",
+            codec: 'opus',
             mime: 'audio/webm; codecs="opus"',
         },
     ],
@@ -110,7 +110,7 @@ function getMaxAudioChannels() {
 }
 
 function getMediaCapabilities() {
-    var mediaElement = document.createElement("video");
+    var mediaElement = document.createElement('video');
     var maxAudioChannels = getMaxAudioChannels();
     return {
         mp4: {
