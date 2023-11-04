@@ -108,7 +108,7 @@ function withStreamingServer(Video) {
                                 var mediaURL = result.url;
                                 var infoHash = result.infoHash;
                                 var fileIdx = result.fileIdx;
-                                var mediaCapabilities =  mergeWith({}, deviceMediaCapabilities, commandArgs.mediaCapabilities)
+                                var mediaCapabilities = mergeWith({}, deviceMediaCapabilities, commandArgs.mediaCapabilities);
                                 var canPlayStreamOptions = Object.assign({}, commandArgs, {
                                     mediaCapabilities: mediaCapabilities
                                 });
@@ -348,7 +348,7 @@ function withStreamingServer(Video) {
                         return resp.json();
                     })
                     .then(function(probe) {
-                        var format = options.mediaCapabilities[probe.format.name]
+                        var format = options.mediaCapabilities[probe.format.name];
                         if (!format) {
                             return false;
                         }
