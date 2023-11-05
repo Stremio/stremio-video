@@ -20,7 +20,6 @@
         "hat": "0.0.3",
         "hls.js": "https://github.com/Stremio/hls.js/releases/download/v1.2.3-patch1/hls.js-1.2.3-patch1.tgz",
         "lodash.clonedeep": "4.5.0",
-        "lodash.mergewith": "4.6.2",
         "magnet-uri": "6.2.0",
         "url": "0.11.0",
         "video-name-parser": "1.4.6",
