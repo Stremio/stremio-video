@@ -68,7 +68,10 @@ function getMaxAudioChannels() {
 
 function getMediaCapabilities() {
     var mediaElement = document.createElement('video');
-    var formats = ['mp4', 'matroska,webm'];
+    var formats = ['mp4'];
+    if (window.chrome || window.cast) {
+        formats.push('matroska,webm');
+    }
     var videoCodecs = VIDEO_CODEC_CONFIGS
         .map(function(config) {
             return canPlay(config, { mediaElement: mediaElement });
