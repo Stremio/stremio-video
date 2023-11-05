@@ -1,10 +1,9 @@
 var EventEmitter = require('eventemitter3');
 var url = require('url');
 var hat = require('hat');
-var mergeWith = require('lodash.mergewith');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
-var deviceMediaCapabilities = require('../mediaCapabilities');
+var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
 var ERROR = require('../error');
@@ -108,9 +107,27 @@ function withStreamingServer(Video) {
                                 var mediaURL = result.url;
                                 var infoHash = result.infoHash;
                                 var fileIdx = result.fileIdx;
-                                var mediaCapabilities = mergeWith({}, deviceMediaCapabilities, commandArgs.mediaCapabilities);
+                                var formats = Array.isArray(commandArgs.formats) ?
+                                    commandArgs.formats
+                                    :
+                                    mediaCapabilities.formats;
+                                var videoCodecs = Array.isArray(commandArgs.videoCodecs) ?
+                                    commandArgs.videoCodecs
+                                    :
+                                    mediaCapabilities.videoCodecs;
+                                var audioCodecs = Array.isArray(commandArgs.audioCodecs) ?
+                                    commandArgs.audioCodecs
+                                    :
+                                    mediaCapabilities.audioCodecs;
+                                var maxAudioChannels = commandArgs.maxAudioChannels !== null && isFinite(commandArgs.maxAudioChannels) ?
+                                    commandArgs.maxAudioChannels
+                                    :
+                                    mediaCapabilities.maxAudioChannels;
                                 var canPlayStreamOptions = Object.assign({}, commandArgs, {
-                                    mediaCapabilities: mediaCapabilities
+                                    formats: formats,
+                                    videoCodecs: videoCodecs,
+                                    audioCodecs: audioCodecs,
+                                    maxAudioChannels: maxAudioChannels
                                 });
                                 return (commandArgs.forceTranscoding ? Promise.resolve(false) : VideoWithStreamingServer.canPlayStream({ url: mediaURL }, canPlayStreamOptions))
                                     .catch(function(error) {
@@ -135,23 +152,14 @@ function withStreamingServer(Video) {
                                             queryParams.set('forceTranscoding', '1');
                                         }
 
-                                        var videoCodecs = Object.keys(mediaCapabilities).reduce(function(result, format) {
-                                            return result.concat(mediaCapabilities[format].videoCodecs);
-                                        }, []);
                                         videoCodecs.forEach(function(videoCodec) {
                                             queryParams.append('videoCodecs', videoCodec);
                                         });
 
-                                        var audioCodecs = Object.keys(mediaCapabilities).reduce(function(result, format) {
-                                            return result.concat(mediaCapabilities[format].audioCodecs);
-                                        }, []);
                                         audioCodecs.forEach(function(audioCodec) {
                                             queryParams.append('audioCodecs', audioCodec);
                                         });
 
-                                        var maxAudioChannels = Object.keys(mediaCapabilities).reduce(function(result, format) {
-                                            return Math.max(result, mediaCapabilities[format].maxAudioChannels);
-                                        }, 2);
                                         queryParams.set('maxAudioChannels', maxAudioChannels);
 
                                         return {
@@ -348,25 +356,20 @@ function withStreamingServer(Video) {
                         return resp.json();
                     })
                     .then(function(probe) {
-                        var format = options.mediaCapabilities[probe.format.name];
-                        if (!format) {
-                            return false;
-                        }
+                        var isFormatSupported = options.formats.some(function(format) {
+                            return probe.format.name.indexOf(format) !== -1;
+                        });
+                        var areStreamsSupported = probe.streams.every(function(stream) {
+                            if (stream.track === 'audio') {
+                                return stream.channels <= options.maxAudioChannels &&
+                                    options.audioCodecs.indexOf(stream.codec) !== -1;
+                            } else if (stream.track === 'video') {
+                                return options.videoCodecs.indexOf(stream.codec) !== -1;
+                            }
 
-                        var videoStreams = probe.streams.filter(function(stream) {
-                            return stream.track === 'video';
+                            return true;
                         });
-                        var areVideoStreamsSupported = videoStreams.length === 0 || videoStreams.some(function(stream) {
-                            return format.videoCodecs.indexOf(stream.codec) !== -1;
-                        });
-                        var audioStreams = probe.streams.filter(function(stream) {
-                            return stream.track === 'audio';
-                        });
-                        var areAudioStreamsSupported = audioStreams.length === 0 || audioStreams.some(function(stream) {
-                            return stream.channels <= format.maxAudioChannels &&
-                                format.audioCodecs.indexOf(stream.codec) !== -1;
-                        });
-                        return areVideoStreamsSupported && areAudioStreamsSupported;
+                        return isFormatSupported && areStreamsSupported;
                     });
             });
     };
