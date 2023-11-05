@@ -1,10 +1,12 @@
 var VIDEO_CODEC_CONFIGS = [
     {
         codec: 'h264',
+        force: window.chrome || window.cast,
         mime: 'video/mp4; codecs="avc1.42E01E"',
     },
     {
         codec: 'h265',
+        force: window.chrome || window.cast,
         mime: 'video/mp4; codecs="hev1.1.6.L150.B0"',
         aliases: ['hevc']
     },
@@ -46,10 +48,9 @@ var AUDIO_CODEC_CONFIGS = [
 ];
 
 function canPlay(config, options) {
-    return options.mediaElement.canPlayType(config.mime) ?
-        [config.codec].concat(config.aliases || [])
-        :
-        [];
+    return config.force || options.mediaElement.canPlayType(config.mime)
+        ? [config.codec].concat(config.aliases || [])
+        : [];
 }
 
 function getMaxAudioChannels() {
@@ -57,7 +58,7 @@ function getMaxAudioChannels() {
         return 6;
     }
 
-    if (!window.AudioContext) {
+    if (!window.AudioContext || window.chrome || window.cast) {
         return 2;
     }
 
@@ -68,6 +69,9 @@ function getMaxAudioChannels() {
 function getMediaCapabilities() {
     var mediaElement = document.createElement('video');
     var formats = ['mp4'];
+    if (window.chrome || window.cast) {
+        formats.push('matroska,webm');
+    }
     var videoCodecs = VIDEO_CODEC_CONFIGS
         .map(function(config) {
             return canPlay(config, { mediaElement: mediaElement });
