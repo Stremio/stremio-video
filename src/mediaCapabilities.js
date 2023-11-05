@@ -70,17 +70,17 @@ function getMediaCapabilities() {
     var mediaElement = document.createElement('video');
     var formats = ['mp4', 'matroska,webm'];
     var videoCodecs = VIDEO_CODEC_CONFIGS
-        .map(function (config) {
+        .map(function(config) {
             return canPlay(config, { mediaElement: mediaElement });
         })
-        .reduce(function (result, value) {
+        .reduce(function(result, value) {
             return result.concat(value);
         }, []);
     var audioCodecs = AUDIO_CODEC_CONFIGS
-        .map(function (config) {
+        .map(function(config) {
             return canPlay(config, { mediaElement: mediaElement });
         })
-        .reduce(function (result, value) {
+        .reduce(function(result, value) {
             return result.concat(value);
         }, []);
     var maxAudioChannels = getMaxAudioChannels();
