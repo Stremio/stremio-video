@@ -28,6 +28,7 @@ function YouTubeVideo(options) {
         onPropChanged('time');
         onPropChanged('volume');
         onPropChanged('muted');
+        onPropChanged('playbackSpeed');
     }, timeChangedTimeout);
 
     var video = null;
@@ -46,6 +47,7 @@ function YouTubeVideo(options) {
         buffering: false,
         volume: false,
         muted: false,
+        playbackSpeed: false,
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false
     };
@@ -165,6 +167,7 @@ function YouTubeVideo(options) {
         onPropChanged('buffering');
         onPropChanged('volume');
         onPropChanged('muted');
+        onPropChanged('playbackSpeed');
         onPropChanged('subtitlesTracks');
         onPropChanged('selectedSubtitlesTrackId');
     }
@@ -239,6 +242,13 @@ function YouTubeVideo(options) {
                 }
 
                 return video.isMuted();
+            }
+            case 'playbackSpeed': {
+                if (stream === null || typeof video.getPlaybackRate !== 'function' || video.getPlaybackRate() === null || !isFinite(video.getPlaybackRate())) {
+                    return null;
+                }
+
+                return video.getPlaybackRate();
             }
             case 'subtitlesTracks': {
                 if (stream === null || typeof video.getOption !== 'function') {
@@ -335,6 +345,14 @@ function YouTubeVideo(options) {
 
                 break;
             }
+            case 'playbackSpeed': {
+                if (stream !== null && typeof video.setPlaybackRate === 'function' && isFinite(propValue)) {
+                    video.setPlaybackRate(propValue);
+                    onPropChanged('playbackSpeed');
+                }
+
+                break;
+            }
             case 'selectedSubtitlesTrackId': {
                 if (stream !== null) {
                     selectedSubtitlesTrackId = null;
@@ -388,6 +406,7 @@ function YouTubeVideo(options) {
                         onPropChanged('buffering');
                         onPropChanged('volume');
                         onPropChanged('muted');
+                        onPropChanged('playbackSpeed');
                         onPropChanged('subtitlesTracks');
                         onPropChanged('selectedSubtitlesTrackId');
                     } else {
@@ -417,6 +436,7 @@ function YouTubeVideo(options) {
                 onPropChanged('buffering');
                 onPropChanged('volume');
                 onPropChanged('muted');
+                onPropChanged('playbackSpeed');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
                 break;
@@ -477,7 +497,7 @@ YouTubeVideo.canPlayStream = function(stream) {
 YouTubeVideo.manifest = {
     name: 'YouTubeVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'subtitlesTracks', 'selectedSubtitlesTrackId'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'volume', 'muted', 'playbackSpeed', 'subtitlesTracks', 'selectedSubtitlesTrackId'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded']
 };
