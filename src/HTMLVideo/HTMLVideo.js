@@ -23,6 +23,7 @@ function HTMLVideo(options) {
     videoElement.style.height = '100%';
     videoElement.style.backgroundColor = 'black';
     videoElement.controls = false;
+    videoElement.playsInline = true;
     videoElement.onerror = function() {
         onVideoError();
     };
