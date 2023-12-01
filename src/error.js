@@ -58,7 +58,7 @@ var ERROR = {
     WITH_STREAMING_SERVER: {
         CONVERT_FAILED: {
             code: 60,
-            message: 'Streaming server failed to convert torrent stream'
+            message: 'Your device does not support the stream'
         }
     },
     UNKNOWN_ERROR: {
