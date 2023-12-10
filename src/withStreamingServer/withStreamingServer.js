@@ -6,6 +6,9 @@ var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
+var getFreeSpace = require('./getFreeSpace');
+var setFreeSpace = require('./setFreeSpace');
+var removeAllStreams = require('./removeAllStreams');
 var ERROR = require('../error');
 
 function withStreamingServer(Video) {
@@ -102,6 +105,17 @@ function withStreamingServer(Video) {
                         video.dispatch({ type: 'command', commandName: 'unload' });
                         loadArgs = commandArgs;
                         onPropChanged('stream');
+
+                        getFreeSpace()
+                            .then(function(freeSpace) {
+                                setFreeSpace(commandArgs.streamingServerURL, freeSpace)
+                                    .catch(function(error) {
+                                        console.warn('Failed to set free space', error);
+                                    });
+                            }).catch(function(error) {
+                                console.warn('Failed to get free space', error);
+                            });
+
                         convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo)
                             .then(function(result) {
                                 var mediaURL = result.url;
@@ -273,6 +287,12 @@ function withStreamingServer(Video) {
                     return true;
                 }
                 case 'unload': {
+                    if (loadArgs && loadArgs.streamingServerURL) {
+                        removeAllStreams(loadArgs.streamingServerURL)
+                            .catch(function(error) {
+                                console.warn('Failed to remove all streams', error);
+                            });
+                    }
                     loadArgs = null;
                     loaded = false;
                     actionsQueue = [];
