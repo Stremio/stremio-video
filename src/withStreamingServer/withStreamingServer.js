@@ -8,7 +8,7 @@ var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
 var getFreeSpace = require('./getFreeSpace');
 var setFreeSpace = require('./setFreeSpace');
-var removeAllStreams = require('./removeAllStreams');
+var wipeAll = require('./wipeAll');
 var ERROR = require('../error');
 
 function withStreamingServer(Video) {
@@ -288,7 +288,7 @@ function withStreamingServer(Video) {
                 }
                 case 'unload': {
                     if (loadArgs && loadArgs.streamingServerURL) {
-                        removeAllStreams(loadArgs.streamingServerURL)
+                        wipeAll(loadArgs.streamingServerURL)
                             .catch(function(error) {
                                 console.warn('Failed to remove all streams', error);
                             });

@@ -1,7 +1,7 @@
 var url = require('url');
 
-function removeAllStreams(streamingServerURL) {
-    var endpoint = url.resolve(streamingServerURL, '/removeAll');
+function wipeAll(streamingServerURL) {
+    var endpoint = url.resolve(streamingServerURL, '/wipeAll');
 
     var options = {
         method: 'GET',
@@ -20,4 +20,4 @@ function removeAllStreams(streamingServerURL) {
         });
 }
 
-module.exports = removeAllStreams;
+module.exports = wipeAll;
