@@ -74,13 +74,25 @@ function withHTMLSubtitles(Video) {
             }
 
             subtitlesElement.style.bottom = offset + '%';
+            var color = outlineColor;
+            var shadows = [
+                color + ' 2px 0px 0',
+                color + ' -2px 0px 0',
+                color + ' 0px 2px 0',
+                color + ' 0px -2px 0',
+                color + ' 2px 2px 0',
+                color + ' -2px -2px 0',
+                color + ' 2px -2px 0',
+                color + ' -2px 2px 0'
+            ];
+
             subtitlesRenderer.render(cuesByTime, videoState.time + delay).forEach(function(cueNode) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
                 cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
-                cueNode.style.textShadow = '1px 1px 0.1em ' + outlineColor;
+                cueNode.style.textShadow = shadows.join(', ');
                 subtitlesElement.appendChild(cueNode);
                 subtitlesElement.appendChild(document.createElement('br'));
             });
