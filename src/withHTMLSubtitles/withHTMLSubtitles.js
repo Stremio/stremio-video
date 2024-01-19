@@ -77,6 +77,7 @@ function withHTMLSubtitles(Video) {
             subtitlesRenderer.render(cuesByTime, videoState.time + delay).forEach(function(cueNode) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
+                cueNode.style.whiteSpace = 'pre-wrap';
                 cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
