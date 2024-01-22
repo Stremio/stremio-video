@@ -52,14 +52,14 @@ function withFullVideoSupport(Video) {
                 }
             }
         }
-        function setProp(propName, propValue) {
+        function setProp(propName) {
             switch (propName) {
                 default: {
                     return false;
                 }
             }
         }
-        function command(commandName, commandArgs) {
+        function command(commandName) {
             switch (commandName) {
                 case 'load': {
                     command('unload');
@@ -124,7 +124,7 @@ function withFullVideoSupport(Video) {
         };
     }
 
-    VideoOverwriteSupported.canPlayStream = function(stream) {
+    VideoOverwriteSupported.canPlayStream = function() {
         return Promise.resolve(true);
     };
 
