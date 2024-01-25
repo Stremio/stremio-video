@@ -6,6 +6,8 @@ var VIDEO_CODEC_CONFIGS = [
     },
     {
         codec: 'h265',
+        // Disabled because chrome only has partial support for h265/hvec,
+        // force: window.chrome || window.cast,
         mime: 'video/mp4; codecs="hev1.1.6.L150.B0"',
         aliases: ['hevc']
     },
