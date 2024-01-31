@@ -24,6 +24,7 @@ function TizenVideo(options) {
     var textColor = 'rgb(255, 255, 255)';
     var backgroundColor = 'rgba(0, 0, 0, 0)';
     var outlineColor = 'rgb(34, 34, 34)';
+    var subtitlesOpacity = 1;
 
     var objElement = document.createElement('object');
     objElement.type = 'application/avplayer';
@@ -59,6 +60,8 @@ function TizenVideo(options) {
         }
 
         subtitlesElement.style.bottom = offset + '%';
+        subtitlesElement.style.opacity = subtitlesOpacity;
+
         var cueNode = document.createElement('span');
         cueNode.innerHTML = text;
         cueNode.style.display = 'inline-block';
@@ -138,6 +141,7 @@ function TizenVideo(options) {
         subtitlesTextColor: false,
         subtitlesBackgroundColor: false,
         subtitlesOutlineColor: false,
+        subtitlesOpacity: false,
         audioTracks: false,
         selectedAudioTrackId: false,
         playbackSpeed: false
@@ -271,6 +275,13 @@ function TizenVideo(options) {
                 }
 
                 return outlineColor;
+            }
+            case 'subtitlesOpacity': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return subtitlesOpacity;
             }
             case 'audioTracks': {
                 if (stream === null) {
@@ -506,6 +517,22 @@ function TizenVideo(options) {
 
                 break;
             }
+            case 'subtitlesOpacity': {
+                if (typeof propValue === 'number') {
+                    try {
+                        subtitlesOpacity = Math.max(Math.max(propValue / 100, 0), 1);
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('Tizen player with HTML Subtitles', error);
+                    }
+
+                    refreshSubtitle();
+
+                    onPropChanged('subtitlesOpacity');
+                }
+
+                break;
+            }
             case 'selectedAudioTrackId': {
                 if (stream !== null) {
 
@@ -608,6 +635,7 @@ function TizenVideo(options) {
                 onPropChanged('subtitlesTextColor');
                 onPropChanged('subtitlesBackgroundColor');
                 onPropChanged('subtitlesOutlineColor');
+                onPropChanged('subtitlesOpacity');
                 onPropChanged('playbackSpeed');
                 events.removeAllListeners();
                 containerElement.removeChild(objElement);
@@ -657,7 +685,7 @@ TizenVideo.canPlayStream = function() {
 TizenVideo.manifest = {
     name: 'TizenVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'playbackSpeed'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
