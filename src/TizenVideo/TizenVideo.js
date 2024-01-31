@@ -520,7 +520,7 @@ function TizenVideo(options) {
             case 'subtitlesOpacity': {
                 if (typeof propValue === 'number') {
                     try {
-                        subtitlesOpacity = Math.max(Math.max(propValue / 100, 0), 1);
+                        subtitlesOpacity = Math.min(Math.max(propValue / 100, 0), 1);
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('Tizen player with HTML Subtitles', error);

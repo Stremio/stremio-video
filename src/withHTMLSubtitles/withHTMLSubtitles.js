@@ -340,7 +340,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesOpacity': {
                     if (typeof propValue === 'number') {
                         try {
-                            opacity = Math.max(Math.max(propValue / 100, 0), 1);
+                            opacity = Math.min(Math.max(propValue / 100, 0), 1);
                         } catch (error) {
                             // eslint-disable-next-line no-console
                             console.error('withHTMLSubtitles', error);

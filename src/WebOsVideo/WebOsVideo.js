@@ -836,7 +836,7 @@ function WebOsVideo(options) {
                         method: 'setSubtitleBackgroundOpacity',
                         parameters: {
                             'mediaId': knownMediaId,
-                            'bgOpacity': Math.max(Math.max(propValue / 0.4, 0), 255),
+                            'bgOpacity': Math.min(Math.max(propValue / 0.4, 0), 255),
                         }
                     });
 
