@@ -77,7 +77,7 @@ function withHTMLSubtitles(Video) {
 
             subtitlesElement.style.bottom = offset + '%';
             subtitlesElement.style.opacity = opacity;
-            subtitlesRenderer.render(cuesByTime, videoState.time + delay).forEach(function(cueNode) {
+            subtitlesRenderer.render(cuesByTime, videoState.time - delay).forEach(function(cueNode) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
                 cueNode.style.whiteSpace = 'pre-wrap';
