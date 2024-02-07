@@ -53,6 +53,7 @@ function withHTMLSubtitles(Video) {
         var textColor = 'rgb(255, 255, 255)';
         var backgroundColor = 'rgba(0, 0, 0, 0)';
         var outlineColor = 'rgb(34, 34, 34)';
+        var opacity = 1;
         var observedProps = {
             extraSubtitlesTracks: false,
             selectedExtraSubtitlesTrackId: false,
@@ -61,7 +62,8 @@ function withHTMLSubtitles(Video) {
             extraSubtitlesOffset: false,
             extraSubtitlesTextColor: false,
             extraSubtitlesBackgroundColor: false,
-            extraSubtitlesOutlineColor: false
+            extraSubtitlesOutlineColor: false,
+            extraSubtitlesOpacity: false
         };
 
         function renderSubtitles() {
@@ -74,9 +76,11 @@ function withHTMLSubtitles(Video) {
             }
 
             subtitlesElement.style.bottom = offset + '%';
-            subtitlesRenderer.render(cuesByTime, videoState.time + delay).forEach(function(cueNode) {
+            subtitlesElement.style.opacity = opacity;
+            subtitlesRenderer.render(cuesByTime, videoState.time - delay).forEach(function(cueNode) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
+                cueNode.style.whiteSpace = 'pre-wrap';
                 cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
@@ -177,6 +181,13 @@ function withHTMLSubtitles(Video) {
 
                     return outlineColor;
                 }
+                case 'extraSubtitlesOpacity': {
+                    if (destroyed) {
+                        return null;
+                    }
+
+                    return opacity;
+                }
                 default: {
                     return videoPropValue;
                 }
@@ -191,7 +202,8 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesOffset':
                 case 'extraSubtitlesTextColor':
                 case 'extraSubtitlesBackgroundColor':
-                case 'extraSubtitlesOutlineColor': {
+                case 'extraSubtitlesOutlineColor':
+                case 'extraSubtitlesOpacity': {
                     events.emit('propValue', propName, getProp(propName, null));
                     observedProps[propName] = true;
                     return true;
@@ -325,6 +337,21 @@ function withHTMLSubtitles(Video) {
 
                     return true;
                 }
+                case 'extraSubtitlesOpacity': {
+                    if (typeof propValue === 'number') {
+                        try {
+                            opacity = Math.min(Math.max(propValue / 100, 0), 1);
+                        } catch (error) {
+                            // eslint-disable-next-line no-console
+                            console.error('withHTMLSubtitles', error);
+                        }
+
+                        renderSubtitles();
+                        onPropChanged('extraSubtitlesOpacity');
+                    }
+
+                    return true;
+                }
                 default: {
                     return false;
                 }
@@ -386,6 +413,7 @@ function withHTMLSubtitles(Video) {
                     onPropChanged('extraSubtitlesTextColor');
                     onPropChanged('extraSubtitlesBackgroundColor');
                     onPropChanged('extraSubtitlesOutlineColor');
+                    onPropChanged('extraSubtitlesOpacity');
                     video.dispatch({ type: 'command', commandName: 'destroy' });
                     events.removeAllListeners();
                     containerElement.removeChild(subtitlesElement);
@@ -447,7 +475,7 @@ function withHTMLSubtitles(Video) {
     VideoWithHTMLSubtitles.manifest = {
         name: Video.manifest.name + 'WithHTMLSubtitles',
         external: Video.manifest.external,
-        props: Video.manifest.props.concat(['extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor'])
+        props: Video.manifest.props.concat(['extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
