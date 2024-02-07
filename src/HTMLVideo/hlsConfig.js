@@ -11,5 +11,6 @@ module.exports = {
     nudgeMaxRetry: 20,
     manifestLoadingTimeOut: 30000,
     manifestLoadingMaxRetry: 10,
+    fragLoadingTimeOut: 900000,
     // liveDurationInfinity: false
 };
