@@ -430,6 +430,7 @@ function WebOsVideo(options) {
     var stream = null;
     var startTime = null;
     var subtitlesOffset = 0;
+    var subtitlesOpacity = 255;
     var observedProps = {
         stream: false,
         paused: false,
@@ -443,6 +444,7 @@ function WebOsVideo(options) {
         subtitlesSize: false,
         subtitlesTextColor: false,
         subtitlesBackgroundColor: false,
+        subtitlesOpacity: false,
         audioTracks: false,
         selectedAudioTrackId: false,
         volume: false,
@@ -538,6 +540,13 @@ function WebOsVideo(options) {
                 }
 
                 return lastSubBgColor || 'rgba(255, 255, 255, 0)';
+            }
+            case 'subtitlesOpacity': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return subtitlesOpacity || 255;
             }
             case 'audioTracks': {
                 return audioTracks;
@@ -821,6 +830,22 @@ function WebOsVideo(options) {
 
                 break;
             }
+            case 'subtitlesOpacity': {
+                if (typeof propValue === 'number') {
+                    luna({
+                        method: 'setSubtitleBackgroundOpacity',
+                        parameters: {
+                            'mediaId': knownMediaId,
+                            'bgOpacity': Math.min(Math.max(propValue / 0.4, 0), 255),
+                        }
+                    });
+
+                    subtitlesOpacity = propValue;
+                    onPropChanged('subtitlesOpacity');
+                }
+
+                break;
+            }
             case 'selectedAudioTrackId': {
                 // console.log('WebOS', 'change audio track for id: ', knownMediaId, ' index:', propValue);
 
@@ -1014,6 +1039,7 @@ function WebOsVideo(options) {
                 onPropChanged('subtitlesSize');
                 onPropChanged('subtitlesTextColor');
                 onPropChanged('subtitlesBackgroundColor');
+                onPropChanged('subtitlesOpacity');
                 onPropChanged('volume');
                 onPropChanged('muted');
                 onPropChanged('playbackSpeed');
@@ -1084,7 +1110,7 @@ WebOsVideo.canPlayStream = function() { // function(stream)
 WebOsVideo.manifest = {
     name: 'WebOsVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
