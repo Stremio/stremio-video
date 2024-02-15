@@ -415,6 +415,7 @@ function TizenVideo(options) {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
                     window.webapis.avplay.seekTo(parseInt(propValue, 10));
                     renderSubtitle(1, '');
+                    onPropChanged('time');
                 }
 
                 break;
