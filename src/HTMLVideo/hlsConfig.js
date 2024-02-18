@@ -11,5 +11,21 @@ module.exports = {
     nudgeMaxRetry: 20,
     manifestLoadingTimeOut: 30000,
     manifestLoadingMaxRetry: 10,
+    fragLoadPolicy: {
+        default: {
+            maxTimeToFirstByteMs: 10000,
+            maxLoadTimeMs: 120000,
+            timeoutRetry: {
+                maxNumRetry: 15,
+                retryDelayMs: 0,
+                maxRetryDelayMs: 15
+            },
+            errorRetry: {
+                maxNumRetry: 6,
+                retryDelayMs: 1000,
+                maxRetryDelayMs: 15
+            }
+        }
+    }
     // liveDurationInfinity: false
 };
