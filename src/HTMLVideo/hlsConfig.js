@@ -16,7 +16,7 @@ module.exports = {
             maxTimeToFirstByteMs: 10000,
             maxLoadTimeMs: 120000,
             timeoutRetry: {
-                maxNumRetry: 15,
+                maxNumRetry: 20,
                 retryDelayMs: 0,
                 maxRetryDelayMs: 15
             },
