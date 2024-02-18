@@ -341,36 +341,29 @@ function withStreamingServer(Video) {
     }
 
     VideoWithStreamingServer.canPlayStream = function(stream, options) {
-        return Video.canPlayStream(stream)
-            .then(function(canPlay) {
-                if (!canPlay) {
-                    throw new Error('Fallback using /hlsv2/probe');
-                }
-
-                return canPlay;
+        var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
+        return fetch(url.resolve(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
+            .then(function(resp) {
+                return resp.json();
             })
-            .catch(function() {
-                var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
-                return fetch(url.resolve(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
-                    .then(function(resp) {
-                        return resp.json();
-                    })
-                    .then(function(probe) {
-                        var isFormatSupported = options.formats.some(function(format) {
-                            return probe.format.name.indexOf(format) !== -1;
-                        });
-                        var areStreamsSupported = probe.streams.every(function(stream) {
-                            if (stream.track === 'audio') {
-                                return stream.channels <= options.maxAudioChannels &&
-                                    options.audioCodecs.indexOf(stream.codec) !== -1;
-                            } else if (stream.track === 'video') {
-                                return options.videoCodecs.indexOf(stream.codec) !== -1;
-                            }
+            .then(function(probe) {
+                var isFormatSupported = options.formats.some(function(format) {
+                    return probe.format.name.indexOf(format) !== -1;
+                });
+                var areStreamsSupported = probe.streams.every(function(stream) {
+                    if (stream.track === 'audio') {
+                        return stream.channels <= options.maxAudioChannels &&
+                            options.audioCodecs.indexOf(stream.codec) !== -1;
+                    } else if (stream.track === 'video') {
+                        return options.videoCodecs.indexOf(stream.codec) !== -1;
+                    }
 
-                            return true;
-                        });
-                        return isFormatSupported && areStreamsSupported;
-                    });
+                    return true;
+                });
+                return isFormatSupported && areStreamsSupported;
+            })
+            .catch(function(err) {
+                return Video.canPlayStream(stream)
             });
     };
 
