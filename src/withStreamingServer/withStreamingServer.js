@@ -342,7 +342,6 @@ function withStreamingServer(Video) {
     }
 
     VideoWithStreamingServer.canPlayStream = function(stream, options) {
-        var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
         return supportsTranscoding()
             .then(function(supported) {
                 if (!supported) {
@@ -350,6 +349,7 @@ function withStreamingServer(Video) {
                     return Video.canPlayStream(stream);
                 }
                 // probing normally gives more accurate results
+                var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
                 return fetch(url.resolve(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
                     .then(function(resp) {
                         return resp.json();
