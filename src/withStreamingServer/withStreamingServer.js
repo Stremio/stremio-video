@@ -362,8 +362,8 @@ function withStreamingServer(Video) {
                 });
                 return isFormatSupported && areStreamsSupported;
             })
-            .catch(function(err) {
-                return Video.canPlayStream(stream)
+            .catch(function() {
+                return Video.canPlayStream(stream);
             });
     };
 
