@@ -6,6 +6,7 @@ var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
+var supportsTranscoding = require('../supportsTranscoding');
 var ERROR = require('../error');
 
 function withStreamingServer(Video) {
@@ -341,15 +342,13 @@ function withStreamingServer(Video) {
     }
 
     VideoWithStreamingServer.canPlayStream = function(stream, options) {
-        return Video.canPlayStream(stream)
-            .then(function(canPlay) {
-                if (!canPlay) {
-                    throw new Error('Fallback using /hlsv2/probe');
+        return supportsTranscoding()
+            .then(function(supported) {
+                if (!supported) {
+                    // we cannot probe the video in this case
+                    return Video.canPlayStream(stream);
                 }
-
-                return canPlay;
-            })
-            .catch(function() {
+                // probing normally gives more accurate results
                 var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
                 return fetch(url.resolve(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
                     .then(function(resp) {
@@ -370,6 +369,11 @@ function withStreamingServer(Video) {
                             return true;
                         });
                         return isFormatSupported && areStreamsSupported;
+                    })
+                    .catch(function() {
+                        // this uses content-type header in HTMLVideo which
+                        // is unreliable, check can also fail due to CORS
+                        return Video.canPlayStream(stream);
                     });
             });
     };
