@@ -593,18 +593,24 @@ function TizenVideo(options) {
                     window.webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
                     window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
                     window.webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
-                    window.webapis.avplay.prepare();
-                    onPropChanged('duration');
-                    window.webapis.avplay.play();
+                    window.webapis.avplay.prepareAsync(function() {
+                        onPropChanged('duration');
+                        window.webapis.avplay.play();
 
-                    onPropChanged('stream');
-                    onPropChanged('paused');
-                    onPropChanged('time');
-                    onPropChanged('duration');
-                    onPropChanged('subtitlesTracks');
-                    onPropChanged('selectedSubtitlesTrackId');
-                    onPropChanged('audioTracks');
-                    onPropChanged('selectedAudioTrackId');
+                        onPropChanged('stream');
+                        onPropChanged('paused');
+                        onPropChanged('time');
+                        onPropChanged('duration');
+                        onPropChanged('subtitlesTracks');
+                        onPropChanged('selectedSubtitlesTrackId');
+                        onPropChanged('audioTracks');
+                        onPropChanged('selectedAudioTrackId');
+                    }, function() {
+                        onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                            critical: true,
+                            stream: commandArgs ? commandArgs.stream : null
+                        }));
+                    });
 
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
