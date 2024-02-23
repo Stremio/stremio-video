@@ -74,17 +74,18 @@ function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behav
         .then(function(res) {
             result.hash = res.hash;
             result.size = res.size;
-            return fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints)
+            return fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints);
         })
         .then(function(res) {
 
-            if (res)
+            if (res) {
                 result.filename = res;
+            }
 
             return result;
         }).catch(function(e) {
             // eslint-disable-next-line no-console
-            console.error(results[1].reason);
+            console.error(e);
         });
 }
 
