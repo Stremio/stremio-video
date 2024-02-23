@@ -200,28 +200,29 @@ function withStreamingServer(Video) {
                                     commandArgs: Object.assign({}, commandArgs, {
                                         stream: result.stream
                                     })
+                                }).then(function () {
+                                    loaded = true;
+                                    flushActionsQueue();
+                                    fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints)
+                                        .then(function(result) {
+                                            if (commandArgs !== loadArgs) {
+                                                return;
+                                            }
+
+                                            videoParams = result;
+                                            onPropChanged('videoParams');
+                                        })
+                                        .catch(function(error) {
+                                            if (commandArgs !== loadArgs) {
+                                                return;
+                                            }
+
+                                            // eslint-disable-next-line no-console
+                                            console.error(error);
+                                            videoParams = { hash: null, size: null, filename: null };
+                                            onPropChanged('videoParams');
+                                        });
                                 });
-                                loaded = true;
-                                flushActionsQueue();
-                                fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints)
-                                    .then(function(result) {
-                                        if (commandArgs !== loadArgs) {
-                                            return;
-                                        }
-
-                                        videoParams = result;
-                                        onPropChanged('videoParams');
-                                    })
-                                    .catch(function(error) {
-                                        if (commandArgs !== loadArgs) {
-                                            return;
-                                        }
-
-                                        // eslint-disable-next-line no-console
-                                        console.error(error);
-                                        videoParams = { hash: null, size: null, filename: null };
-                                        onPropChanged('videoParams');
-                                    });
                             })
                             .catch(function(error) {
                                 if (commandArgs !== loadArgs) {

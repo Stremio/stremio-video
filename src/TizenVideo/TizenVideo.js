@@ -579,70 +579,82 @@ function TizenVideo(options) {
         }
     }
     function command(commandName, commandArgs) {
-        switch (commandName) {
-            case 'load': {
-                if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
-                    stream = commandArgs.stream;
+        return new Promise(function(resolve) {
+            switch (commandName) {
+                case 'load': {
+                    if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                        stream = commandArgs.stream;
 
-                    if (stream !== commandArgs.stream) {
-                        return;
+                        if (stream !== commandArgs.stream) {
+                            return;
+                        }
+                        onPropChanged('buffering');
+
+                        window.webapis.avplay.open(stream.url);
+                        window.webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
+                        window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
+                        window.webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
+                        window.webapis.avplay.prepareAsync(function() {
+                            onPropChanged('duration');
+                            window.webapis.avplay.play();
+
+                            onPropChanged('stream');
+                            onPropChanged('paused');
+                            onPropChanged('time');
+                            onPropChanged('duration');
+                            onPropChanged('subtitlesTracks');
+                            onPropChanged('selectedSubtitlesTrackId');
+                            onPropChanged('audioTracks');
+                            onPropChanged('selectedAudioTrackId');
+                            resolve();
+                        }, function() {
+                            onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                                critical: true,
+                                stream: commandArgs ? commandArgs.stream : null
+                            }));
+                            resolve();
+                        });
+                    } else {
+                        onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                            critical: true,
+                            stream: commandArgs ? commandArgs.stream : null
+                        }));
+                        resolve();
                     }
-                    onPropChanged('buffering');
-
-                    window.webapis.avplay.open(stream.url);
-                    window.webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
-                    window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
-                    window.webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
-                    window.webapis.avplay.prepare();
-                    onPropChanged('duration');
-                    window.webapis.avplay.play();
-
+                    break;
+                }
+                case 'unload': {
+                    stream = null;
+                    window.webapis.avplay.stop();
                     onPropChanged('stream');
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
+                    onPropChanged('buffering');
                     onPropChanged('subtitlesTracks');
                     onPropChanged('selectedSubtitlesTrackId');
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
-
-                } else {
-                    onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
-                        critical: true,
-                        stream: commandArgs ? commandArgs.stream : null
-                    }));
+                    resolve();
+                    break;
                 }
-                break;
+                case 'destroy': {
+                    command('unload');
+                    destroyed = true;
+                    onPropChanged('subtitlesOffset');
+                    onPropChanged('subtitlesSize');
+                    onPropChanged('subtitlesTextColor');
+                    onPropChanged('subtitlesBackgroundColor');
+                    onPropChanged('subtitlesOutlineColor');
+                    onPropChanged('subtitlesOpacity');
+                    onPropChanged('playbackSpeed');
+                    events.removeAllListeners();
+                    containerElement.removeChild(objElement);
+                    resolve();
+                    break;
+                }
             }
-            case 'unload': {
-                stream = null;
-                window.webapis.avplay.stop();
-                onPropChanged('stream');
-                onPropChanged('paused');
-                onPropChanged('time');
-                onPropChanged('duration');
-                onPropChanged('buffering');
-                onPropChanged('subtitlesTracks');
-                onPropChanged('selectedSubtitlesTrackId');
-                onPropChanged('audioTracks');
-                onPropChanged('selectedAudioTrackId');
-                break;
-            }
-            case 'destroy': {
-                command('unload');
-                destroyed = true;
-                onPropChanged('subtitlesOffset');
-                onPropChanged('subtitlesSize');
-                onPropChanged('subtitlesTextColor');
-                onPropChanged('subtitlesBackgroundColor');
-                onPropChanged('subtitlesOutlineColor');
-                onPropChanged('subtitlesOpacity');
-                onPropChanged('playbackSpeed');
-                events.removeAllListeners();
-                containerElement.removeChild(objElement);
-                break;
-            }
-        }
+        });
     }
 
     this.on = function(eventName, listener) {
@@ -653,29 +665,28 @@ function TizenVideo(options) {
         events.on(eventName, listener);
     };
     this.dispatch = function(action) {
-        if (destroyed) {
-            throw new Error('Video is destroyed');
-        }
+        return new Promise(function (resolve) {
+            if (destroyed) {
+                throw new Error('Video is destroyed');
+            }
 
-        if (action) {
-            action = deepFreeze(cloneDeep(action));
-            switch (action.type) {
-                case 'observeProp': {
-                    observeProp(action.propName);
-                    return;
-                }
-                case 'setProp': {
-                    setProp(action.propName, action.propValue);
-                    return;
-                }
-                case 'command': {
-                    command(action.commandName, action.commandArgs);
-                    return;
+            if (action) {
+                action = deepFreeze(cloneDeep(action));
+                switch (action.type) {
+                    case 'observeProp': {
+                        return resolve(observeProp(action.propName));
+                    }
+                    case 'setProp': {
+                        return resolve(setProp(action.propName, action.propValue));
+                    }
+                    case 'command': {
+                        return resolve(command(action.commandName, action.commandArgs));
+                    }
                 }
             }
-        }
 
-        throw new Error('Invalid action dispatched: ' + JSON.stringify(action));
+            throw new Error('Invalid action dispatched: ' + JSON.stringify(action));
+        });
     };
 }
 

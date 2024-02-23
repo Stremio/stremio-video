@@ -433,38 +433,40 @@ function withHTMLSubtitles(Video) {
             events.on(eventName, listener);
         };
         this.dispatch = function(action) {
-            if (destroyed) {
-                throw new Error('Video is destroyed');
-            }
+            return new Promise(function (resolve) {
+                if (destroyed) {
+                    throw new Error('Video is destroyed');
+                }
 
-            if (action) {
-                action = deepFreeze(cloneDeep(action));
-                switch (action.type) {
-                    case 'observeProp': {
-                        if (observeProp(action.propName)) {
-                            return;
+                if (action) {
+                    action = deepFreeze(cloneDeep(action));
+                    switch (action.type) {
+                        case 'observeProp': {
+                            if (observeProp(action.propName)) {
+                                return;
+                            }
+
+                            break;
                         }
+                        case 'setProp': {
+                            if (setProp(action.propName, action.propValue)) {
+                                return;
+                            }
 
-                        break;
-                    }
-                    case 'setProp': {
-                        if (setProp(action.propName, action.propValue)) {
-                            return;
+                            break;
                         }
+                        case 'command': {
+                            if (command(action.commandName, action.commandArgs)) {
+                                return;
+                            }
 
-                        break;
-                    }
-                    case 'command': {
-                        if (command(action.commandName, action.commandArgs)) {
-                            return;
+                            break;
                         }
-
-                        break;
                     }
                 }
-            }
 
-            video.dispatch(action);
+                resolve(video.dispatch(action));
+            });
         };
     }
 
