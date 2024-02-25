@@ -281,6 +281,7 @@ function withStreamingServer(Video) {
                 case 'unload': {
                     if (loadArgs && hlsConverterId !== null) {
                         destroyHLSConverter(loadArgs.streamingServerURL, hlsConverterId).catch(function(error) {
+                            // eslint-disable-next-line no-console
                             console.error(error);
                         });
                     }
