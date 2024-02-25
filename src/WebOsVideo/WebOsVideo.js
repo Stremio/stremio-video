@@ -671,6 +671,7 @@ function WebOsVideo(options) {
                 if (stream !== null && videoElement.readyState >= videoElement.HAVE_METADATA && propValue !== null && isFinite(propValue)) {
                     try {
                         videoElement.currentTime = parseInt(propValue, 10) / 1000;
+                        onPropChanged('time');
                     } catch(e) {
                         // console.log('webos video change time error');
                         // console.error(e);
