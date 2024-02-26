@@ -692,28 +692,30 @@ function WebOsVideo(options) {
                         currentSubTrack = propValue;
                         var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
                         // console.log('set subs to track idx: ' + trackIndex);
-                        luna({
-                            method: 'selectTrack',
-                            parameters: {
-                                'type': 'text',
-                                'mediaId': knownMediaId,
-                                'index': trackIndex
-                            }
-                        }, function() {
-                            // console.log('changed subs track successfully');
-                            var selectedSubtitlesTrack = getProp('subtitlesTracks')
-                                .find(function(track) {
-                                    return track.id === propValue;
+                        setTimeout(function() {
+                            luna({
+                                method: 'selectTrack',
+                                parameters: {
+                                    'type': 'text',
+                                    'mediaId': knownMediaId,
+                                    'index': trackIndex
+                                }
+                            }, function() {
+                                // console.log('changed subs track successfully');
+                                var selectedSubtitlesTrack = getProp('subtitlesTracks')
+                                    .find(function(track) {
+                                        return track.id === propValue;
+                                    });
+                                textTracks = textTracks.map(function(track) {
+                                    track.mode = track.id === currentSubTrack ? 'showing' : 'disabled';
+                                    return track;
                                 });
-                            textTracks = textTracks.map(function(track) {
-                                track.mode = track.id === currentSubTrack ? 'showing' : 'disabled';
-                                return track;
+                                if (selectedSubtitlesTrack) {
+                                    events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
+                                    onPropChanged('selectedSubtitlesTrackId');
+                                }
                             });
-                            if (selectedSubtitlesTrack) {
-                                events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
-                                onPropChanged('selectedSubtitlesTrackId');
-                            }
-                        });
+                        }, 500);
                     } else if (!propValue) {
                         toggleSubtitles(false);
                     }
