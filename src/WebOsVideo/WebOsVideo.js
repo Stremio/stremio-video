@@ -6,8 +6,9 @@ var ERROR = require('../error');
 function luna(params, call, fail, method) {
     if (call) params.onSuccess = call || function() {};
 
-    params.onFailure = function () { // function(result)
-        // console.log('WebOS',(params.method || method) + ' [fail][' + result.errorCode + '] ' + result.errorText );
+    params.onFailure = function (result) {
+        // eslint-disable-next-line no-console
+        console.log('WebOS', (params.method || method) + ' [fail][' + result.errorCode + '] ' + result.errorText );
 
         if (fail) fail();
     };
@@ -687,11 +688,13 @@ function WebOsVideo(options) {
                             toggleSubtitles(true);
                         }
 
-                        // console.log('WebOS', 'change subtitles for id: ', knownMediaId, ' index:', propValue);
+                        // eslint-disable-next-line no-console
+                        console.log('WebOS', 'change subtitles for id: ', knownMediaId, ' index:', propValue);
 
                         currentSubTrack = propValue;
                         var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
-                        // console.log('set subs to track idx: ' + trackIndex);
+                        // eslint-disable-next-line no-console
+                        console.log('set subs to track idx: ' + trackIndex);
                         setTimeout(function() {
                             luna({
                                 method: 'selectTrack',
