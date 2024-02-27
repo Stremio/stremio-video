@@ -684,9 +684,7 @@ function WebOsVideo(options) {
             case 'selectedSubtitlesTrackId': {
                 if (stream !== null) {
                     if ((propValue || '').indexOf('EMBEDDED_') === 0) {
-                        if (disabledSubs) {
-                            toggleSubtitles(true);
-                        }
+                        toggleSubtitles(true);
 
                         // eslint-disable-next-line no-console
                         console.log('WebOS', 'change subtitles for id: ', knownMediaId, ' index:', propValue);
