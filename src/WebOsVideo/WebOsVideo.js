@@ -731,7 +731,7 @@ function WebOsVideo(options) {
 
                 if ((propValue || '').indexOf('EMBEDDED_') === -1) {
                     currentSubTrack = null;
-                    onPropChanged('selectedSubtitlesTrackId')
+                    onPropChanged('selectedSubtitlesTrackId');
                     toggleSubtitles(false);
                 }
 
