@@ -10,6 +10,9 @@ function luna(params, call, fail, method) {
         // eslint-disable-next-line no-console
         console.log('WebOS', (params.method || method) + ' [fail][' + result.errorCode + '] ' + result.errorText );
 
+        // eslint-disable-next-line no-console
+        console.log('fail result', JSON.stringify(result));
+
         if (fail) fail();
     };
 
