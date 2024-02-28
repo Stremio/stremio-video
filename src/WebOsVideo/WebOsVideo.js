@@ -68,6 +68,7 @@ function launchVideoApp(params, success, failure) {
 var webOsColors = ['black', 'white', 'yellow', 'red', 'green', 'blue'];
 var stremioColors = {
     // rgba
+    'rgba(0, 0, 0, 0)': 'none',
     'rgba(0, 0, 0, 255)': 'black',
     'rgba(255, 255, 255, 255)': 'white',
     'rgba(255, 255, 0, 255)': 'yellow',
@@ -175,8 +176,6 @@ function WebOsVideo(options) {
         bg_opacity: 0,
         char_opacity: 255
     };
-
-    var subtitleOffset = 5;
 
     var setSubs = function (info) {
         textTracks = [];
@@ -442,7 +441,7 @@ function WebOsVideo(options) {
     var stream = null;
     var startTime = null;
     var subtitlesOffset = 0;
-    var subtitlesOpacity = 255;
+    var subtitlesOpacity = 100;
     var observedProps = {
         stream: false,
         paused: false,
@@ -544,21 +543,21 @@ function WebOsVideo(options) {
                     return null;
                 }
 
-                return lastSubColor || 'rgba(255, 255, 255, 255)';
+                return lastSubColor || 'rgb(255, 255, 255)';
             }
             case 'subtitlesBackgroundColor': {
                 if (destroyed) {
                     return null;
                 }
 
-                return lastSubBgColor || 'rgba(255, 255, 255, 0)';
+                return lastSubBgColor || 'rgba(0, 0, 0, 0)';
             }
             case 'subtitlesOpacity': {
                 if (destroyed) {
                     return null;
                 }
 
-                return subtitlesOpacity || 255;
+                return subtitlesOpacity || 100;
             }
             case 'audioTracks': {
                 return audioTracks;
@@ -697,6 +696,8 @@ function WebOsVideo(options) {
                     if ((propValue || '').indexOf('EMBEDDED_') === 0) {
                         toggleSubtitles(true);
 
+                        subStyles.bg_opacity = subStyles.bg_color === 'none' ? 0 : 255;
+
                         [
                             'setSubtitleCharacterColor',
                             'setSubtitleBackgroundColor',
@@ -710,7 +711,7 @@ function WebOsVideo(options) {
                                 parameters: {
                                     mediaId: videoElement.mediaId,
                                     charColor: subStyles.color,
-                                    bgColor: subStyles.bg_color,
+                                    bgColor: subStyles.bg_color === 'none' ? 'black' : subStyles.bg_color,
                                     position: subStyles.position,
                                     fontSize: subStyles.font_size,
                                     bgOpacity: subStyles.bg_opacity,
@@ -760,8 +761,8 @@ function WebOsVideo(options) {
             }
             case 'subtitlesOffset': {
                 if (videoElement.mediaId && propValue !== null && isFinite(propValue)) {
-                    subtitlesOffset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
-                    var nextOffset = stremioSubOffsets(subtitleOffset);
+                    subtitlesOffset = propValue;
+                    var nextOffset = stremioSubOffsets(Math.max(0, Math.min(100, parseInt(subtitlesOffset, 10))));
                     if (nextOffset === false) { // use default
                         nextOffset = -1;
                     }
@@ -783,8 +784,8 @@ function WebOsVideo(options) {
             }
             case 'subtitlesSize': {
                 if (videoElement.mediaId && propValue !== null && isFinite(propValue)) {
-                    subSize = Math.max(0, parseInt(propValue, 10));
-                    var nextSubSize = stremioSubSizes(subSize);
+                    subSize = propValue;
+                    var nextSubSize = stremioSubSizes(Math.max(0, parseInt(subSize, 10)));
                     if (nextSubSize === false) { // use default
                         nextSubSize = 1;
                     }
@@ -831,14 +832,31 @@ function WebOsVideo(options) {
             case 'subtitlesBackgroundColor': {
                 if (videoElement.mediaId && typeof propValue === 'string') {
                     if (stremioColors[propValue] && webOsColors.indexOf(stremioColors[propValue]) > -1) {
-                        subStyles.bgColor = stremioColors[propValue];
+                        subStyles.bg_color = stremioColors[propValue];
                         luna({
                             method: 'setSubtitleBackgroundColor',
                             parameters: {
                                 'mediaId': videoElement.mediaId,
-                                'color': stremioColors[propValue],
+                                'color': stremioColors[propValue] === 'none' ? 'black' : stremioColors[propValue],
                             }
                         });
+                        if (stremioColors[propValue] === 'none') {
+                            luna({
+                                method: 'setSubtitleBackgroundOpacity',
+                                parameters: {
+                                    'mediaId': videoElement.mediaId,
+                                    'bgOpacity': 0,
+                                }
+                            });
+                        } else {
+                            luna({
+                                method: 'setSubtitleBackgroundOpacity',
+                                parameters: {
+                                    'mediaId': videoElement.mediaId,
+                                    'bgOpacity': 255,
+                                }
+                            });
+                        }
                     }
                     lastSubBgColor = propValue;
                     onPropChanged('subtitlesBackgroundColor');
@@ -848,13 +866,13 @@ function WebOsVideo(options) {
             }
             case 'subtitlesOpacity': {
                 if (videoElement.mediaId && typeof propValue === 'number') {
-                    var nextSubOpacity = Math.min(Math.max(propValue / 0.4, 0), 255);
+                    var nextSubOpacity = Math.floor(propValue / 100 * 255);
                     subStyles.char_opacity = nextSubOpacity;
                     luna({
                         method: 'setSubtitleCharacterOpacity',
                         parameters: {
                             'mediaId': videoElement.mediaId,
-                            'bgOpacity': nextSubOpacity,
+                            'charOpacity': nextSubOpacity,
                         }
                     });
 
