@@ -65,7 +65,7 @@ function launchVideoApp(params, success, failure) {
     });
 }
 
-var webOsColors = ['black', 'white', 'yellow', 'red', 'green', 'blue'];
+var webOsColors = ['none', 'black', 'white', 'yellow', 'red', 'green', 'blue'];
 var stremioColors = {
     // rgba
     'rgba(0, 0, 0, 0)': 'none',
@@ -171,7 +171,7 @@ function WebOsVideo(options) {
     var subStyles = {
         color: 'white',
         font_size: 1,
-        bg_color: 'black',
+        bg_color: 'none',
         position: -1,
         bg_opacity: 0,
         char_opacity: 255
@@ -837,7 +837,7 @@ function WebOsVideo(options) {
                             method: 'setSubtitleBackgroundColor',
                             parameters: {
                                 'mediaId': videoElement.mediaId,
-                                'color': stremioColors[propValue] === 'none' ? 'black' : stremioColors[propValue],
+                                'bgColor': stremioColors[propValue] === 'none' ? 'black' : stremioColors[propValue],
                             }
                         });
                         if (stremioColors[propValue] === 'none') {
