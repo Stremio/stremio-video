@@ -726,15 +726,12 @@ function WebOsVideo(options) {
                                 }
                             }, successCb, successCb);
                         }, 500);
-                    } else {
-                        currentSubTrack = null;
                     }
-                } else {
-                    currentSubTrack = null;
                 }
 
                 if ((propValue || '').indexOf('EMBEDDED_') === -1) {
                     currentSubTrack = null;
+                    onPropChanged('selectedSubtitlesTrackId')
                     toggleSubtitles(false);
                 }
 
