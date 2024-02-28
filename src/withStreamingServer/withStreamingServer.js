@@ -6,6 +6,7 @@ var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
+var destroyHLSConverter = require('./destroyHLSConverter');
 var supportsTranscoding = require('../supportsTranscoding');
 var ERROR = require('../error');
 
@@ -27,6 +28,7 @@ function withStreamingServer(Video) {
 
         var self = this;
         var loadArgs = null;
+        var hlsConverterId = null;
         var loaded = false;
         var actionsQueue = [];
         var videoParams = null;
@@ -141,6 +143,7 @@ function withStreamingServer(Video) {
                                                 mediaURL: mediaURL,
                                                 infoHash: infoHash,
                                                 fileIdx: fileIdx,
+                                                hlsConverterId: null,
                                                 stream: {
                                                     url: mediaURL
                                                 }
@@ -167,6 +170,7 @@ function withStreamingServer(Video) {
                                             mediaURL: mediaURL,
                                             infoHash: infoHash,
                                             fileIdx: fileIdx,
+                                            hlsConverterId: id,
                                             stream: {
                                                 url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
                                                 subtitles: Array.isArray(commandArgs.stream.subtitles) ?
@@ -201,6 +205,7 @@ function withStreamingServer(Video) {
                                         stream: result.stream
                                     })
                                 });
+                                hlsConverterId = result.hlsConverterId;
                                 loaded = true;
                                 flushActionsQueue();
                                 fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints)
@@ -274,6 +279,13 @@ function withStreamingServer(Video) {
                     return true;
                 }
                 case 'unload': {
+                    if (loadArgs && hlsConverterId !== null) {
+                        destroyHLSConverter(loadArgs.streamingServerURL, hlsConverterId).catch(function(error) {
+                            // eslint-disable-next-line no-console
+                            console.error(error);
+                        });
+                    }
+                    hlsConverterId = null;
                     loadArgs = null;
                     loaded = false;
                     actionsQueue = [];
