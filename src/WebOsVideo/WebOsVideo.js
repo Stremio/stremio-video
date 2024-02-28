@@ -720,11 +720,17 @@ function WebOsVideo(options) {
                         };
 
                         Object.keys(subStyling).forEach(function(key) {
-                            var parameters = subStyling[key];
-                            parameters.mediaId = knownMediaId;
                             luna({
                                 method: key,
-                                parameters: parameters
+                                parameters: {
+                                    mediaId: knownMediaId,
+                                    color: subStyles.color,
+                                    bgColor: subStyles.bg_color,
+                                    position: subStyles.position,
+                                    fontSize: subStyles.font_size,
+                                    bgOpacity: subStyles.bg_opacity,
+                                    charOpacity: subStyles.char_opacity
+                                }
                             });
                         });
 
