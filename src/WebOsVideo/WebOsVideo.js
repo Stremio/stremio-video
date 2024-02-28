@@ -82,12 +82,12 @@ var stremioColors = {
     'rgba(0, 255, 0, 1)': 'green',
     'rgba(0, 0, 255, 1)': 'blue',
     // rgb
-    'rgba(0, 0, 0)': 'black',
-    'rgba(255, 255, 255)': 'white',
-    'rgba(255, 255, 0)': 'yellow',
-    'rgba(255, 0, 0)': 'red',
-    'rgba(0, 255, 0)': 'green',
-    'rgba(0, 0, 255)': 'blue',
+    'rgb(0, 0, 0)': 'black',
+    'rgb(255, 255, 255)': 'white',
+    'rgb(255, 255, 0)': 'yellow',
+    'rgb(255, 0, 0)': 'red',
+    'rgb(0, 255, 0)': 'green',
+    'rgb(0, 0, 255)': 'blue',
     // 8-digit hex
     '#000000FF': 'black',
     '#FFFFFFFF': 'white',
