@@ -336,7 +336,11 @@ function WebOsVideo(options) {
     // };
 
     var toggleSubtitles = function (status) {
-        if (!knownMediaId) return;
+        if (!videoElement.mediaId) {
+            // eslint-disable-next-line no-console
+            console.log('MISSING MEDIA ID');
+            return;
+        }
 
         disabledSubs = !status;
 
@@ -345,7 +349,7 @@ function WebOsVideo(options) {
         luna({
             method: 'setSubtitleEnable',
             parameters: {
-                'mediaId': knownMediaId,
+                'mediaId': videoElement.mediaId,
                 'enable': status
             }
         });
@@ -724,7 +728,7 @@ function WebOsVideo(options) {
                             console.log('sending styles:', JSON.stringify({
                                 method: key,
                                 parameters: {
-                                    mediaId: knownMediaId,
+                                    mediaId: videoElement.mediaId,
                                     color: subStyles.color,
                                     bgColor: subStyles.bg_color,
                                     position: subStyles.position,
@@ -736,7 +740,7 @@ function WebOsVideo(options) {
                             luna({
                                 method: key,
                                 parameters: {
-                                    mediaId: knownMediaId,
+                                    mediaId: videoElement.mediaId,
                                     color: subStyles.color,
                                     bgColor: subStyles.bg_color,
                                     position: subStyles.position,
@@ -748,7 +752,7 @@ function WebOsVideo(options) {
                         });
 
                         // eslint-disable-next-line no-console
-                        console.log('WebOS', 'change subtitles for id: ', knownMediaId, ' index:', propValue);
+                        console.log('WebOS', 'change subtitles for id: ', videoElement.mediaId, ' index:', propValue);
 
                         currentSubTrack = propValue;
                         var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
@@ -774,7 +778,7 @@ function WebOsVideo(options) {
                                 method: 'selectTrack',
                                 parameters: {
                                     'type': 'text',
-                                    'mediaId': knownMediaId,
+                                    'mediaId': videoElement.mediaId,
                                     'index': trackIndex
                                 }
                             }, successCb, successCb);
