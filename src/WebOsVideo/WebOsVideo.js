@@ -726,9 +726,10 @@ function WebOsVideo(options) {
                                 }
                             }, successCb, successCb);
                         }, 500);
-                    } else if (!propValue) {
-                        toggleSubtitles(false);
                     }
+                }
+                if (!propValue) {
+                    toggleSubtitles(false);
                 }
 
                 break;
