@@ -733,14 +733,7 @@ function WebOsVideo(options) {
                         // eslint-disable-next-line no-console
                         console.log('set subs to track idx: ' + trackIndex);
                         setTimeout(function() {
-                            luna({
-                                method: 'selectTrack',
-                                parameters: {
-                                    'type': 'text',
-                                    'mediaId': knownMediaId,
-                                    'index': trackIndex
-                                }
-                            }, function() {
+                            var success = function() {
                                 // console.log('changed subs track successfully');
                                 var selectedSubtitlesTrack = getProp('subtitlesTracks')
                                     .find(function(track) {
@@ -754,7 +747,15 @@ function WebOsVideo(options) {
                                     events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
                                     onPropChanged('selectedSubtitlesTrackId');
                                 }
-                            });
+                            };
+                            luna({
+                                method: 'selectTrack',
+                                parameters: {
+                                    'type': 'text',
+                                    'mediaId': knownMediaId,
+                                    'index': trackIndex
+                                }
+                            }, success, success);
                         }, 500);
                     } else if (!propValue) {
                         toggleSubtitles(false);
