@@ -179,14 +179,7 @@ function WebOsVideo(options) {
 
     var setSubs = function (info) {
         textTracks = [];
-        // console.log('sub tracks 1, nr of sub tracks: ', info.numSubtitleTracks);
         if (info.numSubtitleTracks) {
-
-            // console.log('sub tracks 2');
-
-            // try {
-            //     console.log('got sub info', JSON.stringify(info.subtitleTrackInfo));
-            // } catch(e) {};
             for (var i = 0; i < info.subtitleTrackInfo.length; i++) {
                 var textTrack = info.subtitleTrackInfo[i];
                 textTrack.index = i;
@@ -208,9 +201,6 @@ function WebOsVideo(options) {
                 });
 
             }
-
-            // console.log('sub tracks all', textTracks);
-
             onPropChanged('subtitlesTracks');
             onPropChanged('selectedSubtitlesTrackId');
 
@@ -219,14 +209,7 @@ function WebOsVideo(options) {
 
     var setTracks = function (info) {
         audioTracks = [];
-        // console.log('audio tracks 1, nr of audio tracks: ', info.numAudioTracks);
         if (info.numAudioTracks) {
-
-            //console.log('audio tracks 2');
-
-            // try {
-            //     console.log('got audio info', JSON.stringify(info.audioTrackInfo));
-            // } catch(e) {};
             for (var i = 0; i < info.audioTrackInfo.length; i++) {
                 var audioTrack = info.audioTrackInfo[i];
                 audioTrack.index = i;
@@ -244,7 +227,6 @@ function WebOsVideo(options) {
                     mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
                 });
             }
-            // console.log('audio tracks all', audioTracks);
             onPropChanged('audioTracks');
             onPropChanged('selectedAudioTrackId');
 
@@ -255,7 +237,6 @@ function WebOsVideo(options) {
         if (subscribed) return;
         subscribed = true;
         var answered = false;
-        // console.log('subscribing');
         luna({
             method: 'subscribe',
             parameters: {
@@ -265,9 +246,6 @@ function WebOsVideo(options) {
         }, function (result) {
             if (result.sourceInfo && !answered) {
                 answered = true;
-                // try {
-                //     console.log('got source info', JSON.stringify(result.sourceInfo.programInfo[0]));
-                // } catch(e) {};
                 var info = result.sourceInfo.programInfo[0];
 
                 setSubs(info);
@@ -294,7 +272,6 @@ function WebOsVideo(options) {
                 return;
             }
 
-            // console.log('WebOS', 'subscribe', JSON.stringify(result));
             count_message++;
 
             if (count_message === 30 && !answered) {
@@ -338,8 +315,6 @@ function WebOsVideo(options) {
         if (!videoElement.mediaId) return;
 
         disabledSubs = !status;
-
-        // console.log('enable subs: ' + status);
 
         luna({
             method: 'setSubtitleEnable',
@@ -729,7 +704,6 @@ function WebOsVideo(options) {
                         console.log('set subs to track idx: ' + trackIndex);
                         setTimeout(function() {
                             var successCb = function() {
-                                // console.log('changed subs track successfully');
                                 var selectedSubtitlesTrack = getProp('subtitlesTracks')
                                     .find(function(track) {
                                         return track.id === propValue;
@@ -883,8 +857,6 @@ function WebOsVideo(options) {
                 break;
             }
             case 'selectedAudioTrackId': {
-                // console.log('WebOS', 'change audio track for id: ', videoElement.mediaId, ' index:', propValue);
-
                 if (videoElement.mediaId && (propValue || '').indexOf('EMBEDDED_') === 0) {
                     currentAudioTrack = propValue;
                     var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
@@ -896,7 +868,6 @@ function WebOsVideo(options) {
                             'index': trackIndex
                         }
                     }, function() {
-                        // console.log('changed audio track successfully');
                         var selectedAudioTrack = getProp('audioTracks')
                             .find(function(track) {
                                 return track.id === propValue;
@@ -919,8 +890,6 @@ function WebOsVideo(options) {
 
                         if(videoElement.audioTracks[trackIndex]) {
                             videoElement.audioTracks[trackIndex].enabled = true;
-
-                            // console.log('WebOS', 'change audio two method:', trackIndex);
                         }
                     }
 
@@ -941,8 +910,6 @@ function WebOsVideo(options) {
                 break;
             }
             case 'playbackSpeed': {
-                // console.log('start change play rate to: ' + propValue);
-                // console.log(typeof propValue);
                 if (videoElement.mediaId && propValue !== null && isFinite(propValue)) {
                     lastPlaybackSpeed = parseFloat(propValue);
                     luna({
@@ -952,10 +919,6 @@ function WebOsVideo(options) {
                             'playRate': lastPlaybackSpeed,
                             'audioOutput': true,
                         }
-                    }, function() {
-                        // console.log('set playback rate success: ', lastPlaybackSpeed);
-                    }, function() {
-                        // console.log('failed setting playback rate success: ', lastPlaybackSpeed);
                     });
                     onPropChanged('playbackSpeed');
                 }
@@ -992,7 +955,6 @@ function WebOsVideo(options) {
                         function retrieveMediaId() {
                             if (videoElement.mediaId) {
                                 knownMediaId = videoElement.mediaId;
-                                // console.log('got media id: ', videoElement.mediaId);
                                 clearInterval(timer);
                                 subscribe(cb);
                                 return;
