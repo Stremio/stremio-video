@@ -720,6 +720,19 @@ function WebOsVideo(options) {
                         };
 
                         Object.keys(subStyling).forEach(function(key) {
+                            // eslint-disable-next-line no-console
+                            console.log('sending styles:', JSON.stringify({
+                                method: key,
+                                parameters: {
+                                    mediaId: knownMediaId,
+                                    color: subStyles.color,
+                                    bgColor: subStyles.bg_color,
+                                    position: subStyles.position,
+                                    fontSize: subStyles.font_size,
+                                    bgOpacity: subStyles.bg_opacity,
+                                    charOpacity: subStyles.char_opacity
+                                }
+                            }));
                             luna({
                                 method: key,
                                 parameters: {
