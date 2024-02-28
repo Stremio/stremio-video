@@ -714,16 +714,16 @@ function WebOsVideo(options) {
                             setSubtitleCharacterOpacity: {
                                 charOpacity: subStyles.char_opacity
                             }
-                        }
+                        };
 
                         Object.keys(subStyling).forEach(function(key) {
-                            var parameters = subStyling[key]
-                            parameters.mediaId = knownMediaId
+                            var parameters = subStyling[key];
+                            parameters.mediaId = knownMediaId;
                             luna({
                                 method: key,
                                 parameters: parameters
-                            })
-                        })
+                            });
+                        });
 
                         // eslint-disable-next-line no-console
                         console.log('WebOS', 'change subtitles for id: ', knownMediaId, ' index:', propValue);
