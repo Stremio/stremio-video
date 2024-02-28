@@ -733,7 +733,7 @@ function WebOsVideo(options) {
                         // eslint-disable-next-line no-console
                         console.log('set subs to track idx: ' + trackIndex);
                         setTimeout(function() {
-                            var success = function() {
+                            var successCb = function() {
                                 // console.log('changed subs track successfully');
                                 var selectedSubtitlesTrack = getProp('subtitlesTracks')
                                     .find(function(track) {
@@ -755,7 +755,7 @@ function WebOsVideo(options) {
                                     'mediaId': knownMediaId,
                                     'index': trackIndex
                                 }
-                            }, success, success);
+                            }, successCb, successCb);
                         }, 500);
                     } else if (!propValue) {
                         toggleSubtitles(false);
