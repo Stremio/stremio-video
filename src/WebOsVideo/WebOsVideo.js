@@ -164,6 +164,15 @@ function WebOsVideo(options) {
 
     var count_message = 0;
 
+    var subStyles = {
+        color: 2,
+        font_size: 1,
+        bg_color: 'black',
+        position: -1,
+        bg_opacity: 0,
+        char_opacity: 255
+    };
+
     var subtitleOffset = 5;
 
     var setSubs = function (info) {
@@ -685,6 +694,36 @@ function WebOsVideo(options) {
                 if (stream !== null) {
                     if ((propValue || '').indexOf('EMBEDDED_') === 0) {
                         toggleSubtitles(true);
+
+                        var subStyling = {
+                            setSubtitleColor: {
+                                color: subStyles.color
+                            },
+                            setSubtitleBackgroundColor: {
+                                bgColor: subStyles.bg_color
+                            },
+                            setSubtitlePosition: {
+                                position: subStyles.position
+                            },
+                            setSubtitleFontSize: {
+                                fontSize: subStyles.font_size
+                            },
+                            setSubtitleBackgroundOpacity: {
+                                bgOpacity: subStyles.bg_opacity
+                            },
+                            setSubtitleCharacterOpacity: {
+                                charOpacity: subStyles.char_opacity
+                            }
+                        }
+
+                        Object.keys(subStyling).forEach(function(key) {
+                            var parameters = subStyling[key]
+                            parameters.mediaId = knownMediaId
+                            luna({
+                                method: key,
+                                parameters: parameters
+                            })
+                        })
 
                         // eslint-disable-next-line no-console
                         console.log('WebOS', 'change subtitles for id: ', knownMediaId, ' index:', propValue);
