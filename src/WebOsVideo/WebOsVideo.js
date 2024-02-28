@@ -168,7 +168,7 @@ function WebOsVideo(options) {
     var count_message = 0;
 
     var subStyles = {
-        color: 2,
+        color: 'white',
         font_size: 1,
         bg_color: 'black',
         position: -1,
@@ -435,7 +435,6 @@ function WebOsVideo(options) {
 
     var lastSubColor = null;
     var lastSubBgColor = null;
-    var lastSubBgOpacity = 0;
     var lastPlaybackSpeed = 1;
 
     var events = new EventEmitter();
@@ -699,7 +698,7 @@ function WebOsVideo(options) {
                         toggleSubtitles(true);
 
                         [
-                            'setSubtitleColor',
+                            'setSubtitleCharacterColor',
                             'setSubtitleBackgroundColor',
                             'setSubtitlePosition',
                             'setSubtitleFontSize',
@@ -710,7 +709,7 @@ function WebOsVideo(options) {
                                 method: key,
                                 parameters: {
                                     mediaId: videoElement.mediaId,
-                                    color: subStyles.color,
+                                    charColor: subStyles.color,
                                     bgColor: subStyles.bg_color,
                                     position: subStyles.position,
                                     fontSize: subStyles.font_size,
@@ -764,8 +763,9 @@ function WebOsVideo(options) {
                     subtitlesOffset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
                     var nextOffset = stremioSubOffsets(subtitleOffset);
                     if (nextOffset === false) { // use default
-                        nextOffset = 0;
+                        nextOffset = -1;
                     }
+                    subStyles.position = nextOffset;
                     luna({
                         method: 'setSubtitlePosition',
                         parameters: {
@@ -786,8 +786,9 @@ function WebOsVideo(options) {
                     subSize = Math.max(0, parseInt(propValue, 10));
                     var nextSubSize = stremioSubSizes(subSize);
                     if (nextSubSize === false) { // use default
-                        nextSubSize = 2;
+                        nextSubSize = 1;
                     }
+                    subStyles.font_size = nextSubSize;
                     luna({
                         method: 'setSubtitleFontSize',
                         parameters: {
@@ -811,6 +812,7 @@ function WebOsVideo(options) {
                     if (stremioColors[propValue] && webOsColors.indexOf(stremioColors[propValue]) > -1) {
                         nextColor = stremioColors[propValue];
                     }
+                    subStyles.color = nextColor;
                     luna({
                         method: 'setSubtitleCharacterColor',
                         parameters: {
@@ -829,38 +831,13 @@ function WebOsVideo(options) {
             case 'subtitlesBackgroundColor': {
                 if (videoElement.mediaId && typeof propValue === 'string') {
                     if (stremioColors[propValue] && webOsColors.indexOf(stremioColors[propValue]) > -1) {
+                        subStyles.bgColor = stremioColors[propValue];
                         luna({
                             method: 'setSubtitleBackgroundColor',
                             parameters: {
                                 'mediaId': videoElement.mediaId,
                                 'color': stremioColors[propValue],
                             }
-                        }, function() {
-                            // console.log('changed subtitle background color successfully to: ' + stremioColors[propValue]);
-                            if (!lastSubBgOpacity) {
-                                luna({
-                                    method: 'setSubtitleBackgroundOpacity',
-                                    parameters: {
-                                        'mediaId': videoElement.mediaId,
-                                        'bgOpacity': 255,
-                                    }
-                                }, function() {
-                                    // console.log('changed subtitle background opacity successfully to: ' + 255);
-                                    lastSubBgOpacity = 255;
-                                });
-                            }
-                        });
-                    } else {
-                        // we don't know this color, set sub background opacity to 0
-                        luna({
-                            method: 'setSubtitleBackgroundOpacity',
-                            parameters: {
-                                'mediaId': videoElement.mediaId,
-                                'bgOpacity': 0,
-                            }
-                        }, function() {
-                            // console.log('changed subtitle background opacity successfully to: ' + 0);
-                            lastSubBgOpacity = 0;
                         });
                     }
                     lastSubBgColor = propValue;
@@ -871,11 +848,13 @@ function WebOsVideo(options) {
             }
             case 'subtitlesOpacity': {
                 if (videoElement.mediaId && typeof propValue === 'number') {
+                    var nextSubOpacity = Math.min(Math.max(propValue / 0.4, 0), 255);
+                    subStyles.char_opacity = nextSubOpacity;
                     luna({
-                        method: 'setSubtitleBackgroundOpacity',
+                        method: 'setSubtitleCharacterOpacity',
                         parameters: {
                             'mediaId': videoElement.mediaId,
-                            'bgOpacity': Math.min(Math.max(propValue / 0.4, 0), 255),
+                            'bgOpacity': nextSubOpacity,
                         }
                     });
 
