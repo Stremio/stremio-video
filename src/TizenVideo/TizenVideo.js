@@ -128,6 +128,8 @@ function TizenVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
+    var retries = 0;
+    var maxRetries = 5;
     var observedProps = {
         stream: false,
         paused: false,
@@ -594,6 +596,7 @@ function TizenVideo(options) {
                     window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
                     window.webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
                     window.webapis.avplay.prepareAsync(function() {
+                        if (!stream) return;
                         onPropChanged('duration');
                         window.webapis.avplay.play();
 
@@ -606,6 +609,18 @@ function TizenVideo(options) {
                         onPropChanged('audioTracks');
                         onPropChanged('selectedAudioTrackId');
                     }, function() {
+                        // retries are necessary because there is a
+                        // 30s timeout that cannot be controlled
+                        if (stream && retries <= maxRetries) {
+                            retries++;
+                            try {
+                                window.webapis.avplay.stop();
+                            } catch(e) {}
+                            setTimeout(function() {
+                                command('load', commandArgs);
+                            }, 0);
+                            return;
+                        }
                         onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                             critical: true,
                             stream: commandArgs ? commandArgs.stream : null
