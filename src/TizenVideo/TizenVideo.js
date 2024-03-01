@@ -617,12 +617,10 @@ function TizenVideo(options) {
                         onPropChanged('selectedAudioTrackId');
                     }, function() {
                         // retries are necessary because there is a
-                        // 30s timeout that cannot be controlled
+                        // 30s timeout that cannot be configured
                         if (stream && retries <= maxRetries) {
                             retries++;
-                            try {
-                                window.webapis.avplay.stop();
-                            } catch(e) {}
+                            window.webapis.avplay.stop();
                             setTimeout(function() {
                                 command('load', commandArgs);
                             }, 0);
