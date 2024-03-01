@@ -602,6 +602,9 @@ function TizenVideo(options) {
                     }, function(error) {
                         if (retries < maxRetries) {
                             retries++;
+                            try {
+                                window.webapis.avplay.stop();
+                            } catch(e) {}
                             command('load', commandArgs);
                         } else {
                             onError(Object.assign({}, ERROR.STREAM_FAILED_TO_LOAD, {
