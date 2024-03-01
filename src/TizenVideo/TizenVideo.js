@@ -100,9 +100,6 @@ function TizenVideo(options) {
         oncurrentplaytime: function() {
             onPropChanged('time');
         },
-        onerror: function() {
-            onVideoError();
-        },
         onsubtitlechange: function(duration, text) {
             renderSubtitle(duration, text);
         },
@@ -128,8 +125,12 @@ function TizenVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
+    var retries = 0;
+    var maxRetries = 5;
+    var isLoaded = null;
     var observedProps = {
         stream: false,
+        loaded: false,
         paused: false,
         time: false,
         duration: false,
@@ -151,6 +152,9 @@ function TizenVideo(options) {
         switch (propName) {
             case 'stream': {
                 return stream;
+            }
+            case 'loaded': {
+                return isLoaded;
             }
             case 'paused': {
                 if (stream === null) {
@@ -349,18 +353,6 @@ function TizenVideo(options) {
                 return null;
             }
         }
-    }
-    function onVideoError() {
-        if (destroyed) {
-            return;
-        }
-
-        var error;
-        error = ERROR.UNKNOWN_ERROR;
-        onError(Object.assign({}, error, {
-            critical: true,
-            error: error
-        }));
     }
     function onError(error) {
         events.emit('error', error);
@@ -593,19 +585,35 @@ function TizenVideo(options) {
                     window.webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
                     window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
                     window.webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
-                    window.webapis.avplay.prepare();
-                    onPropChanged('duration');
-                    window.webapis.avplay.play();
+                    window.webapis.avplay.prepareAsync(function() {
+                        onPropChanged('duration');
+                        window.webapis.avplay.play();
 
-                    onPropChanged('stream');
-                    onPropChanged('paused');
-                    onPropChanged('time');
-                    onPropChanged('duration');
-                    onPropChanged('subtitlesTracks');
-                    onPropChanged('selectedSubtitlesTrackId');
-                    onPropChanged('audioTracks');
-                    onPropChanged('selectedAudioTrackId');
-
+                        isLoaded = true;
+                        onPropChanged('loaded');
+                        onPropChanged('stream');
+                        onPropChanged('paused');
+                        onPropChanged('time');
+                        onPropChanged('duration');
+                        onPropChanged('subtitlesTracks');
+                        onPropChanged('selectedSubtitlesTrackId');
+                        onPropChanged('audioTracks');
+                        onPropChanged('selectedAudioTrackId');
+                    }, function(error) {
+                        if (retries < maxRetries) {
+                            retries++;
+                            try {
+                                window.webapis.avplay.stop();
+                            } catch(e) {}
+                            command('load', commandArgs);
+                        } else {
+                            onError(Object.assign({}, ERROR.STREAM_FAILED_TO_LOAD, {
+                                critical: true,
+                                stream: commandArgs ? commandArgs.stream : null,
+                                error: error,
+                            }));
+                        }
+                    });
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
@@ -617,6 +625,8 @@ function TizenVideo(options) {
             case 'unload': {
                 stream = null;
                 window.webapis.avplay.stop();
+                isLoaded = false;
+                onPropChanged('loaded');
                 onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
@@ -686,7 +696,7 @@ TizenVideo.canPlayStream = function() {
 TizenVideo.manifest = {
     name: 'TizenVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
