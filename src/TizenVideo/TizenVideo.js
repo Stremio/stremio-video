@@ -620,7 +620,9 @@ function TizenVideo(options) {
                         // 30s timeout that cannot be configured
                         if (stream && retries <= maxRetries) {
                             retries++;
-                            window.webapis.avplay.stop();
+                            try {
+                                window.webapis.avplay.stop();
+                            } catch(e) {}
                             setTimeout(function() {
                                 command('load', commandArgs);
                             }, 0);
