@@ -68,6 +68,10 @@ var ERROR = {
     UNSUPPORTED_STREAM: {
         code: 2,
         message: 'Stream is not supported'
+    },
+    STREAM_FAILED_TO_LOAD: {
+        code: 3,
+        message: 'Stream failed to load'
     }
 };
 
