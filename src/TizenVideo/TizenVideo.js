@@ -130,8 +130,10 @@ function TizenVideo(options) {
     var stream = null;
     var retries = 0;
     var maxRetries = 5;
+    var isLoaded = null;
     var observedProps = {
         stream: false,
+        loaded: false,
         paused: false,
         time: false,
         duration: false,
@@ -153,6 +155,9 @@ function TizenVideo(options) {
         switch (propName) {
             case 'stream': {
                 return stream;
+            }
+            case 'loaded': {
+                return isLoaded;
             }
             case 'paused': {
                 if (stream === null) {
@@ -600,6 +605,8 @@ function TizenVideo(options) {
                         onPropChanged('duration');
                         window.webapis.avplay.play();
 
+                        isLoaded = true;
+                        onPropChanged('loaded');
                         onPropChanged('stream');
                         onPropChanged('paused');
                         onPropChanged('time');
@@ -638,6 +645,8 @@ function TizenVideo(options) {
             case 'unload': {
                 stream = null;
                 window.webapis.avplay.stop();
+                isLoaded = false;
+                onPropChanged('loaded');
                 onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
@@ -707,7 +716,7 @@ TizenVideo.canPlayStream = function() {
 TizenVideo.manifest = {
     name: 'TizenVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };

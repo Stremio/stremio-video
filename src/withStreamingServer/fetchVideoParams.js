@@ -67,26 +67,29 @@ function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behavior
 }
 
 function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
-    var result = { hash: null, size: null, filename: null };
-    // these need to be sequential as fetchOpensubtitlesParams
-    // ensures engine /stats.json availability
-    return fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints)
-        .then(function(res) {
-            result.hash = res.hash;
-            result.size = res.size;
-            return fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints);
-        })
-        .then(function(res) {
+    return Promise.allSettled([
+        fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints),
+        fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints)
+    ]).then(function(results) {
+        var result = { hash: null, size: null, filename: null };
 
-            if (res) {
-                result.filename = res;
-            }
-
-            return result;
-        }).catch(function(e) {
+        if (results[0].status === 'fulfilled') {
+            result.hash = results[0].value.hash;
+            result.size = results[0].value.size;
+        } else if (results[0].reason) {
             // eslint-disable-next-line no-console
-            console.error(e);
-        });
+            console.error(results[0].reason);
+        }
+
+        if (results[1].status === 'fulfilled') {
+            result.filename = results[1].value;
+        } else if (results[1].reason) {
+            // eslint-disable-next-line no-console
+            console.error(results[1].reason);
+        }
+
+        return result;
+    });
 }
 
 module.exports = fetchVideoParams;
