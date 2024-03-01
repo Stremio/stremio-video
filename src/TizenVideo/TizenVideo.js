@@ -100,9 +100,6 @@ function TizenVideo(options) {
         oncurrentplaytime: function() {
             onPropChanged('time');
         },
-        onerror: function() {
-            onVideoError();
-        },
         onsubtitlechange: function(duration, text) {
             renderSubtitle(duration, text);
         },
@@ -357,18 +354,6 @@ function TizenVideo(options) {
             }
         }
     }
-    function onVideoError() {
-        if (destroyed) {
-            return;
-        }
-
-        var error;
-        error = ERROR.UNKNOWN_ERROR;
-        onError(Object.assign({}, error, {
-            critical: true,
-            error: error
-        }));
-    }
     function onError(error) {
         events.emit('error', error);
         if (error.critical) {
@@ -601,7 +586,6 @@ function TizenVideo(options) {
                     window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
                     window.webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
                     window.webapis.avplay.prepareAsync(function() {
-                        if (!stream) return;
                         onPropChanged('duration');
                         window.webapis.avplay.play();
 
@@ -615,25 +599,21 @@ function TizenVideo(options) {
                         onPropChanged('selectedSubtitlesTrackId');
                         onPropChanged('audioTracks');
                         onPropChanged('selectedAudioTrackId');
-                    }, function() {
-                        // retries are necessary because there is a
-                        // 30s timeout that cannot be configured
-                        if (stream && retries <= maxRetries) {
+                    }, function(error) {
+                        if (retries < maxRetries) {
                             retries++;
                             try {
                                 window.webapis.avplay.stop();
                             } catch(e) {}
-                            setTimeout(function() {
-                                command('load', commandArgs);
-                            }, 0);
-                            return;
+                            command('load', commandArgs);
+                        } else {
+                            onError(Object.assign({}, ERROR.STREAM_FAILED_TO_LOAD, {
+                                critical: true,
+                                stream: commandArgs ? commandArgs.stream : null,
+                                error: error,
+                            }));
                         }
-                        onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
-                            critical: true,
-                            stream: commandArgs ? commandArgs.stream : null
-                        }));
                     });
-
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
