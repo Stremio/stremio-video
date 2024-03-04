@@ -124,7 +124,7 @@ function TizenVideo(options) {
 
     var events = new EventEmitter();
     var destroyed = false;
-    var stream = null;
+    var loadArgs = null;
     var retries = 0;
     var maxRetries = 5;
     var isLoaded = null;
@@ -151,13 +151,13 @@ function TizenVideo(options) {
     function getProp(propName) {
         switch (propName) {
             case 'stream': {
-                return stream;
+                return loadArgs !== null ? loadArgs.stream : null;
             }
             case 'loaded': {
                 return isLoaded;
             }
             case 'paused': {
-                if (stream === null) {
+                if (loadArgs === null) {
                     return null;
                 }
 
@@ -172,7 +172,7 @@ function TizenVideo(options) {
             }
             case 'time': {
                 var currentTime = window.webapis.avplay.getCurrentTime();
-                if (stream === null || currentTime === null || !isFinite(currentTime)) {
+                if (loadArgs === null || currentTime === null || !isFinite(currentTime)) {
                     return null;
                 }
 
@@ -180,21 +180,21 @@ function TizenVideo(options) {
             }
             case 'duration': {
                 var duration = window.webapis.avplay.getDuration();
-                if (stream === null || duration === null || !isFinite(duration)) {
+                if (loadArgs === null || duration === null || !isFinite(duration)) {
                     return null;
                 }
 
                 return Math.floor(duration);
             }
             case 'buffering': {
-                if (stream === null) {
+                if (loadArgs === null) {
                     return null;
                 }
 
                 return isBuffering;
             }
             case 'subtitlesTracks': {
-                if (stream === null) {
+                if (loadArgs === null) {
                     return [];
                 }
 
@@ -227,7 +227,7 @@ function TizenVideo(options) {
                 return textTracks;
             }
             case 'selectedSubtitlesTrackId': {
-                if (stream === null || disabledSubs) {
+                if (loadArgs === null || disabledSubs) {
                     return null;
                 }
 
@@ -288,7 +288,7 @@ function TizenVideo(options) {
                 return subtitlesOpacity;
             }
             case 'audioTracks': {
-                if (stream === null) {
+                if (loadArgs === null) {
                     return [];
                 }
 
@@ -321,7 +321,7 @@ function TizenVideo(options) {
                 return audioTracks;
             }
             case 'selectedAudioTrackId': {
-                if (stream === null) {
+                if (loadArgs === null) {
                     return null;
                 }
 
@@ -377,7 +377,7 @@ function TizenVideo(options) {
     function setProp(propName, propValue) {
         switch (propName) {
             case 'paused': {
-                if (stream !== null) {
+                if (loadArgs !== null) {
                     var willPause = !!propValue;
                     willPause ? window.webapis.avplay.pause() : window.webapis.avplay.play();
                     if (willPause) {
@@ -404,7 +404,7 @@ function TizenVideo(options) {
                 break;
             }
             case 'time': {
-                if (stream !== null && propValue !== null && isFinite(propValue)) {
+                if (loadArgs !== null && propValue !== null && isFinite(propValue)) {
                     window.webapis.avplay.seekTo(parseInt(propValue, 10));
                     renderSubtitle(1, '');
                     onPropChanged('time');
@@ -413,7 +413,7 @@ function TizenVideo(options) {
                 break;
             }
             case 'selectedSubtitlesTrackId': {
-                if (stream !== null) {
+                if (loadArgs !== null) {
                     if ((currentSubTrack || '').indexOf('EMBEDDED_') === 0) {
                         if ((propValue || '').indexOf('EMBEDDED_') === -1) {
                             renderSubtitle(1, '');
@@ -527,7 +527,7 @@ function TizenVideo(options) {
                 break;
             }
             case 'selectedAudioTrackId': {
-                if (stream !== null) {
+                if (loadArgs !== null) {
 
                     currentAudioTrack = propValue;
 
@@ -574,18 +574,17 @@ function TizenVideo(options) {
         switch (commandName) {
             case 'load': {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
-                    stream = commandArgs.stream;
-
-                    if (stream !== commandArgs.stream) {
-                        return;
-                    }
+                    loadArgs = commandArgs;
                     onPropChanged('buffering');
-
-                    window.webapis.avplay.open(stream.url);
+                    window.webapis.avplay.open(commandArgs.stream.url);
                     window.webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
                     window.webapis.avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX');
                     window.webapis.avplay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
                     window.webapis.avplay.prepareAsync(function() {
+                        if (commandArgs !== loadArgs) {
+                            return;
+                        }
+
                         onPropChanged('duration');
                         window.webapis.avplay.play();
 
@@ -600,6 +599,10 @@ function TizenVideo(options) {
                         onPropChanged('audioTracks');
                         onPropChanged('selectedAudioTrackId');
                     }, function(error) {
+                        if (commandArgs !== loadArgs) {
+                            return;
+                        }
+
                         if (retries < maxRetries) {
                             retries++;
                             try {
@@ -623,7 +626,7 @@ function TizenVideo(options) {
                 break;
             }
             case 'unload': {
-                stream = null;
+                loadArgs = null;
                 window.webapis.avplay.stop();
                 isLoaded = false;
                 onPropChanged('loaded');
