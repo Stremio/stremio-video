@@ -8,6 +8,7 @@ var YouTubeVideo = require('../YouTubeVideo');
 var withStreamingServer = require('../withStreamingServer');
 var withHTMLSubtitles = require('../withHTMLSubtitles');
 var withVideoParams = require('../withVideoParams');
+var withFullVideoSupport = require('../withFullVideoSupport');
 
 function selectVideoImplementation(commandArgs, options) {
     if (!commandArgs.stream || typeof commandArgs.stream.externalUrl === 'string') {
@@ -37,6 +38,9 @@ function selectVideoImplementation(commandArgs, options) {
         if (typeof global.webOS !== 'undefined') {
             return withStreamingServer(withHTMLSubtitles(WebOsVideo));
         }
+        if ((window.process || {}).__nwjs) {
+            return withStreamingServer(withFullVideoSupport(withHTMLSubtitles(HTMLVideo)));
+        }
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
     }
 
@@ -46,6 +50,9 @@ function selectVideoImplementation(commandArgs, options) {
         }
         if (typeof global.tizen !== 'undefined') {
             return withVideoParams(withHTMLSubtitles(TizenVideo));
+        }
+        if ((window.process || {}).__nwjs) {
+            return withVideoParams(withFullVideoSupport(withHTMLSubtitles(HTMLVideo)));
         }
         return withVideoParams(withHTMLSubtitles(HTMLVideo));
     }
