@@ -43,7 +43,7 @@ function createTorrent(streamingServerURL, infoHash, fileIdx, fileMustInclude, s
         };
     }
 
-    if ((fileMustInclude || []).length) {
+    if (fileMustInclude && Array.isArray(fileMustInclude) && fileMustInclude.length) {
         body.fileMustInclude = fileMustInclude;
     }
 

@@ -2,10 +2,10 @@ var url = require('url');
 
 function buildRarStream(streamingServerURL, key, fileIdx, fileMustInclude) {
     var opts = {};
-    if (fileIdx) {
+    if (fileIdx && typeof fileIdx === 'number') {
         opts.fileIdx = fileIdx;
     }
-    if (fileMustInclude) {
+    if (fileMustInclude && Array.isArray(fileMustInclude)) {
         opts.fileMustInclude = fileMustInclude;
     }
     return {
