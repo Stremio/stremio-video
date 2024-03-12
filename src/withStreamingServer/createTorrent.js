@@ -15,7 +15,7 @@ function buildTorrent(streamingServerURL, infoHash, fileIdx, sources) {
     };
 }
 
-function createTorrent(streamingServerURL, infoHash, fileIdx, sources, seriesInfo) {
+function createTorrent(streamingServerURL, infoHash, fileIdx, fileMustInclude, sources, seriesInfo) {
     if ((!Array.isArray(sources) || sources.length === 0) && (fileIdx !== null && isFinite(fileIdx))) {
         return Promise.resolve(buildTorrent(streamingServerURL, infoHash, fileIdx, sources));
     }
@@ -34,6 +34,10 @@ function createTorrent(streamingServerURL, infoHash, fileIdx, sources, seriesInf
             min: 40,
             max: 200
         };
+    }
+
+    if ((fileMustInclude || []).length) {
+        body.fileMustInclude = fileMustInclude;
     }
 
     if (fileIdx === null || !isFinite(fileIdx)) {
