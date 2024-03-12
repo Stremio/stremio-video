@@ -1,5 +1,6 @@
 var magnet = require('magnet-uri');
 var createTorrent = require('./createTorrent');
+var createRar = require('./createRar');
 
 function convertStream(streamingServerURL, stream, seriesInfo) {
     return new Promise(function(resolve, reject) {
@@ -40,6 +41,18 @@ function convertStream(streamingServerURL, stream, seriesInfo) {
             createTorrent(streamingServerURL, stream.infoHash, stream.fileIdx, stream.fileMustInclude, stream.announce, seriesInfo)
                 .then(function(torrent) {
                     resolve({ url: torrent.url, infoHash: torrent.infoHash, fileIdx: torrent.fileIdx, fileMustInclude: torrent.fileMustInclude });
+                })
+                .catch(function(error) {
+                    reject(error);
+                });
+
+            return;
+        }
+
+        if (stream.rarUrls && Array.isArray(stream.rarUrls)) {
+            createRar(streamingServerURL, stream.rarUrls, stream.fileIdx, stream.fileMustInclude)
+                .then(function(rarStream) {
+                    resolve({ url: rarStream.url, fileIdx: rarStream.fileIdx, fileMustInclude: rarStream.fileMustInclude });
                 })
                 .catch(function(error) {
                     reject(error);
