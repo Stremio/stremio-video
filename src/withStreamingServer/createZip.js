@@ -9,7 +9,7 @@ function buildZipStream(streamingServerURL, key, fileIdx, fileMustInclude) {
         opts.fileMustInclude = fileMustInclude;
     }
     return {
-        url: url.resolve(streamingServerURL, '/zip/stream?key=' + encodeURIComponent(key) + (Object.keys(opts).length ? 'o=' + encodeURIComponent(JSON.stringify(opts)) : '')),
+        url: url.resolve(streamingServerURL, '/zip/stream?key=' + encodeURIComponent(key) + (Object.keys(opts).length ? '&o=' + encodeURIComponent(JSON.stringify(opts)) : '')),
         fileIdx: fileIdx,
         fileMustInclude: fileMustInclude
     };

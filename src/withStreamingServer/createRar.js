@@ -9,7 +9,7 @@ function buildRarStream(streamingServerURL, key, fileIdx, fileMustInclude) {
         opts.fileMustInclude = fileMustInclude;
     }
     return {
-        url: url.resolve(streamingServerURL, '/rar/stream?key=' + encodeURIComponent(key) + (Object.keys(opts).length ? 'o=' + encodeURIComponent(JSON.stringify(opts)) : '')),
+        url: url.resolve(streamingServerURL, '/rar/stream?key=' + encodeURIComponent(key) + (Object.keys(opts).length ? '&o=' + encodeURIComponent(JSON.stringify(opts)) : '')),
         fileIdx: fileIdx,
         fileMustInclude: fileMustInclude
     };
