@@ -1,5 +1,7 @@
 var magnet = require('magnet-uri');
 var createTorrent = require('./createTorrent');
+var createRar = require('./createRar');
+var createZip = require('./createZip');
 
 function convertStream(streamingServerURL, stream, seriesInfo) {
     return new Promise(function(resolve, reject) {
@@ -22,9 +24,9 @@ function convertStream(streamingServerURL, stream, seriesInfo) {
                     })
                     :
                     [];
-                createTorrent(streamingServerURL, parsedMagnetURI.infoHash, null, sources, seriesInfo)
+                createTorrent(streamingServerURL, parsedMagnetURI.infoHash, null, null, sources, seriesInfo)
                     .then(function(torrent) {
-                        resolve({ url: torrent.url, infoHash: torrent.infoHash, fileIdx: torrent.fileIdx });
+                        resolve({ url: torrent.url, infoHash: torrent.infoHash, fileIdx: torrent.fileIdx, fileMustInclude: torrent.fileMustInclude });
                     })
                     .catch(function(error) {
                         reject(error);
@@ -37,9 +39,33 @@ function convertStream(streamingServerURL, stream, seriesInfo) {
         }
 
         if (typeof stream.infoHash === 'string') {
-            createTorrent(streamingServerURL, stream.infoHash, stream.fileIdx, stream.announce, seriesInfo)
+            createTorrent(streamingServerURL, stream.infoHash, stream.fileIdx, stream.fileMustInclude, stream.announce, seriesInfo)
                 .then(function(torrent) {
-                    resolve({ url: torrent.url, infoHash: torrent.infoHash, fileIdx: torrent.fileIdx });
+                    resolve({ url: torrent.url, infoHash: torrent.infoHash, fileIdx: torrent.fileIdx, fileMustInclude: torrent.fileMustInclude });
+                })
+                .catch(function(error) {
+                    reject(error);
+                });
+
+            return;
+        }
+
+        if (stream.rarUrls && Array.isArray(stream.rarUrls)) {
+            createRar(streamingServerURL, stream.rarUrls, stream.fileIdx, stream.fileMustInclude)
+                .then(function(rarStream) {
+                    resolve({ url: rarStream.url, fileIdx: rarStream.fileIdx, fileMustInclude: rarStream.fileMustInclude });
+                })
+                .catch(function(error) {
+                    reject(error);
+                });
+
+            return;
+        }
+
+        if (stream.zipUrls && Array.isArray(stream.zipUrls)) {
+            createZip(streamingServerURL, stream.zipUrls, stream.fileIdx, stream.fileMustInclude)
+                .then(function(zipStream) {
+                    resolve({ url: zipStream.url, fileIdx: zipStream.fileIdx, fileMustInclude: zipStream.fileMustInclude });
                 })
                 .catch(function(error) {
                     reject(error);
