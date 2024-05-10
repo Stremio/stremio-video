@@ -3,6 +3,7 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var Color = require('color');
 var ERROR = require('../error');
+var getTracksData = require('../tracksData')
 
 function TizenVideo(options) {
     options = options || {};
@@ -148,6 +149,20 @@ function TizenVideo(options) {
         playbackSpeed: false
     };
 
+    var gotTraktData = false
+    var tracksData = { audio: [], subs: [] }
+
+    function retrieveExtendedTracks() {
+        if (!gotTraktData && stream !== null) {
+            gotTraktData = true
+            getTracksData(stream.url, function(resp) {
+                tracksData = resp
+                onPropChanged('subtitlesTracks');
+                onPropChanged('audioTracks');
+            })
+        }
+    }
+
     function getProp(propName) {
         switch (propName) {
             case 'stream': {
@@ -213,6 +228,20 @@ function TizenVideo(options) {
                             extra = JSON.parse(textTrack.extra_info);
                         } catch(e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
+                        if (textTrackLang === null) {
+                            retrieveExtendedTracks()
+                        }
+                        if (((tracksData || {}).subs || []).length) {
+                            var extendedTrackData = tracksData.subs.find(function(el) {
+                                if ((el || {})['StreamOrder'] === textTrack.index) {
+                                    return true
+                                }
+                                return false
+                            })
+                            if ((extendedTrackData || {})['Language']) {
+                                textTrackLang = extendedTrackData['Language']
+                            }
+                        }
                         textTracks.push({
                             id: textTrackId,
                             lang: textTrackLang,
@@ -307,6 +336,20 @@ function TizenVideo(options) {
                             extra = JSON.parse(audioTrack.extra_info);
                         } catch(e) {}
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
+                        if (audioTrackLang === null) {
+                            retrieveExtendedTracks()
+                        }
+                        if (((tracksData || {}).audio || []).length) {
+                            var extendedTrackData = tracksData.audio.find(function(el) {
+                                if ((el || {})['StreamOrder'] === textTrack.index) {
+                                    return true
+                                }
+                                return false
+                            })
+                            if ((extendedTrackData || {})['Language']) {
+                                audioTrackLang = extendedTrackData['Language']
+                            }
+                        }
                         audioTracks.push({
                             id: audioTrackId,
                             lang: audioTrackLang,
