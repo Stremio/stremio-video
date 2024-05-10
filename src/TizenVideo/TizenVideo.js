@@ -5,6 +5,8 @@ var Color = require('color');
 var ERROR = require('../error');
 var getTracksData = require('../tracksData')
 
+var needsExtendedTracks = false
+
 function TizenVideo(options) {
     options = options || {};
 
@@ -153,6 +155,7 @@ function TizenVideo(options) {
     var tracksData = { audio: [], subs: [] }
 
     function retrieveExtendedTracks() {
+        needsExtendedTracks = true
         if (!gotTraktData && stream !== null) {
             gotTraktData = true
             getTracksData(stream.url, function(resp) {
@@ -623,6 +626,10 @@ function TizenVideo(options) {
                         return;
                     }
                     onPropChanged('buffering');
+
+                    if (needsExtendedTracks) {
+                        retrieveExtendedTracks()
+                    }
 
                     window.webapis.avplay.open(stream.url);
                     window.webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
