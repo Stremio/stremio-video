@@ -3,9 +3,9 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var Color = require('color');
 var ERROR = require('../error');
-var getTracksData = require('../tracksData')
+var getTracksData = require('../tracksData');
 
-var needsExtendedTracks = false
+var needsExtendedTracks = false;
 
 function TizenVideo(options) {
     options = options || {};
@@ -151,18 +151,18 @@ function TizenVideo(options) {
         playbackSpeed: false
     };
 
-    var gotTraktData = false
-    var tracksData = { audio: [], subs: [] }
+    var gotTraktData = false;
+    var tracksData = { audio: [], subs: [] };
 
     function retrieveExtendedTracks() {
-        needsExtendedTracks = true
+        needsExtendedTracks = true;
         if (!gotTraktData && stream !== null) {
-            gotTraktData = true
+            gotTraktData = true;
             getTracksData(stream.url, function(resp) {
-                tracksData = resp
+                tracksData = resp;
                 onPropChanged('subtitlesTracks');
                 onPropChanged('audioTracks');
-            })
+            });
         }
     }
 
@@ -232,17 +232,17 @@ function TizenVideo(options) {
                         } catch(e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
                         if (textTrackLang === null) {
-                            retrieveExtendedTracks()
+                            retrieveExtendedTracks();
                         }
                         if (((tracksData || {}).subs || []).length) {
                             var extendedTrackData = tracksData.subs.find(function(el) {
                                 if ((el || {})['StreamOrder'] === textTrack.index) {
-                                    return true
+                                    return true;
                                 }
-                                return false
-                            })
+                                return false;
+                            });
                             if ((extendedTrackData || {})['Language']) {
-                                textTrackLang = extendedTrackData['Language']
+                                textTrackLang = extendedTrackData['Language'];
                             }
                         }
                         textTracks.push({
@@ -340,17 +340,17 @@ function TizenVideo(options) {
                         } catch(e) {}
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
                         if (audioTrackLang === null) {
-                            retrieveExtendedTracks()
+                            retrieveExtendedTracks();
                         }
                         if (((tracksData || {}).audio || []).length) {
                             var extendedTrackData = tracksData.audio.find(function(el) {
                                 if ((el || {})['StreamOrder'] === audioTrack.index) {
-                                    return true
+                                    return true;
                                 }
-                                return false
-                            })
+                                return false;
+                            });
                             if ((extendedTrackData || {})['Language']) {
-                                audioTrackLang = extendedTrackData['Language']
+                                audioTrackLang = extendedTrackData['Language'];
                             }
                         }
                         audioTracks.push({
@@ -628,7 +628,7 @@ function TizenVideo(options) {
                     onPropChanged('buffering');
 
                     if (needsExtendedTracks) {
-                        retrieveExtendedTracks()
+                        retrieveExtendedTracks();
                     }
 
                     window.webapis.avplay.open(stream.url);
