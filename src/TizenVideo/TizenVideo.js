@@ -341,7 +341,7 @@ function TizenVideo(options) {
                         }
                         if (((tracksData || {}).audio || []).length) {
                             var extendedTrackData = tracksData.audio.find(function(el) {
-                                if ((el || {})['StreamOrder'] === textTrack.index) {
+                                if ((el || {})['StreamOrder'] === audioTrack.index) {
                                     return true
                                 }
                                 return false
