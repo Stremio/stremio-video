@@ -219,6 +219,13 @@ function TizenVideo(options) {
                 var totalTrackInfo = window.webapis.avplay.getTotalTrackInfo();
                 var textTracks = [];
 
+                var countTextTracks = 0;
+                for (var i = 0; i < totalTrackInfo.length; i++) {
+                    if (totalTrackInfo[i].type === 'TEXT') {
+                        countTextTracks++;
+                    }
+                }
+
                 for (var i = 0; i < totalTrackInfo.length; i++) {
                     if (totalTrackInfo[i].type === 'TEXT') {
                         var textTrack = totalTrackInfo[i];
@@ -231,7 +238,7 @@ function TizenVideo(options) {
                             extra = JSON.parse(textTrack.extra_info);
                         } catch(e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
-                        if (textTrackLang === null) {
+                        if (textTrackLang === null && countTextTracks > 1) {
                             retrieveExtendedTracks();
                         }
                         if (((tracksData || {}).subs || []).length) {
@@ -327,6 +334,13 @@ function TizenVideo(options) {
                 var totalTrackInfo = window.webapis.avplay.getTotalTrackInfo();
                 var audioTracks = [];
 
+                var countAudioTracks = 0;
+                for (var i = 0; i < totalTrackInfo.length; i++) {
+                    if (totalTrackInfo[i].type === 'AUDIO') {
+                        countAudioTracks++;
+                    }
+                }
+
                 for (var i = 0; i < totalTrackInfo.length; i++) {
                     if (totalTrackInfo[i].type === 'AUDIO') {
                         var audioTrack = totalTrackInfo[i];
@@ -339,7 +353,7 @@ function TizenVideo(options) {
                             extra = JSON.parse(audioTrack.extra_info);
                         } catch(e) {}
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
-                        if (audioTrackLang === null) {
+                        if (audioTrackLang === null && countAudioTracks > 1) {
                             retrieveExtendedTracks();
                         }
                         if (((tracksData || {}).audio || []).length) {
