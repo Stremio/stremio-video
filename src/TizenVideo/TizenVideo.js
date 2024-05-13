@@ -641,7 +641,13 @@ function TizenVideo(options) {
                     }
                     onPropChanged('buffering');
 
-                    if (needsExtendedTracks) {
+                    var tizenVersion = false;
+
+                    try {
+                        tizenVersion = parseFloat(global.tizen.systeminfo.getCapability('http://tizen.org/feature/platform.version'));
+                    } catch(e) {}
+
+                    if (needsExtendedTracks || !tizenVersion || tizenVersion >= 6) {
                         retrieveExtendedTracks();
                     }
 
