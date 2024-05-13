@@ -183,7 +183,7 @@ function WebOsVideo(options) {
             for (var i = 0; i < info.subtitleTrackInfo.length; i++) {
                 var textTrack = info.subtitleTrackInfo[i];
                 textTrack.index = i;
-                var textTrackLang = textTrack.language === '(null)' ? '' : textTrack.language;
+                var textTrackLang = textTrack.language === '(null)' ? null : textTrack.language;
 
                 var textTrackId = 'EMBEDDED_' + textTrack.index;
 
@@ -217,7 +217,7 @@ function WebOsVideo(options) {
                 if (!currentAudioTrack && !audioTracks.length) {
                     currentAudioTrack = audioTrackId;
                 }
-                var audioTrackLang = audioTrack.language === '(null)' ? '' : audioTrack.language;
+                var audioTrackLang = audioTrack.language === '(null)' ? null : audioTrack.language;
                 audioTracks.push({
                     id: audioTrackId,
                     lang: audioTrackLang,
