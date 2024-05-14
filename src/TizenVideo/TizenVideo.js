@@ -5,8 +5,6 @@ var Color = require('color');
 var ERROR = require('../error');
 var getTracksData = require('../tracksData');
 
-var needsExtendedTracks = false;
-
 function TizenVideo(options) {
     options = options || {};
 
@@ -155,7 +153,6 @@ function TizenVideo(options) {
     var tracksData = { audio: [], subs: [] };
 
     function retrieveExtendedTracks() {
-        needsExtendedTracks = true;
         if (!gotTraktData && stream !== null) {
             gotTraktData = true;
             getTracksData(stream.url, function(resp) {
@@ -219,13 +216,6 @@ function TizenVideo(options) {
                 var totalTrackInfo = window.webapis.avplay.getTotalTrackInfo();
                 var textTracks = [];
 
-                var countTextTracks = 0;
-                for (var i = 0; i < totalTrackInfo.length; i++) {
-                    if (totalTrackInfo[i].type === 'TEXT') {
-                        countTextTracks++;
-                    }
-                }
-
                 for (var i = 0; i < totalTrackInfo.length; i++) {
                     if (totalTrackInfo[i].type === 'TEXT') {
                         var textTrack = totalTrackInfo[i];
@@ -238,9 +228,6 @@ function TizenVideo(options) {
                             extra = JSON.parse(textTrack.extra_info);
                         } catch(e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
-                        if (textTrackLang === null && countTextTracks > 1) {
-                            retrieveExtendedTracks();
-                        }
                         if (((tracksData || {}).subs || []).length) {
                             var extendedTrackData = tracksData.subs.find(function(el) {
                                 if ((el || {})['StreamOrder'] === textTrack.index) {
@@ -334,13 +321,6 @@ function TizenVideo(options) {
                 var totalTrackInfo = window.webapis.avplay.getTotalTrackInfo();
                 var audioTracks = [];
 
-                var countAudioTracks = 0;
-                for (var i = 0; i < totalTrackInfo.length; i++) {
-                    if (totalTrackInfo[i].type === 'AUDIO') {
-                        countAudioTracks++;
-                    }
-                }
-
                 for (var i = 0; i < totalTrackInfo.length; i++) {
                     if (totalTrackInfo[i].type === 'AUDIO') {
                         var audioTrack = totalTrackInfo[i];
@@ -353,9 +333,6 @@ function TizenVideo(options) {
                             extra = JSON.parse(audioTrack.extra_info);
                         } catch(e) {}
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
-                        if (audioTrackLang === null && countAudioTracks > 1) {
-                            retrieveExtendedTracks();
-                        }
                         if (((tracksData || {}).audio || []).length) {
                             var extendedTrackData = tracksData.audio.find(function(el) {
                                 if ((el || {})['StreamOrder'] === audioTrack.index) {
@@ -647,7 +624,7 @@ function TizenVideo(options) {
                         tizenVersion = parseFloat(global.tizen.systeminfo.getCapability('http://tizen.org/feature/platform.version'));
                     } catch(e) {}
 
-                    if (needsExtendedTracks || !tizenVersion || tizenVersion >= 6) {
+                    if (!tizenVersion || tizenVersion >= 6) {
                         retrieveExtendedTracks();
                     }
 
