@@ -157,8 +157,12 @@ function TizenVideo(options) {
             gotTraktData = true;
             getTracksData(stream.url, function(resp) {
                 tracksData = resp;
-                onPropChanged('subtitlesTracks');
-                onPropChanged('audioTracks');
+                if (((tracksData || {}).subs || []).length) {
+                    onPropChanged('subtitlesTracks');
+                }
+                if (((tracksData || {}).audio || []).length) {
+                    onPropChanged('audioTracks');
+                }
             });
         }
     }
