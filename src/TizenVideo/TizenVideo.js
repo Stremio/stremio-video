@@ -230,10 +230,7 @@ function TizenVideo(options) {
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
                         if (((tracksData || {}).subs || []).length) {
                             var extendedTrackData = tracksData.subs.find(function(el) {
-                                if ((el || {})['StreamOrder'] === textTrack.index) {
-                                    return true;
-                                }
-                                return false;
+                                return (el || {})['StreamOrder'] === textTrack.index;
                             });
                             if ((extendedTrackData || {})['Language']) {
                                 textTrackLang = extendedTrackData['Language'];
@@ -335,10 +332,7 @@ function TizenVideo(options) {
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
                         if (((tracksData || {}).audio || []).length) {
                             var extendedTrackData = tracksData.audio.find(function(el) {
-                                if ((el || {})['StreamOrder'] === audioTrack.index) {
-                                    return true;
-                                }
-                                return false;
+                                return (el || {})['StreamOrder'] === audioTrack.index;
                             });
                             if ((extendedTrackData || {})['Language']) {
                                 audioTrackLang = extendedTrackData['Language'];
