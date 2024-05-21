@@ -253,6 +253,7 @@ function WebOsVideo(options) {
                 setSubs(info);
 
                 setTracks(info);
+                isLoaded = true;
 
                 unsubscribe(cb);
             }
@@ -957,7 +958,6 @@ function WebOsVideo(options) {
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
 
-                    isLoaded = true;
                     onPropChanged('loaded');
                     onPropChanged('paused');
                     onPropChanged('time');
