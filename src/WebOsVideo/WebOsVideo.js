@@ -253,7 +253,6 @@ function WebOsVideo(options) {
                 setSubs(info);
 
                 setTracks(info);
-                isLoaded = true;
 
                 unsubscribe(cb);
             }
@@ -974,6 +973,7 @@ function WebOsVideo(options) {
                     var initMediaId = function (cb) {
                         function retrieveMediaId() {
                             if (videoElement.mediaId) {
+                                isLoaded = true;
                                 knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
                                 subscribe(cb);
