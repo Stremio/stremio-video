@@ -994,7 +994,6 @@ function WebOsVideo(options) {
 
                         try {
                             videoElement.load();
-                            isLoaded = true;
                         } catch(e) {
                             // console.log('can\'t load video');
                             // console.error(e);
@@ -1012,6 +1011,7 @@ function WebOsVideo(options) {
                     videoElement.src = stream.url;
 
                     initMediaId(startVideo);
+                    isLoaded = true;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
