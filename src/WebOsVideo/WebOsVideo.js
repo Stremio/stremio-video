@@ -997,8 +997,6 @@ function WebOsVideo(options) {
 
                         try {
                             videoElement.load();
-                            isLoaded = true;
-                            console.log('video loaded');
                         } catch(e) {
                             // console.log('can\'t load video');
                             // console.error(e);
@@ -1006,9 +1004,8 @@ function WebOsVideo(options) {
 
                         try {
                             // console.log('try play');
-                            videoElement.play();
                             isLoaded = true;
-                            console.log('video playing');
+                            videoElement.play();
                         } catch(e) {
                             // console.log('can\'t start video');
                             // console.error(e);
