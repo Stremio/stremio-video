@@ -957,7 +957,6 @@ function WebOsVideo(options) {
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
 
-                    isLoaded = true;
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
@@ -995,6 +994,7 @@ function WebOsVideo(options) {
 
                         try {
                             videoElement.load();
+                            isLoaded = true;
                         } catch(e) {
                             // console.log('can\'t load video');
                             // console.error(e);
