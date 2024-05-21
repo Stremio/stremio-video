@@ -989,11 +989,14 @@ function WebOsVideo(options) {
                     };
 
                     var startVideo = function () {
-                        // console.log('startVideo');
+                        console.log('startVideo');
                         // not needed?
                         // videoElement.src = stream.url;
 
                         try {
+                            isLoaded = true;
+                            onPropChanged('loaded');
+                            console.log(isLoaded, 'video element load'); // eslint-disable-line no-console
                             videoElement.load();
                         } catch(e) {
                             // console.log('can\'t load video');
@@ -1004,6 +1007,7 @@ function WebOsVideo(options) {
                             // console.log('try play');
                             isLoaded = true;
                             onPropChanged('loaded');
+                            console.log(isLoaded, 'video element play'); // eslint-disable-line no-console
                             videoElement.play();
                         } catch(e) {
                             // console.log('can\'t start video');
