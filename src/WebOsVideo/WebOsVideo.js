@@ -957,6 +957,8 @@ function WebOsVideo(options) {
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
 
+                    isLoaded = true;
+                    onPropChanged('loaded');
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
@@ -1011,7 +1013,6 @@ function WebOsVideo(options) {
                     videoElement.src = stream.url;
 
                     initMediaId(startVideo);
-                    isLoaded = true;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
