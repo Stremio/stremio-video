@@ -973,8 +973,6 @@ function WebOsVideo(options) {
                     var initMediaId = function (cb) {
                         function retrieveMediaId() {
                             if (videoElement.mediaId) {
-                                isLoaded = true;
-                                console.log('media id retrieved');
                                 knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
                                 subscribe(cb);
