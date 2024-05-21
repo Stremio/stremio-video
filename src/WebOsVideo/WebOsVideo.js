@@ -957,7 +957,6 @@ function WebOsVideo(options) {
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
 
-                    onPropChanged('loaded');
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
@@ -1004,7 +1003,6 @@ function WebOsVideo(options) {
                             // console.log('try play');
                             isLoaded = true;
                             onPropChanged('loaded');
-                            console.log(isLoaded, 'video side loaded'); 
                             videoElement.play();
                         } catch(e) {
                             // console.log('can\'t start video');
