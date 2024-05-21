@@ -1003,7 +1003,7 @@ function WebOsVideo(options) {
                         try {
                             // console.log('try play');
                             isLoaded = true;
-                            // onPropChanged('loaded');
+                            onPropChanged('loaded');
                             videoElement.play();
                         } catch(e) {
                             // console.log('can\'t start video');
