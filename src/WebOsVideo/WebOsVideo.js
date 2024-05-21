@@ -1003,6 +1003,7 @@ function WebOsVideo(options) {
                         try {
                             // console.log('try play');
                             isLoaded = true;
+                            onPropChanged('loaded');
                             console.log(isLoaded, 'video side loaded'); 
                             videoElement.play();
                         } catch(e) {
@@ -1039,6 +1040,7 @@ function WebOsVideo(options) {
                 // }
                 isLoaded = false;
                 onPropChanged('stream');
+                onPropChanged('loaded');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
