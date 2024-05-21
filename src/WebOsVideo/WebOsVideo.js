@@ -1003,6 +1003,7 @@ function WebOsVideo(options) {
                         try {
                             // console.log('try play');
                             isLoaded = true;
+                            console.log(isLoaded, 'video side loaded'); 
                             videoElement.play();
                         } catch(e) {
                             // console.log('can\'t start video');
