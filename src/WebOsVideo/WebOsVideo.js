@@ -973,8 +973,6 @@ function WebOsVideo(options) {
                     var initMediaId = function (cb) {
                         function retrieveMediaId() {
                             if (videoElement.mediaId) {
-                                isLoaded = true;
-                                console.log('media id retrieved');
                                 knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
                                 subscribe(cb);
@@ -991,24 +989,21 @@ function WebOsVideo(options) {
                     };
 
                     var startVideo = function () {
-                        // console.log('startVideo');
+                        console.log('startVideo');
                         // not needed?
                         // videoElement.src = stream.url;
 
                         try {
+                            console.log('try load');
                             videoElement.load();
-                            isLoaded = true;
-                            console.log('video loaded');
                         } catch(e) {
                             // console.log('can\'t load video');
                             // console.error(e);
                         }
 
                         try {
-                            // console.log('try play');
+                            console.log('try play');
                             videoElement.play();
-                            isLoaded = true;
-                            console.log('video playing');
                         } catch(e) {
                             // console.log('can\'t start video');
                             // console.error(e);
@@ -1017,6 +1012,7 @@ function WebOsVideo(options) {
 
                     videoElement.src = stream.url;
 
+                    console.log('initializing media id');
                     initMediaId(startVideo);
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
