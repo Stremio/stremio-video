@@ -256,7 +256,36 @@ function WebOsVideo(options) {
 
                 unsubscribe(cb);
             } else {
-                console.log('luna playback result when sourceInfo is not found', result); // eslint-disable-line no-console
+                luna({
+                    method: 'subscribe',
+                    parameters: {
+                        'mediaId': knownMediaId,
+                        'subscribe': true
+                    }
+                }, function (result) {
+                    console.log('luna playback result before result.sourceInfo in the else statement', result); // eslint-disable-line no-console
+                    if (result.sourceInfo && !answered) {
+                        answered = true;
+                        var info = result.sourceInfo.programInfo[0];
+                        console.log('sourceInfofrom subscribe function  in the else statement', info); // eslint-disable-line no-console
+
+                        setSubs(info);
+
+                        setTracks(info);
+
+                        unsubscribe(cb);
+                    }
+
+                    if ((result.error || {}).errorCode) {
+                        answered = true;
+                        console.error('luna playback error', result.error); // eslint-disable-line no-console
+                        unsubscribe(cb);
+                        // unsubscribe();
+                        // onVideoError();
+                        return;
+                    }
+                }
+                );
             }
 
             if ((result.error || {}).errorCode) {
