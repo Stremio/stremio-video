@@ -247,6 +247,7 @@ function WebOsVideo(options) {
             if (result.sourceInfo && !answered) {
                 answered = true;
                 var info = result.sourceInfo.programInfo[0];
+                console.log('sourceInfofrom subscribe function ', info); // eslint-disable-line no-console
 
                 setSubs(info);
 
@@ -267,7 +268,7 @@ function WebOsVideo(options) {
             if ((result.unloadCompleted || {}).mediaId === knownMediaId && (result.unloadCompleted || {}).state) {
                 // strange case where it just.. ends? without ever getting result.sourceInfo
                 // onEnded();
-                // console.log('strange case of end');
+                console.log('strange case of end', knownMediaId); // eslint-disable-line no-console
                 // unsubscribe(cb);
                 return;
             }
@@ -965,15 +966,17 @@ function WebOsVideo(options) {
 
                     var initMediaId = function (cb) {
                         function retrieveMediaId() {
+                            console.log('retrieveMediaId run'); // eslint-disable-line no-console
                             if (videoElement.mediaId) {
                                 knownMediaId = videoElement.mediaId;
+                                console.log('knownMediaId retrievemediaid', knownMediaId); // eslint-disable-line no-console
                                 clearInterval(timer);
                                 subscribe(cb);
                                 return;
                             }
                             count++;
                             if (count > 4) {
-                                // console.log('failed to get media id');
+                                console.log('failed to get media id count > 4'); // eslint-disable-line no-console
                                 clearInterval(timer);
                                 cb();
                             }
@@ -982,20 +985,31 @@ function WebOsVideo(options) {
                     };
 
                     var startVideo = function () {
-                        // console.log('startVideo');
+                        console.log('startVideo run'); // eslint-disable-line no-console
+                        console.log(videoElement.mediaId, 'on startvideo func'); // eslint-disable-line no-console
+                        console.log(knownMediaId, 'knownMediaId  plaon start func'); // eslint-disable-line no-console
                         // not needed?
                         // videoElement.src = stream.url;
 
                         try {
+                            console.log(videoElement.mediaId, 'before load'); // eslint-disable-line no-console
+                            console.log(knownMediaId, 'knownMediaId before load'); // eslint-disable-line no-console
                             videoElement.load();
+                            console.log('videoElement.load() run'); // eslint-disable-line no-console
+                            console.log(knownMediaId, 'knownMediaId after load'); // eslint-disable-line no-console
+                            console.log(videoElement.mediaId, 'after load'); // eslint-disable-line no-console
                         } catch(e) {
                             // console.log('can\'t load video');
                             // console.error(e);
                         }
 
                         try {
-                            // console.log('try play');
+                            console.log(videoElement.mediaId, 'before play'); // eslint-disable-line no-console
+                            console.log(knownMediaId, 'knownMediaId before play'); // eslint-disable-line no-console
                             videoElement.play();
+                            console.log('videoElement.play() run'); // eslint-disable-line no-console
+                            console.log(knownMediaId, 'knownMediaId after play'); // eslint-disable-line no-console
+                            console.log(videoElement.mediaId), 'after play'; // eslint-disable-line no-console
                         } catch(e) {
                             // console.log('can\'t start video');
                             // console.error(e);
