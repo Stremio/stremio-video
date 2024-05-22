@@ -150,6 +150,8 @@ function WebOsVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
+    var isLoaded = null;
+
     var knownMediaId = false;
 
     var subSize = 75;
@@ -424,6 +426,7 @@ function WebOsVideo(options) {
     var subtitlesOpacity = 100;
     var observedProps = {
         stream: false,
+        loaded: false,
         paused: false,
         time: false,
         duration: false,
@@ -447,6 +450,9 @@ function WebOsVideo(options) {
         switch (propName) {
             case 'stream': {
                 return stream;
+            }
+            case 'loaded': {
+                return isLoaded;
             }
             case 'paused': {
                 if (stream === null) {
@@ -956,6 +962,7 @@ function WebOsVideo(options) {
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
 
+                    onPropChanged('loaded');
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
@@ -996,8 +1003,9 @@ function WebOsVideo(options) {
                         // videoElement.src = stream.url;
 
                         try {
-                            console.log(videoElement.mediaId, 'before load'); // eslint-disable-line no-console
-                            console.log(knownMediaId, 'knownMediaId before load'); // eslint-disable-line no-console
+                            isLoaded = true;
+                            onPropChanged('loaded');
+                            console.log(isLoaded, 'video element load'); // eslint-disable-line no-console
                             videoElement.load();
                             console.log('videoElement.load() run'); // eslint-disable-line no-console
                             console.log(knownMediaId, 'knownMediaId after load'); // eslint-disable-line no-console
@@ -1008,8 +1016,10 @@ function WebOsVideo(options) {
                         }
 
                         try {
-                            console.log(videoElement.mediaId, 'before play'); // eslint-disable-line no-console
-                            console.log(knownMediaId, 'knownMediaId before play'); // eslint-disable-line no-console
+                            // console.log('try play');
+                            isLoaded = true;
+                            onPropChanged('loaded');
+                            console.log(isLoaded, 'video element play'); // eslint-disable-line no-console
                             videoElement.play();
                             console.log('videoElement.play() run'); // eslint-disable-line no-console
                             console.log(knownMediaId, 'knownMediaId after play'); // eslint-disable-line no-console
@@ -1046,7 +1056,9 @@ function WebOsVideo(options) {
                 //     console.log('webos video unload error');
                 //     console.error(e);
                 // }
+                isLoaded = false;
                 onPropChanged('stream');
+                onPropChanged('loaded');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
@@ -1138,7 +1150,7 @@ WebOsVideo.canPlayStream = function() { // function(stream)
 WebOsVideo.manifest = {
     name: 'WebOsVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
