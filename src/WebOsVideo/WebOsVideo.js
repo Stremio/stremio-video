@@ -212,6 +212,7 @@ function WebOsVideo(options) {
         if (info.numAudioTracks) {
             for (var i = 0; i < info.audioTrackInfo.length; i++) {
                 var audioTrack = info.audioTrackInfo[i];
+                console.log('audioTrack', audioTrack, i); // eslint-disable-line no-console
                 audioTrack.index = i;
                 var audioTrackId = 'EMBEDDED_' + audioTrack.index;
                 if (!currentAudioTrack && !audioTracks.length) {
@@ -244,7 +245,7 @@ function WebOsVideo(options) {
                 'subscribe': true
             }
         }, function (result) {
-            console.log('luna playback result before result.sourceInfo', result); // eslint-disable-line no-console
+            console.log('luna playback result before result.source', result); // eslint-disable-line no-console
             if (result.sourceInfo && !answered) {
                 answered = true;
                 var info = result.sourceInfo.programInfo[0];
@@ -255,42 +256,13 @@ function WebOsVideo(options) {
                 setTracks(info);
 
                 unsubscribe(cb);
-            } else {
-                luna({
-                    method: 'subscribe',
-                    parameters: {
-                        'mediaId': knownMediaId,
-                        'subscribe': true
-                    }
-                }, function (result) {
-                    console.log('luna playback result before result.sourceInfo in the else statement', result); // eslint-disable-line no-console
-                    if (result.sourceInfo && !answered) {
-                        answered = true;
-                        var info = result.sourceInfo.programInfo[0];
-                        console.log('sourceInfofrom subscribe function  in the else statement', info); // eslint-disable-line no-console
-
-                        setSubs(info);
-
-                        setTracks(info);
-
-                        unsubscribe(cb);
-                    }
-
-                    if ((result.error || {}).errorCode) {
-                        answered = true;
-                        console.error('luna playback error', result.error); // eslint-disable-line no-console
-                        unsubscribe(cb);
-                        // unsubscribe();
-                        // onVideoError();
-                        return;
-                    }
-                }
-                );
+            } else if (result.sourceInfo) {
+                console.log('luna playback result', result); // eslint-disable-line no-console
             }
 
             if ((result.error || {}).errorCode) {
                 answered = true;
-                console.error('luna playback error', result.error); // eslint-disable-line no-console
+                // console.error('luna playback error', result.error);
                 unsubscribe(cb);
                 // unsubscribe();
                 // onVideoError();
