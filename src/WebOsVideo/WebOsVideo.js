@@ -286,9 +286,9 @@ function WebOsVideo(options) {
                     unsubscribe(cb);
                 }
             }
-        }, function() { // function(err)
+        }, function(err) { // function(err)
             // console.log('luna error log 2');
-            // console.error(err);
+            console.error(err); // eslint-disable-line no-console
         });
     };
 
