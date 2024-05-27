@@ -279,11 +279,12 @@ function WebOsVideo(options) {
                 return;
             }
 
-            count_message++;
+            if(result.bufferRange) {
+                count_message++;
 
-            if (count_message === 30 && !answered) {
-                // cb();
-                unsubscribe(cb);
+                if (count_message === 30 && !answered) {
+                    unsubscribe(cb);
+                }
             }
         }, function() { // function(err)
             // console.log('luna error log 2');
