@@ -240,47 +240,58 @@ function WebOsVideo(options) {
         luna({
             method: 'subscribe',
             parameters: {
-                'mediaId': knownMediaId,
+                'mediaId': videoElement.mediaId || knownMediaId,
                 'subscribe': true
             }
         }, function (result) {
-            if (result.sourceInfo && !answered) {
+            if ((result || {}).sourceInfo && !answered) {
                 answered = true;
-                var info = result.sourceInfo.programInfo[0];
 
-                setSubs(info);
+                if (((result.sourceInfo || {}).programInfo || [])[0]) {
+                    var info = result.sourceInfo.programInfo[0];
 
-                setTracks(info);
+                    setSubs(info);
+
+                    setTracks(info);
+                }
 
                 unsubscribe(cb);
             }
 
             if ((result.error || {}).errorCode) {
+
                 answered = true;
-                // console.error('luna playback error', result.error);
+
+                console.log('err1 luna playback error')
+                console.error(result.error);
+                
+                console.log('err1 luna playback error code', (result.error || {}).errorCode);
+                
                 unsubscribe(cb);
+
                 // unsubscribe();
+
                 // onVideoError();
+
                 return;
             }
 
-            if ((result.unloadCompleted || {}).mediaId === knownMediaId && (result.unloadCompleted || {}).state) {
-                // strange case where it just.. ends? without ever getting result.sourceInfo
-                // onEnded();
-                // console.log('strange case of end');
-                // unsubscribe(cb);
-                return;
-            }
+            if ((result || {}).bufferRange) {
+                count_message++
 
-            count_message++;
-
-            if (count_message === 30 && !answered) {
-                // cb();
-                unsubscribe(cb);
+                if (count_message == 30 && !answered) {
+                    answered = true;
+                    unsubscribe(cb);
+                }
             }
-        }, function() { // function(err)
-            // console.log('luna error log 2');
-            // console.error(err);
+        }, function(err) {
+            console.log('err2 luna error log');
+            console.error(err);
+            console.log('err2 luna error log message');
+            console.log((err || {}).message);
+            if (cb) {
+                cb();
+            }
         });
     };
 
@@ -288,18 +299,18 @@ function WebOsVideo(options) {
         if (!subscribed) return;
         subscribed = false;
         luna({
-            method: 'unsubscribe',
+            method: 'unload',
             parameters: {
-                'mediaId': knownMediaId
+                'mediaId': videoElement.mediaId || knownMediaId
             }
         }, function () { // function(result)
             // console.log('unsubscribe result', JSON.stringify(result));
-            cb();
         }, function () { // function(err)
             // console.log('unsubscribe error', JSON.stringify(err));
-            cb();
         });
-        cb();
+        if (cb) {
+            cb();
+        }
     };
 
     // var unload = function (cb) {
