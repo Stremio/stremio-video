@@ -152,6 +152,8 @@ function WebOsVideo(options) {
 
     var isLoaded = null;
 
+    var videoLoaded = false;
+
     var knownMediaId = false;
 
     var subSize = 75;
@@ -1014,6 +1016,7 @@ function WebOsVideo(options) {
                                 setTimeout(function() {
                                     try {
                                         videoElement.load();
+                                        videoLoaded = true;
                                     } catch(e) {
                                         console.log('can\'t load video');
                                         console.error(e);
@@ -1039,12 +1042,15 @@ function WebOsVideo(options) {
                         // not needed?
                         // videoElement.src = stream.url;
 
-                        // try {
-                        //     videoElement.load();
-                        // } catch(e) {
-                        //     // console.log('can\'t load video');
-                        //     // console.error(e);
-                        // }
+                        if (!videoLoaded) {
+                            try {
+                                videoElement.load();
+                            } catch(e) {
+                                // console.log('can\'t load video');
+                                // console.error(e);
+                            }
+                            videoLoaded = true;
+                        }
 
                         try {
                             // console.log('try play');
