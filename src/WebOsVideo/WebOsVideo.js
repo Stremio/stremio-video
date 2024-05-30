@@ -114,7 +114,7 @@ function stremioSubOffsets(offset) {
         return 0;
     } else if (offset <= 15) {
         return 2;
-    } else {
+    } else if (offset <= 20) {
         return 4;
     }
     return false;
@@ -131,7 +131,7 @@ function stremioSubSizes(size) {
         return 2;
     } else if (size <= 150) {
         return 3;
-    } else {
+    } else if (size <= 200) {
         return 4;
     }
     return false;
