@@ -249,9 +249,9 @@ function WebOsVideo(options) {
         if (subscribed) return;
         subscribed = true;
         var answered = false;
-        setTimeout(function() {
-            playVideo();
-        }, 0);
+        if (subscribeRetries === 1 && cb) {
+            cb();
+        }
         luna({
             method: 'subscribe',
             parameters: {
@@ -338,21 +338,6 @@ function WebOsVideo(options) {
                     cb();
                 }
             }
-        });
-    };
-
-    var playVideo = function () {
-        luna({
-            method: 'play',
-            parameters: {
-                'mediaId': mediaId()
-            }
-        }, function (result) {
-            // eslint-disable-next-line no-console
-            console.log('luna play result', JSON.stringify(result || {}));
-        }, function (err) {
-            // eslint-disable-next-line no-console
-            console.log('luna play error', JSON.stringify(err || {}));
         });
     };
 
