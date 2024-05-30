@@ -106,21 +106,21 @@ var stremioColors = {
 };
 
 function stremioSubOffsets(offset) {
-    if (offset === 0) {
+    if (offset <= 10) {
         return -3;
-    } else if (offset <= 2) {
+    } else if (offset <= 20) {
         return -2;
-    } else if (offset <= 3) {
+    } else if (offset <= 30) {
         return -1;
-    } else if (offset <= 5) {
+    } else if (offset <= 40) {
         return 0;
-    } else if (offset <= 10) {
-        return 1;
-    } else if (offset <= 25) {
-        return 2;
     } else if (offset <= 50) {
+        return 1;
+    } else if (offset <= 60) {
+        return 2;
+    } else if (offset <= 70) {
         return 3;
-    } else if (offset <= 100) {
+    } else if (offset <= 90) {
         return 4;
     }
     return false;
