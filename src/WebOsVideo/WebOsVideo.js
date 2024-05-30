@@ -250,7 +250,7 @@ function WebOsVideo(options) {
         subscribed = true;
         var answered = false;
         setTimeout(function() {
-            loadVideo();
+            playVideo();
         }, 0);
         luna({
             method: 'subscribe',
@@ -341,19 +341,18 @@ function WebOsVideo(options) {
         });
     };
 
-    var loadVideo = function () {
+    var playVideo = function () {
         luna({
-            method: 'load',
+            method: 'play',
             parameters: {
-                'mediaId': mediaId(),
-                'uri': stream.url
+                'mediaId': mediaId()
             }
         }, function (result) {
             // eslint-disable-next-line no-console
-            console.log('luna load result', JSON.stringify(result || {}));
+            console.log('luna play result', JSON.stringify(result || {}));
         }, function (err) {
             // eslint-disable-next-line no-console
-            console.log('luna load error', JSON.stringify(err || {}));
+            console.log('luna play error', JSON.stringify(err || {}));
         });
     };
 
