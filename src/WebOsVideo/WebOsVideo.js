@@ -1009,16 +1009,17 @@ function WebOsVideo(options) {
                                 knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
 
-                                try {
-                                    videoElement.load();
-                                } catch(e) {
-                                    // console.log('can\'t load video');
-                                    // console.error(e);
-                                }
+                                subscribe(cb);
 
                                 setTimeout(function() {
-                                    subscribe(cb);
-                                }, 500);
+                                    try {
+                                        videoElement.load();
+                                    } catch(e) {
+                                        console.log('can\'t load video');
+                                        console.error(e);
+                                    }
+                                }, 0);
+
                                 return;
                             }
                             count++;
