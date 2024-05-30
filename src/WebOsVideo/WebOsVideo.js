@@ -1008,6 +1008,14 @@ function WebOsVideo(options) {
                             if (videoElement.mediaId) {
                                 knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
+
+                                try {
+                                    videoElement.load();
+                                } catch(e) {
+                                    // console.log('can\'t load video');
+                                    // console.error(e);
+                                }
+
                                 setTimeout(function() {
                                     subscribe(cb);
                                 }, 500);
@@ -1030,12 +1038,12 @@ function WebOsVideo(options) {
                         // not needed?
                         // videoElement.src = stream.url;
 
-                        try {
-                            videoElement.load();
-                        } catch(e) {
-                            // console.log('can\'t load video');
-                            // console.error(e);
-                        }
+                        // try {
+                        //     videoElement.load();
+                        // } catch(e) {
+                        //     // console.log('can\'t load video');
+                        //     // console.error(e);
+                        // }
 
                         try {
                             // console.log('try play');
