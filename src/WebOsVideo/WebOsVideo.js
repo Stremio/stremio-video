@@ -422,7 +422,7 @@ function WebOsVideo(options) {
         if (!isLoaded) {
             isLoaded = true;
             onPropChanged('loaded');
-        };
+        }
     };
     videoElement.oncanplay = function() {
         onPropChanged('buffering');
