@@ -1005,7 +1005,9 @@ function WebOsVideo(options) {
                             if (videoElement.mediaId) {
                                 knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
-                                subscribe(cb);
+                                setTimeout(function() {
+                                    subscribe(cb);
+                                }, 500);
                                 return;
                             }
                             count++;
