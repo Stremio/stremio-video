@@ -262,10 +262,6 @@ function WebOsVideo(options) {
             }
         }, function (result) {
             if (unloading) {
-                if (!answered) {
-                    answered = true;
-                    unsubscribe();
-                }
                 return;
             }
             // eslint-disable-next-line no-console
