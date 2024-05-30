@@ -354,9 +354,6 @@ function WebOsVideo(options) {
             // eslint-disable-next-line no-console
             console.log('luna load error', JSON.stringify(err || {}));
         });
-        if (cb) {
-            cb();
-        }
     };
 
     var unsubscribe = function (cb) {
