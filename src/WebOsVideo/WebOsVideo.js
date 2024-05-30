@@ -1047,7 +1047,7 @@ function WebOsVideo(options) {
 
                                 setTimeout(function() {
                                     subscribe(cb);
-                                }, 500)
+                                }, 300)
 
                                 return;
                             }
