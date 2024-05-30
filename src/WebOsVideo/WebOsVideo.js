@@ -1019,6 +1019,7 @@ function WebOsVideo(options) {
                 // not sure about this
                 // command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    unloading = false;
                     stream = commandArgs.stream;
                     startTime = commandArgs.time;
 
