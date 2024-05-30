@@ -160,9 +160,9 @@ function WebOsVideo(options) {
 
     var subscribed = false;
 
-    var currentSubTrack = false;
+    var currentSubTrack = null;
 
-    var currentAudioTrack = false;
+    var currentAudioTrack = null;
 
     var textTracks = [];
 
@@ -567,6 +567,10 @@ function WebOsVideo(options) {
                 return subtitlesOpacity || 100;
             }
             case 'audioTracks': {
+                if (stream === null) {
+                    return [];
+                }
+
                 return audioTracks;
             }
             case 'selectedAudioTrackId': {
