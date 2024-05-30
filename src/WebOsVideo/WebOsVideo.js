@@ -297,9 +297,20 @@ function WebOsVideo(options) {
             if ((result || {}).bufferRange) {
                 count_message++;
 
-                if (count_message === 30 && !answered) {
-                    answered = true;
-                    unsubscribe(cb);
+                if (count_message === 30) {
+                    if (!gotSourceInfo && subscribeRetries < 5) {
+                        // eslint-disable-next-line no-console
+                        console.log('max bufferRange: waiting 0.2s and retrying to subscribe, count', subscribeRetries);
+                        count_message = 0;
+                        subscribed = false;
+                        subscribeRetries++;
+                        setTimeout(function() {
+                            subscribe(cb);
+                        }, 200);
+                    } else if (!answered) {
+                        answered = true;
+                        unsubscribe(cb);
+                    }
                 }
             }
         }, function(err) {
