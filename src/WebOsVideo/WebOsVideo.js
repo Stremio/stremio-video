@@ -152,9 +152,9 @@ function WebOsVideo(options) {
 
     var isLoaded = null;
 
-    var videoLoaded = false;
-
     var knownMediaId = false;
+
+    var gotSourceInfo = false;
 
     var subSize = 75;
 
@@ -259,8 +259,8 @@ function WebOsVideo(options) {
             // eslint-disable-next-line no-console
             console.log('subscribe result is', JSON.stringify(result));
 
-            if ((result || {}).sourceInfo && !answered) {
-                answered = true;
+            if ((result || {}).sourceInfo && !gotSourceInfo) {
+                gotSourceInfo = true;
 
                 if (((result.sourceInfo || {}).programInfo || [])[0]) {
                     var info = result.sourceInfo.programInfo[0];
@@ -270,7 +270,10 @@ function WebOsVideo(options) {
                     setTracks(info);
                 }
 
-                unsubscribe(cb);
+                if (!answered) {
+                    answered = true;
+                    unsubscribe(cb);
+                }
 
                 return;
             }
@@ -308,7 +311,7 @@ function WebOsVideo(options) {
             console.log('luna subscribe error message');
             // eslint-disable-next-line no-console
             console.log((err || {}).errorText);
-            if ((err || {}).mediaId === '<invalid mediaId>' && subscribeRetries < 5) {
+            if (((err || {}).mediaId === '<invalid mediaId>' || !gotSourceInfo) && subscribeRetries < 5) {
                 // eslint-disable-next-line no-console
                 console.log('waiting 0.2s and retrying to subscribe, count', subscribeRetries);
                 subscribed = false;
@@ -1013,16 +1016,6 @@ function WebOsVideo(options) {
 
                                 subscribe(cb);
 
-                                setTimeout(function() {
-                                    try {
-                                        videoElement.load();
-                                        videoLoaded = true;
-                                    } catch(e) {
-                                        console.log('can\'t load video');
-                                        console.error(e);
-                                    }
-                                }, 0);
-
                                 return;
                             }
                             count++;
@@ -1042,14 +1035,11 @@ function WebOsVideo(options) {
                         // not needed?
                         // videoElement.src = stream.url;
 
-                        if (!videoLoaded) {
-                            try {
-                                videoElement.load();
-                            } catch(e) {
-                                // console.log('can\'t load video');
-                                // console.error(e);
-                            }
-                            videoLoaded = true;
+                        try {
+                            videoElement.load();
+                        } catch(e) {
+                            // console.log('can\'t load video');
+                            // console.error(e);
                         }
 
                         try {
