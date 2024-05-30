@@ -254,6 +254,9 @@ function WebOsVideo(options) {
                 'subscribe': true
             }
         }, function (result) {
+            // eslint-disable-next-line no-console
+            console.log('subscribe result is', JSON.stringify(result));
+
             if ((result || {}).sourceInfo && !answered) {
                 answered = true;
 
