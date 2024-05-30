@@ -150,6 +150,8 @@ function WebOsVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
+    var isLoaded = null;
+
     var knownMediaId = false;
 
     var subSize = 75;
@@ -445,6 +447,7 @@ function WebOsVideo(options) {
     var subtitlesOpacity = 100;
     var observedProps = {
         stream: false,
+        loaded: false,
         paused: false,
         time: false,
         duration: false,
@@ -468,6 +471,9 @@ function WebOsVideo(options) {
         switch (propName) {
             case 'stream': {
                 return stream;
+            }
+            case 'loaded': {
+                return isLoaded;
             }
             case 'paused': {
                 if (stream === null) {
@@ -977,6 +983,7 @@ function WebOsVideo(options) {
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
 
+                    onPropChanged('loaded');
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
@@ -1028,6 +1035,9 @@ function WebOsVideo(options) {
                             // console.log('can\'t start video');
                             // console.error(e);
                         }
+
+                        isLoaded = true;
+                        onPropChanged('loaded');
                     };
 
                     videoElement.src = stream.url;
@@ -1148,7 +1158,7 @@ WebOsVideo.canPlayStream = function() { // function(stream)
 WebOsVideo.manifest = {
     name: 'WebOsVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
