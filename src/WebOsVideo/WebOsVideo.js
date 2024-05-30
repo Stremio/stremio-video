@@ -1032,7 +1032,9 @@ function WebOsVideo(options) {
                                 knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
 
-                                subscribe(cb);
+                                setTimeout(function() {
+                                    subscribe(cb);
+                                }, 500)
 
                                 return;
                             }
