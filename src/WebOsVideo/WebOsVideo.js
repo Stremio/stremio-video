@@ -345,7 +345,8 @@ function WebOsVideo(options) {
         luna({
             method: 'load',
             parameters: {
-                'mediaId': mediaId()
+                'mediaId': mediaId(),
+                'uri': stream.url
             }
         }, function (result) {
             // eslint-disable-next-line no-console
