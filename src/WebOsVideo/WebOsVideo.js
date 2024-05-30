@@ -419,6 +419,10 @@ function WebOsVideo(options) {
     videoElement.onplaying = function() {
         onPropChanged('buffering');
         onPropChanged('buffered');
+        if (!isLoaded) {
+            isLoaded = true;
+            onPropChanged('loaded');
+        };
     };
     videoElement.oncanplay = function() {
         onPropChanged('buffering');
@@ -1060,9 +1064,6 @@ function WebOsVideo(options) {
                             // console.log('can\'t start video');
                             // console.error(e);
                         }
-
-                        isLoaded = true;
-                        onPropChanged('loaded');
                     };
 
                     videoElement.src = stream.url;
