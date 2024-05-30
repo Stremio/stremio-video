@@ -152,6 +152,8 @@ function WebOsVideo(options) {
 
     var isLoaded = null;
 
+    var unloading = false;
+
     var knownMediaId = false;
 
     var gotSourceInfo = false;
@@ -259,6 +261,13 @@ function WebOsVideo(options) {
                 'subscribe': true
             }
         }, function (result) {
+            if (unloading) {
+                if (!answered) {
+                    answered = true;
+                    unsubscribe();
+                }
+                return;
+            }
             // eslint-disable-next-line no-console
             console.log('subscribe result is', JSON.stringify(result));
 
@@ -317,6 +326,9 @@ function WebOsVideo(options) {
                 }
             }
         }, function(err) {
+            if (unloading) {
+                return;
+            }
             // eslint-disable-next-line no-console
             console.log('luna subscribe error');
             // eslint-disable-next-line no-console
@@ -1083,6 +1095,7 @@ function WebOsVideo(options) {
                 break;
             }
             case 'unload': {
+                unloading = true;
                 stream = null;
                 startTime = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
