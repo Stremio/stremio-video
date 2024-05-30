@@ -342,8 +342,6 @@ function WebOsVideo(options) {
     };
 
     var loadVideo = function () {
-        if (!subscribed) return;
-        subscribed = false;
         luna({
             method: 'load',
             parameters: {
