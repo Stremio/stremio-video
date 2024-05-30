@@ -106,21 +106,15 @@ var stremioColors = {
 };
 
 function stremioSubOffsets(offset) {
-    if (offset === 0) {
+    if (offset <= 0) {
         return -3;
-    } else if (offset <= 2) {
-        return -2;
-    } else if (offset <= 3) {
-        return -1;
     } else if (offset <= 5) {
-        return 0;
+        return -2;
     } else if (offset <= 10) {
-        return 1;
-    } else if (offset <= 25) {
+        return 0;
+    } else if (offset <= 15) {
         return 2;
-    } else if (offset <= 50) {
-        return 3;
-    } else if (offset <= 100) {
+    } else {
         return 4;
     }
     return false;
@@ -129,13 +123,15 @@ function stremioSubOffsets(offset) {
 function stremioSubSizes(size) {
     // there is also: 0 (tiny)
     // adding zero will break the logic
-    if (size <= 75) {
-        return 1;
+    if (size <= 50) {
+        return 0;
     } else if (size <= 100) {
+        return 1;
+    } else if (size <= 125) {
         return 2;
     } else if (size <= 150) {
         return 3;
-    } else if (size <= 250) {
+    } else {
         return 4;
     }
     return false;
@@ -742,7 +738,7 @@ function WebOsVideo(options) {
                     subtitlesOffset = propValue;
                     var nextOffset = stremioSubOffsets(Math.max(0, Math.min(100, parseInt(subtitlesOffset, 10))));
                     if (nextOffset === false) { // use default
-                        nextOffset = -1;
+                        nextOffset = -2;
                     }
                     subStyles.position = nextOffset;
                     if (videoElement.mediaId) {
