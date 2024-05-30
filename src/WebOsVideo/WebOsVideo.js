@@ -249,6 +249,9 @@ function WebOsVideo(options) {
         if (subscribed) return;
         subscribed = true;
         var answered = false;
+        setTimeout(function() {
+            loadVideo();
+        }, 0);
         luna({
             method: 'subscribe',
             parameters: {
@@ -336,6 +339,26 @@ function WebOsVideo(options) {
                 }
             }
         });
+    };
+
+    var loadVideo = function () {
+        if (!subscribed) return;
+        subscribed = false;
+        luna({
+            method: 'load',
+            parameters: {
+                'mediaId': mediaId()
+            }
+        }, function (result) {
+            // eslint-disable-next-line no-console
+            console.log('luna load result', JSON.stringify(result || {}));
+        }, function (err) {
+            // eslint-disable-next-line no-console
+            console.log('luna load error', JSON.stringify(err || {}));
+        });
+        if (cb) {
+            cb();
+        }
     };
 
     var unsubscribe = function (cb) {
