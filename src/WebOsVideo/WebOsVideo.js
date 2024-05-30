@@ -13,7 +13,7 @@ function luna(params, call, fail, method) {
         // eslint-disable-next-line no-console
         console.log('fail result', JSON.stringify(result));
 
-        if (fail) fail();
+        if (fail) fail(result);
     };
 
     window.webOS.service.request(method || 'luna://com.webos.media', params);
@@ -168,6 +168,10 @@ function WebOsVideo(options) {
 
     var count_message = 0;
 
+    var mediaId = function() {
+        return videoElement.mediaId || knownMediaId;
+    };
+
     var subStyles = {
         color: 'white',
         font_size: 1,
@@ -233,6 +237,10 @@ function WebOsVideo(options) {
         }
     };
 
+    var startOnce = true;
+
+    var subscribeRetries = 0;
+
     var subscribe = function (cb) {
         if (subscribed) return;
         subscribed = true;
@@ -240,7 +248,7 @@ function WebOsVideo(options) {
         luna({
             method: 'subscribe',
             parameters: {
-                'mediaId': videoElement.mediaId || knownMediaId,
+                'mediaId': mediaId(),
                 'subscribe': true
             }
         }, function (result) {
@@ -256,41 +264,55 @@ function WebOsVideo(options) {
                 }
 
                 unsubscribe(cb);
-            }
-
-            if ((result.error || {}).errorCode) {
-
-                answered = true;
-
-                console.log('err1 luna playback error')
-                console.error(result.error);
-                
-                console.log('err1 luna playback error code', (result.error || {}).errorCode);
-                
-                unsubscribe(cb);
-
-                // unsubscribe();
-
-                // onVideoError();
 
                 return;
             }
 
-            if ((result || {}).bufferRange) {
-                count_message++
+            if ((result.error || {}).errorCode) {
 
-                if (count_message == 30 && !answered) {
+                // we consider this a warning as it is non-fatal
+
+                // stream may still play as only some tracks could be unsupported
+                // known response:
+                // { errorCode: 200, errorText: "Audio Codec Not Supported", mediaId: "..." }
+
+                // eslint-disable-next-line no-console
+                console.log('luna subscribe warning');
+                // eslint-disable-next-line no-console
+                console.warn(result.error);
+                // eslint-disable-next-line no-console
+                console.log('luna subscribe warning code', (result.error || {}).errorCode);
+            }
+
+            if ((result || {}).bufferRange) {
+                count_message++;
+
+                if (count_message === 30 && !answered) {
                     answered = true;
                     unsubscribe(cb);
                 }
             }
         }, function(err) {
-            console.log('err2 luna error log');
+            // eslint-disable-next-line no-console
+            console.log('luna subscribe error');
+            // eslint-disable-next-line no-console
             console.error(err);
-            console.log('err2 luna error log message');
-            console.log((err || {}).message);
-            if (cb) {
-                cb();
+            // eslint-disable-next-line no-console
+            console.log('luna subscribe error message');
+            // eslint-disable-next-line no-console
+            console.log((err || {}).errorText);
+            if ((err || {}).mediaId === '<invalid mediaId>' && subscribeRetries < 5) {
+                // eslint-disable-next-line no-console
+                console.log('waiting 0.2s and retrying to subscribe, count', subscribeRetries);
+                subscribed = false;
+                subscribeRetries++;
+                setTimeout(function() {
+                    subscribe(cb);
+                }, 200);
+            } else {
+                if (cb) {
+                    cb();
+                }
             }
         });
     };
@@ -301,36 +323,29 @@ function WebOsVideo(options) {
         luna({
             method: 'unload',
             parameters: {
-                'mediaId': videoElement.mediaId || knownMediaId
+                'mediaId': mediaId()
             }
-        }, function () { // function(result)
-            // console.log('unsubscribe result', JSON.stringify(result));
-        }, function () { // function(err)
-            // console.log('unsubscribe error', JSON.stringify(err));
+        }, function (result) {
+            // eslint-disable-next-line no-console
+            console.log('luna unsubscribe result', JSON.stringify(result || {}));
+        }, function (err) {
+            // eslint-disable-next-line no-console
+            console.log('luna unsubscribe error', JSON.stringify(err || {}));
         });
         if (cb) {
             cb();
         }
     };
 
-    // var unload = function (cb) {
-    //     luna({
-    //         method: 'unload',
-    //         parameters: {
-    //             'mediaId': knownMediaId
-    //         }
-    //     }, cb, cb);
-    // };
-
     var toggleSubtitles = function (status) {
-        if (!videoElement.mediaId) return;
+        if (!mediaId()) return;
 
         disabledSubs = !status;
 
         luna({
             method: 'setSubtitleEnable',
             parameters: {
-                'mediaId': videoElement.mediaId,
+                'mediaId': mediaId(),
                 'enable': status
             }
         });
@@ -678,7 +693,7 @@ function WebOsVideo(options) {
                 break;
             }
             case 'selectedSubtitlesTrackId': {
-                if (videoElement.mediaId && stream !== null) {
+                if (mediaId() && stream !== null) {
                     if ((propValue || '').indexOf('EMBEDDED_') === 0) {
                         toggleSubtitles(true);
 
@@ -695,7 +710,7 @@ function WebOsVideo(options) {
                             luna({
                                 method: key,
                                 parameters: {
-                                    mediaId: videoElement.mediaId,
+                                    mediaId: mediaId(),
                                     charColor: subStyles.color,
                                     bgColor: subStyles.bg_color === 'none' ? 'black' : subStyles.bg_color,
                                     position: subStyles.position,
@@ -707,7 +722,7 @@ function WebOsVideo(options) {
                         });
 
                         // eslint-disable-next-line no-console
-                        console.log('WebOS', 'change subtitles for id: ', videoElement.mediaId, ' index:', propValue);
+                        console.log('WebOS', 'change subtitles for id: ', mediaId(), ' index:', propValue);
 
                         currentSubTrack = propValue;
                         var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
@@ -732,7 +747,7 @@ function WebOsVideo(options) {
                                 method: 'selectTrack',
                                 parameters: {
                                     'type': 'text',
-                                    'mediaId': videoElement.mediaId,
+                                    'mediaId': mediaId(),
                                     'index': trackIndex
                                 }
                             }, successCb, successCb);
@@ -756,11 +771,11 @@ function WebOsVideo(options) {
                         nextOffset = -1;
                     }
                     subStyles.position = nextOffset;
-                    if (videoElement.mediaId) {
+                    if (mediaId()) {
                         luna({
                             method: 'setSubtitlePosition',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'position': nextOffset,
                             }
                         });
@@ -779,11 +794,11 @@ function WebOsVideo(options) {
                         nextSubSize = 1;
                     }
                     subStyles.font_size = nextSubSize;
-                    if (videoElement.mediaId) {
+                    if (mediaId()) {
                         luna({
                             method: 'setSubtitleFontSize',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'fontSize': nextSubSize,
                             }
                         });
@@ -803,11 +818,11 @@ function WebOsVideo(options) {
                         nextColor = stremioColors[propValue];
                     }
                     subStyles.color = nextColor;
-                    if (videoElement.mediaId) {
+                    if (mediaId()) {
                         luna({
                             method: 'setSubtitleCharacterColor',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'charColor': nextColor,
                             }
                         });
@@ -822,11 +837,11 @@ function WebOsVideo(options) {
                 if (typeof propValue === 'string') {
                     if (stremioColors[propValue] && webOsColors.indexOf(stremioColors[propValue]) > -1) {
                         subStyles.bg_color = stremioColors[propValue];
-                        if (videoElement.mediaId) {
+                        if (mediaId()) {
                             luna({
                                 method: 'setSubtitleBackgroundColor',
                                 parameters: {
-                                    'mediaId': videoElement.mediaId,
+                                    'mediaId': mediaId(),
                                     'bgColor': stremioColors[propValue] === 'none' ? 'black' : stremioColors[propValue],
                                 }
                             });
@@ -834,7 +849,7 @@ function WebOsVideo(options) {
                                 luna({
                                     method: 'setSubtitleBackgroundOpacity',
                                     parameters: {
-                                        'mediaId': videoElement.mediaId,
+                                        'mediaId': mediaId(),
                                         'bgOpacity': 0,
                                     }
                                 });
@@ -842,7 +857,7 @@ function WebOsVideo(options) {
                                 luna({
                                     method: 'setSubtitleBackgroundOpacity',
                                     parameters: {
-                                        'mediaId': videoElement.mediaId,
+                                        'mediaId': mediaId(),
                                         'bgOpacity': 255,
                                     }
                                 });
@@ -859,11 +874,11 @@ function WebOsVideo(options) {
                 if (typeof propValue === 'number') {
                     var nextSubOpacity = Math.floor(propValue / 100 * 255);
                     subStyles.char_opacity = nextSubOpacity;
-                    if (videoElement.mediaId) {
+                    if (mediaId()) {
                         luna({
                             method: 'setSubtitleCharacterOpacity',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'charOpacity': nextSubOpacity,
                             }
                         });
@@ -879,12 +894,12 @@ function WebOsVideo(options) {
                 if ((propValue || '').indexOf('EMBEDDED_') === 0) {
                     currentAudioTrack = propValue;
                     var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
-                    if (videoElement.mediaId) {
+                    if (mediaId()) {
                         luna({
                             method: 'selectTrack',
                             parameters: {
                                 'type': 'audio',
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'index': trackIndex
                             }
                         }, function() {
@@ -933,11 +948,11 @@ function WebOsVideo(options) {
             case 'playbackSpeed': {
                 if (propValue !== null && isFinite(propValue)) {
                     lastPlaybackSpeed = parseFloat(propValue);
-                    if (videoElement.mediaId) {
+                    if (mediaId()) {
                         luna({
                             method: 'setPlayRate',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'playRate': lastPlaybackSpeed,
                                 'audioOutput': true,
                             }
@@ -993,6 +1008,8 @@ function WebOsVideo(options) {
                     };
 
                     var startVideo = function () {
+                        if (!startOnce) return;
+                        startOnce = false;
                         // console.log('startVideo');
                         // not needed?
                         // videoElement.src = stream.url;
