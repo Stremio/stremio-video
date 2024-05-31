@@ -122,12 +122,10 @@ function stremioSubOffsets(offset) {
 
 function stremioSubSizes(size) {
     // there is also: 0 (tiny)
-    // adding zero will break the logic
-    if (size <= 50) {
-        return 0;
-    } else if (size <= 100) {
+    if (size <= 100) {
         return 1;
     } else if (size <= 125) {
+        // not used because of 50% step
         return 2;
     } else if (size <= 150) {
         return 3;
