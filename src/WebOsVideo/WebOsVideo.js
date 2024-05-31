@@ -144,7 +144,7 @@ function WebOsVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
-    var isLoaded = false;
+    var isLoaded = null;
 
     var knownMediaId = false;
 
