@@ -208,6 +208,7 @@ function WebOsVideo(options) {
         if (info.numAudioTracks) {
             for (var i = 0; i < info.audioTrackInfo.length; i++) {
                 var audioTrack = info.audioTrackInfo[i];
+                console.log('audioTrack', audioTrack, i); // eslint-disable-line no-console
                 audioTrack.index = i;
                 var audioTrackId = 'EMBEDDED_' + audioTrack.index;
                 if (!currentAudioTrack && !audioTracks.length) {
@@ -240,15 +241,19 @@ function WebOsVideo(options) {
                 'subscribe': true
             }
         }, function (result) {
+            console.log('luna playback result before result.source', result); // eslint-disable-line no-console
             if (result.sourceInfo && !answered) {
                 answered = true;
                 var info = result.sourceInfo.programInfo[0];
+                console.log('sourceInfofrom subscribe function ', info); // eslint-disable-line no-console
 
                 setSubs(info);
 
                 setTracks(info);
 
                 unsubscribe(cb);
+            } else if (result.sourceInfo) {
+                console.log('luna playback result', result); // eslint-disable-line no-console
             }
 
             if ((result.error || {}).errorCode) {
@@ -263,20 +268,21 @@ function WebOsVideo(options) {
             if ((result.unloadCompleted || {}).mediaId === knownMediaId && (result.unloadCompleted || {}).state) {
                 // strange case where it just.. ends? without ever getting result.sourceInfo
                 // onEnded();
-                // console.log('strange case of end');
+                console.log('strange case of end', knownMediaId); // eslint-disable-line no-console
                 // unsubscribe(cb);
                 return;
             }
 
-            count_message++;
+            if(result.bufferRange) {
+                count_message++;
 
-            if (count_message === 30 && !answered) {
-                // cb();
-                unsubscribe(cb);
+                if (count_message === 30 && !answered) {
+                    unsubscribe(cb);
+                }
             }
-        }, function() { // function(err)
-            // console.log('luna error log 2');
-            // console.error(err);
+        }, function(err) { // function(err)
+            console.log('luna error log 2'); // eslint-disable-line no-console
+            console.error(err); // eslint-disable-line no-console
         });
     };
 
@@ -970,15 +976,17 @@ function WebOsVideo(options) {
 
                     var initMediaId = function (cb) {
                         function retrieveMediaId() {
+                            console.log('retrieveMediaId run'); // eslint-disable-line no-console
                             if (videoElement.mediaId) {
                                 knownMediaId = videoElement.mediaId;
+                                console.log('knownMediaId retrievemediaid', knownMediaId); // eslint-disable-line no-console
                                 clearInterval(timer);
                                 subscribe(cb);
                                 return;
                             }
                             count++;
                             if (count > 4) {
-                                // console.log('failed to get media id');
+                                console.log('failed to get media id count > 4'); // eslint-disable-line no-console
                                 clearInterval(timer);
                                 cb();
                             }
@@ -987,12 +995,20 @@ function WebOsVideo(options) {
                     };
 
                     var startVideo = function () {
-                        // console.log('startVideo');
+                        console.log('startVideo run'); // eslint-disable-line no-console
+                        console.log(videoElement.mediaId, 'on startvideo func'); // eslint-disable-line no-console
+                        console.log(knownMediaId, 'knownMediaId  plaon start func'); // eslint-disable-line no-console
                         // not needed?
                         // videoElement.src = stream.url;
 
                         try {
+                            isLoaded = true;
+                            onPropChanged('loaded');
+                            console.log(isLoaded, 'video element load'); // eslint-disable-line no-console
                             videoElement.load();
+                            console.log('videoElement.load() run'); // eslint-disable-line no-console
+                            console.log(knownMediaId, 'knownMediaId after load'); // eslint-disable-line no-console
+                            console.log(videoElement.mediaId, 'after load'); // eslint-disable-line no-console
                         } catch(e) {
                             // console.log('can\'t load video');
                             // console.error(e);
@@ -1000,7 +1016,13 @@ function WebOsVideo(options) {
 
                         try {
                             // console.log('try play');
+                            isLoaded = true;
+                            onPropChanged('loaded');
+                            console.log(isLoaded, 'video element play'); // eslint-disable-line no-console
                             videoElement.play();
+                            console.log('videoElement.play() run'); // eslint-disable-line no-console
+                            console.log(knownMediaId, 'knownMediaId after play'); // eslint-disable-line no-console
+                            console.log(videoElement.mediaId), 'after play'; // eslint-disable-line no-console
                         } catch(e) {
                             // console.log('can\'t start video');
                             // console.error(e);
@@ -1033,7 +1055,9 @@ function WebOsVideo(options) {
                 //     console.log('webos video unload error');
                 //     console.error(e);
                 // }
+                isLoaded = false;
                 onPropChanged('stream');
+                onPropChanged('loaded');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
