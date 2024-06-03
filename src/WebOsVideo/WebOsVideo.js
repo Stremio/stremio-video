@@ -242,13 +242,14 @@ function WebOsVideo(options) {
                 'subscribe': true
             }
         }, function (result) {
-            console.log('luna playback result before result.source', result); // eslint-disable-line no-console
-            if ((result || {}).sourceInfo && !answered) {
+            console.log('subscribe result before suorce info', result); // eslint-disable-line no-console
+            if (result.sourceInfo && !answered) {
                 answered = true;
-                console.log('sourceInfofrom subscribe function answered step ', result); // eslint-disable-line no-console
-                if (((result.sourceInfo || {}).programInfo || [])[0]) {
-                    var info = result.sourceInfo.programInfo[0];
-                    console.log('sourceInfofrom subscribe function ', info); // eslint-disable-line no-console
+                var info = result.sourceInfo.programInfo[0];
+
+                console.log('sourceInfo after result aswered is true', info); // eslint-disable-line no-console
+
+                setSubs(info);
 
                 setTracks(info);
 
@@ -257,7 +258,7 @@ function WebOsVideo(options) {
 
             if ((result.error || {}).errorCode) {
                 answered = true;
-                // console.error('luna playback error', result.error);
+                console.error('luna playback error', result.error); // eslint-disable-line no-console
                 unsubscribe(cb);
                 // unsubscribe();
                 // onVideoError();
@@ -273,7 +274,6 @@ function WebOsVideo(options) {
             }
 
             count_message++;
-
             if (count_message === 30 && !answered) {
                 // cb();
                 unsubscribe(cb);
