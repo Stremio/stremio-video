@@ -449,9 +449,9 @@ function WebOsVideo(options) {
                 var nrAudio = 0;
                 textTracks = [];
                 audioTracks = [];
-                var respArr = resp || [];
-                respArr.forEach(function(track) {
-                    if (track.type === 'text') {
+                tracksData = resp;
+                if (((tracksData || {}).subs || []).length) {
+                    tracksData.subs.forEach(function(track) {
                         var textTrackId = nrSubs;
                         nrSubs++;
                         if (!currentSubTrack && !textTracks.length) {
@@ -465,7 +465,12 @@ function WebOsVideo(options) {
                             embedded: true,
                             mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
                         });
-                    } else if (track.type === 'audio') {
+                    });
+                    onPropChanged('subtitlesTracks');
+                    onPropChanged('selectedSubtitlesTrackId');
+                }
+                if (((tracksData || {}).audio || []).length) {
+                    tracksData.audio.forEach(function(track) {
                         var audioTrackId = nrAudio;
                         nrAudio++;
                         if (!currentAudioTrack && !audioTracks.length) {
@@ -479,13 +484,7 @@ function WebOsVideo(options) {
                             embedded: true,
                             mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
                         });
-                    }
-                })
-                if (((tracksData || {}).subs || []).length) {
-                    onPropChanged('subtitlesTracks');
-                    onPropChanged('selectedSubtitlesTrackId');
-                }
-                if (((tracksData || {}).audio || []).length) {
+                    });
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
                 }
