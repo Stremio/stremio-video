@@ -2,6 +2,7 @@ var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
+var getTracksData = require('../tracksData');
 
 function luna(params, call, fail, method) {
     if (call) params.onSuccess = call || function() {};
