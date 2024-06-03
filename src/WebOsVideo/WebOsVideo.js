@@ -106,21 +106,15 @@ var stremioColors = {
 };
 
 function stremioSubOffsets(offset) {
-    if (offset === 0) {
+    if (offset <= 0) {
         return -3;
-    } else if (offset <= 2) {
-        return -2;
-    } else if (offset <= 3) {
-        return -1;
     } else if (offset <= 5) {
-        return 0;
+        return -2;
     } else if (offset <= 10) {
-        return 1;
-    } else if (offset <= 25) {
+        return 0;
+    } else if (offset <= 15) {
         return 2;
-    } else if (offset <= 50) {
-        return 3;
-    } else if (offset <= 100) {
+    } else if (offset <= 20) {
         return 4;
     }
     return false;
@@ -128,14 +122,14 @@ function stremioSubOffsets(offset) {
 
 function stremioSubSizes(size) {
     // there is also: 0 (tiny)
-    // adding zero will break the logic
-    if (size <= 75) {
+    if (size <= 100) {
         return 1;
-    } else if (size <= 100) {
+    } else if (size <= 125) {
+        // not used because of 50% step
         return 2;
     } else if (size <= 150) {
         return 3;
-    } else if (size <= 250) {
+    } else if (size <= 200) {
         return 4;
     }
     return false;
@@ -149,6 +143,8 @@ function WebOsVideo(options) {
     if (!(containerElement instanceof HTMLElement)) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
+
+    var isLoaded = null;
 
     var knownMediaId = false;
 
@@ -372,6 +368,10 @@ function WebOsVideo(options) {
     videoElement.onplaying = function() {
         onPropChanged('buffering');
         onPropChanged('buffered');
+        if (!isLoaded) {
+            isLoaded = true;
+            onPropChanged('loaded');
+        }
     };
     videoElement.oncanplay = function() {
         onPropChanged('buffering');
@@ -419,6 +419,7 @@ function WebOsVideo(options) {
     var subtitlesOpacity = 100;
     var observedProps = {
         stream: false,
+        loaded: false,
         paused: false,
         time: false,
         duration: false,
@@ -442,6 +443,9 @@ function WebOsVideo(options) {
         switch (propName) {
             case 'stream': {
                 return stream;
+            }
+            case 'loaded': {
+                return isLoaded;
             }
             case 'paused': {
                 if (stream === null) {
@@ -742,7 +746,7 @@ function WebOsVideo(options) {
                     subtitlesOffset = propValue;
                     var nextOffset = stremioSubOffsets(Math.max(0, Math.min(100, parseInt(subtitlesOffset, 10))));
                     if (nextOffset === false) { // use default
-                        nextOffset = -1;
+                        nextOffset = -2;
                     }
                     subStyles.position = nextOffset;
                     if (videoElement.mediaId) {
@@ -951,6 +955,7 @@ function WebOsVideo(options) {
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
 
+                    onPropChanged('loaded');
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
@@ -1120,7 +1125,7 @@ WebOsVideo.canPlayStream = function() { // function(stream)
 WebOsVideo.manifest = {
     name: 'WebOsVideo',
     external: false,
-    props: ['stream', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
