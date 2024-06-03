@@ -178,6 +178,7 @@ function WebOsVideo(options) {
         if (info.numSubtitleTracks) {
             for (var i = 0; i < info.subtitleTrackInfo.length; i++) {
                 var textTrack = info.subtitleTrackInfo[i];
+                console.log('textTrackId', textTrackId, i); // eslint-disable-line no-console
                 textTrack.index = i;
                 var textTrackLang = textTrack.language === '(null)' ? null : textTrack.language;
 
@@ -210,6 +211,7 @@ function WebOsVideo(options) {
                 var audioTrack = info.audioTrackInfo[i];
                 audioTrack.index = i;
                 var audioTrackId = 'EMBEDDED_' + audioTrack.index;
+                console.log('audioTrackId', audioTrackId, i); // eslint-disable-line no-console
                 if (!currentAudioTrack && !audioTracks.length) {
                     currentAudioTrack = audioTrackId;
                 }
@@ -240,11 +242,13 @@ function WebOsVideo(options) {
                 'subscribe': true
             }
         }, function (result) {
-            if (result.sourceInfo && !answered) {
+            console.log('luna playback result before result.source', result); // eslint-disable-line no-console
+            if ((result || {}).sourceInfo && !answered) {
                 answered = true;
-                var info = result.sourceInfo.programInfo[0];
-
-                setSubs(info);
+                console.log('sourceInfofrom subscribe function answered step ', result); // eslint-disable-line no-console
+                if (((result.sourceInfo || {}).programInfo || [])[0]) {
+                    var info = result.sourceInfo.programInfo[0];
+                    console.log('sourceInfofrom subscribe function ', info); // eslint-disable-line no-console
 
                 setTracks(info);
 
