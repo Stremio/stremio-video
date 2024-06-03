@@ -247,7 +247,8 @@ function WebOsVideo(options) {
                 answered = true;
                 var info = result.sourceInfo.programInfo[0];
 
-                console.log('sourceInfo after result aswered is true', info); // eslint-disable-line no-console
+
+                console.log('sourceInfo after result aswered is true', result); // eslint-disable-line no-console
 
                 setSubs(info);
 
@@ -258,7 +259,7 @@ function WebOsVideo(options) {
 
             if ((result.error || {}).errorCode) {
                 answered = true;
-                console.error('luna playback error', result.error); // eslint-disable-line no-console
+                console.error('luna playback error', result); // eslint-disable-line no-console
                 unsubscribe(cb);
                 // unsubscribe();
                 // onVideoError();
