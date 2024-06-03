@@ -199,7 +199,6 @@ function WebOsVideo(options) {
             }
             onPropChanged('subtitlesTracks');
             onPropChanged('selectedSubtitlesTrackId');
-
         }
     };
 
@@ -438,6 +437,60 @@ function WebOsVideo(options) {
         muted: false,
         playbackSpeed: false
     };
+
+    var gotTraktData = false;
+
+    function retrieveExtendedTracks() {
+        if (!gotTraktData && stream !== null) {
+            gotTraktData = true;
+            getTracksData(stream.url, function(resp) {
+                var nrSubs = 0;
+                var nrAudio = 0;
+                textTracks = [];
+                audioTracks = [];
+                var respArr = resp || [];
+                respArr.forEach(function(track) {
+                    if (track.type === 'text') {
+                        var textTrackId = nrSubs;
+                        nrSubs++;
+                        if (!currentSubTrack && !textTracks.length) {
+                            currentSubTrack = textTrackId;
+                        }
+                        textTracks.push({
+                            id: textTrackId,
+                            lang: track.lang || null,
+                            label: track.lang || null,
+                            origin: 'EMBEDDED',
+                            embedded: true,
+                            mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
+                        });
+                    } else if (track.type === 'audio') {
+                        var audioTrackId = nrAudio;
+                        nrAudio++;
+                        if (!currentAudioTrack && !audioTracks.length) {
+                            currentAudioTrack = audioTrackId;
+                        }
+                        audioTracks.push({
+                            id: audioTrackId,
+                            lang: track.lang || null,
+                            label: track.lang || null,
+                            origin: 'EMBEDDED',
+                            embedded: true,
+                            mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
+                        });
+                    }
+                })
+                if (((tracksData || {}).subs || []).length) {
+                    onPropChanged('subtitlesTracks');
+                    onPropChanged('selectedSubtitlesTrackId');
+                }
+                if (((tracksData || {}).audio || []).length) {
+                    onPropChanged('audioTracks');
+                    onPropChanged('selectedAudioTrackId');
+                }
+            });
+        }
+    }
 
     function getProp(propName) {
         switch (propName) {
@@ -973,13 +1026,16 @@ function WebOsVideo(options) {
                             if (videoElement.mediaId) {
                                 knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
-                                subscribe(cb);
+                                retrieveExtendedTracks()
+                                cb()
+//                                subscribe(cb);
                                 return;
                             }
                             count++;
                             if (count > 4) {
                                 // console.log('failed to get media id');
                                 clearInterval(timer);
+                                retrieveExtendedTracks()
                                 cb();
                             }
                         }
