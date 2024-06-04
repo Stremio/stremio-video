@@ -3,6 +3,8 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 
+var lastMediaId = false;
+
 function luna(params, call, fail, method) {
     if (call) params.onSuccess = call || function() {};
 
@@ -240,9 +242,10 @@ function WebOsVideo(options) {
                 'subscribe': true
             }
         }, function (result) {
-            if (result.sourceInfo && !answered) {
+            if ((result || {}).sourceInfo && !answered) {
                 answered = true;
-                var info = result.sourceInfo.programInfo[0];
+                var programInfo = result.sourceInfo.programInfo || [];
+                var info = programInfo[0];
 
                 setSubs(info);
 
@@ -251,32 +254,36 @@ function WebOsVideo(options) {
                 unsubscribe(cb);
             }
 
-            if ((result.error || {}).errorCode) {
-                answered = true;
-                // console.error('luna playback error', result.error);
-                unsubscribe(cb);
-                // unsubscribe();
-                // onVideoError();
-                return;
-            }
+            // if ((result.error || {}).errorCode) {
+            //     answered = true;
+            //     // console.error('luna playback error', result.error);
+            //     unsubscribe(cb);
+            //     // unsubscribe();
+            //     // onVideoError();
+            //     return;
+            // }
 
-            if ((result.unloadCompleted || {}).mediaId === knownMediaId && (result.unloadCompleted || {}).state) {
-                // strange case where it just.. ends? without ever getting result.sourceInfo
-                // onEnded();
-                // console.log('strange case of end');
-                // unsubscribe(cb);
-                return;
-            }
+            // if ((result.unloadCompleted || {}).mediaId === knownMediaId && (result.unloadCompleted || {}).state) {
+            //     // strange case where it just.. ends? without ever getting result.sourceInfo
+            //     // onEnded();
+            //     // console.log('strange case of end');
+            //     // unsubscribe(cb);
+            //     return;
+            // }
 
-            count_message++;
+            // if ((result || {}).bufferRange) {
+            //     count_message++;
 
-            if (count_message === 30 && !answered) {
-                // cb();
-                unsubscribe(cb);
-            }
+            //     if (count_message === 60 && !answered) {
+            //         answered = true;
+            //         unsubscribe(cb);
+            //     }
+            // }
         }, function() { // function(err)
             // console.log('luna error log 2');
             // console.error(err);
+            answered = true;
+            unsubscribe(cb);
         });
     };
 
@@ -284,9 +291,10 @@ function WebOsVideo(options) {
         if (!subscribed) return;
         subscribed = false;
         luna({
-            method: 'unsubscribe',
+            method: 'subscribe',
             parameters: {
-                'mediaId': knownMediaId
+                'mediaId': knownMediaId,
+                'subscribe': false
             }
         }, function () { // function(result)
             // console.log('unsubscribe result', JSON.stringify(result));
@@ -295,7 +303,7 @@ function WebOsVideo(options) {
             // console.log('unsubscribe error', JSON.stringify(err));
             cb();
         });
-        cb();
+//        cb();
     };
 
     // var unload = function (cb) {
@@ -970,18 +978,19 @@ function WebOsVideo(options) {
 
                     var initMediaId = function (cb) {
                         function retrieveMediaId() {
-                            if (videoElement.mediaId) {
+                            if (videoElement.mediaId && videoElement.mediaId !== lastMediaId) {
                                 knownMediaId = videoElement.mediaId;
+                                lastMediaId = knownMediaId;
                                 clearInterval(timer);
                                 subscribe(cb);
                                 return;
                             }
-                            count++;
-                            if (count > 4) {
-                                // console.log('failed to get media id');
-                                clearInterval(timer);
-                                cb();
-                            }
+                            // count++;
+                            // if (count > 4) {
+                            //     // console.log('failed to get media id');
+                            //     clearInterval(timer);
+                            //     cb();
+                            // }
                         }
                         var timer = setInterval(retrieveMediaId, 300);
                     };
