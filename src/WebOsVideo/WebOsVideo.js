@@ -166,6 +166,10 @@ function WebOsVideo(options) {
 
     var count_message = 0;
 
+    var mediaId = function() {
+        return videoElement.mediaId || knownMediaId;
+    };
+
     var subStyles = {
         color: 'white',
         font_size: 1,
@@ -238,7 +242,7 @@ function WebOsVideo(options) {
         luna({
             method: 'subscribe',
             parameters: {
-                'mediaId': knownMediaId,
+                'mediaId': mediaId(),
                 'subscribe': true
             }
         }, function (result) {
@@ -293,7 +297,7 @@ function WebOsVideo(options) {
         luna({
             method: 'subscribe',
             parameters: {
-                'mediaId': knownMediaId,
+                'mediaId': mediaId(),
                 'subscribe': false
             }
         }, function () { // function(result)
@@ -310,7 +314,7 @@ function WebOsVideo(options) {
     //     luna({
     //         method: 'unload',
     //         parameters: {
-    //             'mediaId': knownMediaId
+    //             'mediaId': mediaId()
     //         }
     //     }, cb, cb);
     // };
@@ -323,7 +327,7 @@ function WebOsVideo(options) {
         luna({
             method: 'setSubtitleEnable',
             parameters: {
-                'mediaId': videoElement.mediaId,
+                'mediaId': mediaId(),
                 'enable': status
             }
         });
@@ -696,7 +700,7 @@ function WebOsVideo(options) {
                             luna({
                                 method: key,
                                 parameters: {
-                                    mediaId: videoElement.mediaId,
+                                    mediaId: mediaId(),
                                     charColor: subStyles.color,
                                     bgColor: subStyles.bg_color === 'none' ? 'black' : subStyles.bg_color,
                                     position: subStyles.position,
@@ -733,7 +737,7 @@ function WebOsVideo(options) {
                                 method: 'selectTrack',
                                 parameters: {
                                     'type': 'text',
-                                    'mediaId': videoElement.mediaId,
+                                    'mediaId': mediaId(),
                                     'index': trackIndex
                                 }
                             }, successCb, successCb);
@@ -761,7 +765,7 @@ function WebOsVideo(options) {
                         luna({
                             method: 'setSubtitlePosition',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'position': nextOffset,
                             }
                         });
@@ -784,7 +788,7 @@ function WebOsVideo(options) {
                         luna({
                             method: 'setSubtitleFontSize',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'fontSize': nextSubSize,
                             }
                         });
@@ -808,7 +812,7 @@ function WebOsVideo(options) {
                         luna({
                             method: 'setSubtitleCharacterColor',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'charColor': nextColor,
                             }
                         });
@@ -827,7 +831,7 @@ function WebOsVideo(options) {
                             luna({
                                 method: 'setSubtitleBackgroundColor',
                                 parameters: {
-                                    'mediaId': videoElement.mediaId,
+                                    'mediaId': mediaId(),
                                     'bgColor': stremioColors[propValue] === 'none' ? 'black' : stremioColors[propValue],
                                 }
                             });
@@ -835,7 +839,7 @@ function WebOsVideo(options) {
                                 luna({
                                     method: 'setSubtitleBackgroundOpacity',
                                     parameters: {
-                                        'mediaId': videoElement.mediaId,
+                                        'mediaId': mediaId(),
                                         'bgOpacity': 0,
                                     }
                                 });
@@ -843,7 +847,7 @@ function WebOsVideo(options) {
                                 luna({
                                     method: 'setSubtitleBackgroundOpacity',
                                     parameters: {
-                                        'mediaId': videoElement.mediaId,
+                                        'mediaId': mediaId(),
                                         'bgOpacity': 255,
                                     }
                                 });
@@ -864,7 +868,7 @@ function WebOsVideo(options) {
                         luna({
                             method: 'setSubtitleCharacterOpacity',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'charOpacity': nextSubOpacity,
                             }
                         });
@@ -885,7 +889,7 @@ function WebOsVideo(options) {
                             method: 'selectTrack',
                             parameters: {
                                 'type': 'audio',
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'index': trackIndex
                             }
                         }, function() {
@@ -938,7 +942,7 @@ function WebOsVideo(options) {
                         luna({
                             method: 'setPlayRate',
                             parameters: {
-                                'mediaId': videoElement.mediaId,
+                                'mediaId': mediaId(),
                                 'playRate': lastPlaybackSpeed,
                                 'audioOutput': true,
                             }
