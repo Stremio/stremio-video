@@ -307,7 +307,7 @@ function WebOsVideo(options) {
             // console.log('unsubscribe error', JSON.stringify(err));
             cb();
         });
-//        cb();
+        // cb();
     };
 
     // var unload = function (cb) {
@@ -978,7 +978,7 @@ function WebOsVideo(options) {
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
 
-                    var count = 0;
+                    // var count = 0;
 
                     var initMediaId = function (cb) {
                         function retrieveMediaId() {
