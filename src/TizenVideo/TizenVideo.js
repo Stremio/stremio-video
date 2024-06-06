@@ -156,7 +156,9 @@ function TizenVideo(options) {
         if (!gotTraktData && stream !== null) {
             gotTraktData = true;
             getTracksData(stream.url, function(resp) {
-                tracksData = resp;
+                if (resp) {
+                    tracksData = resp;
+                }
                 if (((tracksData || {}).subs || []).length) {
                     onPropChanged('subtitlesTracks');
                 }
@@ -234,10 +236,10 @@ function TizenVideo(options) {
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
                         if (((tracksData || {}).subs || []).length) {
                             var extendedTrackData = tracksData.subs.find(function(el) {
-                                return (el || {}).id === textTrack.index;
+                                return (el || {}).id-1 === textTrack.index;
                             });
-                            if ((extendedTrackData || {}).lang) {
-                                textTrackLang = extendedTrackData.lang;
+                            if (extendedTrackData) {
+                                textTrackLang = extendedTrackData.lang || 'eng';
                             }
                         }
                         textTracks.push({
@@ -336,10 +338,10 @@ function TizenVideo(options) {
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
                         if (((tracksData || {}).audio || []).length) {
                             var extendedTrackData = tracksData.audio.find(function(el) {
-                                return (el || {}).id === audioTrack.index;
+                                return (el || {}).id-1 === audioTrack.index;
                             });
-                            if ((extendedTrackData || {}).lang) {
-                                audioTrackLang = extendedTrackData.lang;
+                            if (extendedTrackData) {
+                                audioTrackLang = extendedTrackData.lang || 'eng';
                             }
                         }
                         audioTracks.push({

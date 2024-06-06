@@ -229,6 +229,7 @@ function WebOsVideo(options) {
         }
     };
 
+    // eslint-disable-next-line no-unused-vars
     var subscribe = function (cb) {
         if (subscribed) return;
         subscribed = true;
@@ -440,6 +441,7 @@ function WebOsVideo(options) {
     };
 
     var gotTraktData = false;
+    var tracksData = { audio: [], subs: [] };
 
     function retrieveExtendedTracks() {
         if (!gotTraktData && stream !== null) {
@@ -449,7 +451,9 @@ function WebOsVideo(options) {
                 var nrAudio = 0;
                 textTracks = [];
                 audioTracks = [];
-                tracksData = resp;
+                if (resp) {
+                    tracksData = resp;
+                }
                 if (((tracksData || {}).subs || []).length) {
                     tracksData.subs.forEach(function(track) {
                         var textTrackId = nrSubs;
@@ -459,8 +463,8 @@ function WebOsVideo(options) {
                         }
                         textTracks.push({
                             id: textTrackId,
-                            lang: track.lang || null,
-                            label: track.lang || null,
+                            lang: track.lang || 'eng',
+                            label: track.lang || 'eng',
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
@@ -478,8 +482,8 @@ function WebOsVideo(options) {
                         }
                         audioTracks.push({
                             id: audioTrackId,
-                            lang: track.lang || null,
-                            label: track.lang || null,
+                            lang: track.lang || 'eng',
+                            label: track.lang || 'eng',
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
@@ -1026,16 +1030,16 @@ function WebOsVideo(options) {
                             if (videoElement.mediaId) {
                                 knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
-                                retrieveExtendedTracks()
-                                cb()
-//                                subscribe(cb);
+                                retrieveExtendedTracks();
+                                cb();
+                                // subscribe(cb);
                                 return;
                             }
                             count++;
                             if (count > 4) {
                                 // console.log('failed to get media id');
                                 clearInterval(timer);
-                                retrieveExtendedTracks()
+                                retrieveExtendedTracks();
                                 cb();
                             }
                         }
