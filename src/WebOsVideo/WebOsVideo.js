@@ -136,6 +136,47 @@ function stremioSubSizes(size) {
     return false;
 }
 
+var device = {
+    unsupportedAudio: ['DTS', 'TRUEHD'],
+    unsupportedSubs: ['HDMV/PGS']
+};
+
+var fetchedDeviceInfo = false;
+
+function retrieveDeviceInfo() {
+    if (fetchedDeviceInfo) {
+        return;
+    }
+    window.webOS.service.request('luna://com.webos.service.config', {
+        method: 'getConfigs',
+        parameters: {
+            'configNames': [
+                'tv.model.edidType'
+            ]
+        },
+        onSuccess: function (result) {
+            if (((result || {}).configs || {})['tv.model.edidType']) {
+                fetchedDeviceInfo = true;
+                var edidType = result.configs['tv.model.edidType'].toLowerCase();
+                if (edidType.includes('dts')) {
+                    device.unsupportedAudio = device.unsupportedAudio.filter(function(e) {
+                        return e !== 'DTS';
+                    });
+                }
+                if (edidType.includes('truehd')) {
+                    device.unsupportedAudio = device.unsupportedAudio.filter(function(e) {
+                        return e !== 'TRUEHD';
+                    });
+                }
+            }
+        },
+        onFailure: function (err) {
+            // eslint-disable-next-line no-console
+            console.log('could not get deviceInfo', err);
+        }
+    });
+}
+
 function WebOsVideo(options) {
 
     options = options || {};
@@ -318,6 +359,9 @@ function WebOsVideo(options) {
                 }
                 if (((tracksData || {}).subs || []).length) {
                     tracksData.subs.forEach(function(track) {
+                        if (device.unsupportedSubs.includes(track.codec || '')) {
+                            return;
+                        }
                         var textTrackId = nrSubs;
                         nrSubs++;
                         if (!currentSubTrack && !textTracks.length) {
@@ -337,6 +381,9 @@ function WebOsVideo(options) {
                 }
                 if (((tracksData || {}).audio || []).length) {
                     tracksData.audio.forEach(function(track) {
+                        if (device.unsupportedAudio.includes(track.codec || '')) {
+                            return;
+                        }
                         var audioTrackId = nrAudio;
                         nrAudio++;
                         if (!currentAudioTrack && !audioTracks.length) {
@@ -893,6 +940,7 @@ function WebOsVideo(options) {
                             if (videoElement.mediaId) {
                                 clearInterval(timer);
                                 retrieveExtendedTracks();
+                                retrieveDeviceInfo();
                                 cb();
                                 return;
                             }
@@ -901,6 +949,7 @@ function WebOsVideo(options) {
                                 // console.log('failed to get media id');
                                 clearInterval(timer);
                                 retrieveExtendedTracks();
+                                retrieveDeviceInfo();
                                 cb();
                             }
                         }
