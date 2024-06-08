@@ -156,6 +156,8 @@ function retrieveDeviceInfo() {
         },
         onSuccess: function (result) {
             if (((result || {}).configs || {})['tv.model.edidType']) {
+                // eslint-disable-next-line no-console
+                console.log('edid', result.configs['tv.model.edidType']);
                 fetchedDeviceInfo = true;
                 var edidType = result.configs['tv.model.edidType'].toLowerCase();
                 if (edidType.includes('dts')) {
@@ -168,6 +170,10 @@ function retrieveDeviceInfo() {
                         return e !== 'TRUEHD';
                     });
                 }
+                // eslint-disable-next-line no-console
+                console.log('unsupported audio', device.unsupportedAudio);
+                // eslint-disable-next-line no-console
+                console.log('unsupported subs', device.unsupportedSubs);
             }
         },
         onFailure: function (err) {
