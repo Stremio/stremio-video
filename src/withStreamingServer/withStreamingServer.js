@@ -104,7 +104,7 @@ function withStreamingServer(Video) {
                         video.dispatch({ type: 'command', commandName: 'unload' });
                         loadArgs = commandArgs;
                         onPropChanged('stream');
-                        convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo, convertStream.streamingServerSettings)
+                        convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo, commandArgs.streamingServerSettings)
                             .then(function(result) {
                                 var mediaURL = result.url;
                                 var infoHash = result.infoHash;
