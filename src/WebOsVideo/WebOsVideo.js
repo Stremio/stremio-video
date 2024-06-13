@@ -138,7 +138,7 @@ function stremioSubSizes(size) {
 
 var device = {
     unsupportedAudio: ['DTS', 'TRUEHD'],
-    unsupportedSubs: ['HDMV/PGS']
+    unsupportedSubs: ['HDMV/PGS', 'VOBSUB']
 };
 
 var fetchedDeviceInfo = false;
