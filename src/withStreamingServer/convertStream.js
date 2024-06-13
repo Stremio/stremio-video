@@ -1,7 +1,21 @@
+var url = require('url');
 var magnet = require('magnet-uri');
 var createTorrent = require('./createTorrent');
 
-function convertStream(streamingServerURL, stream, seriesInfo) {
+function buildProxyUrl(streamingServerURL, streamURL, requestHeaders, responseHeaders) {
+    var parsedStreamURL = new URL(streamURL);
+    var proxyOptions = new URLSearchParams();
+    proxyOptions.set('d', parsedStreamURL.origin);
+    Object.entries(requestHeaders).forEach(function(entry) {
+        proxyOptions.append('h', entry[0] + ':' + entry[1]);
+    });
+    Object.entries(responseHeaders).forEach(function(entry) {
+        proxyOptions.append('r', entry[0] + ':' + entry[1]);
+    });
+    return url.resolve(streamingServerURL, '/proxy/' + proxyOptions.toString() + parsedStreamURL.pathname) + parsedStreamURL.search;
+}
+
+function convertStream(streamingServerURL, stream, seriesInfo, streamingServerSettings) {
     return new Promise(function(resolve, reject) {
         if (typeof stream.url === 'string') {
             if (stream.url.indexOf('magnet:') === 0) {
@@ -30,7 +44,15 @@ function convertStream(streamingServerURL, stream, seriesInfo) {
                         reject(error);
                     });
             } else {
-                resolve({ url: stream.url });
+                var proxyStreamsEnabled = streamingServerSettings && streamingServerSettings.proxyStreamsEnabled;
+                var proxyHeaders = stream.behaviorHints && stream.behaviorHints.proxyHeaders;
+                if (proxyStreamsEnabled || proxyHeaders) {
+                    var requestHeaders = proxyHeaders && proxyHeaders.request ? proxyHeaders.request : {};
+                    var responseHeaders = proxyHeaders && proxyHeaders.response ? proxyHeaders.response : {};
+                    resolve({ url: buildProxyUrl(streamingServerURL, stream.url, requestHeaders, responseHeaders) });
+                } else {
+                    resolve({ url: stream.url });
+                }
             }
 
             return;
