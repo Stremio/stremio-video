@@ -2,6 +2,7 @@ var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
+var getTracksData = require('../tracksData');
 
 function luna(params, call, fail, method) {
     if (call) params.onSuccess = call || function() {};
@@ -135,6 +136,47 @@ function stremioSubSizes(size) {
     return false;
 }
 
+var device = {
+    unsupportedAudio: ['DTS', 'TRUEHD'],
+    unsupportedSubs: ['HDMV/PGS', 'VOBSUB']
+};
+
+var fetchedDeviceInfo = false;
+
+function retrieveDeviceInfo() {
+    if (fetchedDeviceInfo) {
+        return;
+    }
+    window.webOS.service.request('luna://com.webos.service.config', {
+        method: 'getConfigs',
+        parameters: {
+            'configNames': [
+                'tv.model.edidType'
+            ]
+        },
+        onSuccess: function (result) {
+            if (((result || {}).configs || {})['tv.model.edidType']) {
+                fetchedDeviceInfo = true;
+                var edidType = result.configs['tv.model.edidType'].toLowerCase();
+                if (edidType.includes('dts')) {
+                    device.unsupportedAudio = device.unsupportedAudio.filter(function(e) {
+                        return e !== 'DTS';
+                    });
+                }
+                if (edidType.includes('truehd')) {
+                    device.unsupportedAudio = device.unsupportedAudio.filter(function(e) {
+                        return e !== 'TRUEHD';
+                    });
+                }
+            }
+        },
+        onFailure: function (err) {
+            // eslint-disable-next-line no-console
+            console.log('could not get deviceInfo', err);
+        }
+    });
+}
+
 function WebOsVideo(options) {
 
     options = options || {};
@@ -146,13 +188,9 @@ function WebOsVideo(options) {
 
     var isLoaded = null;
 
-    var knownMediaId = false;
-
     var subSize = 75;
 
     var disabledSubs = true;
-
-    var subscribed = false;
 
     var currentSubTrack = false;
 
@@ -172,140 +210,6 @@ function WebOsVideo(options) {
         bg_opacity: 0,
         char_opacity: 255
     };
-
-    var setSubs = function (info) {
-        textTracks = [];
-        if (info.numSubtitleTracks) {
-            for (var i = 0; i < info.subtitleTrackInfo.length; i++) {
-                var textTrack = info.subtitleTrackInfo[i];
-                textTrack.index = i;
-                var textTrackLang = textTrack.language === '(null)' ? null : textTrack.language;
-
-                var textTrackId = 'EMBEDDED_' + textTrack.index;
-
-                if (!currentSubTrack && !textTracks.length) {
-                    currentSubTrack = textTrackId;
-                }
-
-                textTracks.push({
-                    id: textTrackId,
-                    lang: textTrackLang,
-                    label: textTrackLang,
-                    origin: 'EMBEDDED',
-                    embedded: true,
-                    mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
-                });
-
-            }
-            onPropChanged('subtitlesTracks');
-            onPropChanged('selectedSubtitlesTrackId');
-
-        }
-    };
-
-    var setTracks = function (info) {
-        audioTracks = [];
-        if (info.numAudioTracks) {
-            for (var i = 0; i < info.audioTrackInfo.length; i++) {
-                var audioTrack = info.audioTrackInfo[i];
-                audioTrack.index = i;
-                var audioTrackId = 'EMBEDDED_' + audioTrack.index;
-                if (!currentAudioTrack && !audioTracks.length) {
-                    currentAudioTrack = audioTrackId;
-                }
-                var audioTrackLang = audioTrack.language === '(null)' ? null : audioTrack.language;
-                audioTracks.push({
-                    id: audioTrackId,
-                    lang: audioTrackLang,
-                    label: audioTrackLang,
-                    origin: 'EMBEDDED',
-                    embedded: true,
-                    mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
-                });
-            }
-            onPropChanged('audioTracks');
-            onPropChanged('selectedAudioTrackId');
-
-        }
-    };
-
-    var subscribe = function (cb) {
-        if (subscribed) return;
-        subscribed = true;
-        var answered = false;
-        luna({
-            method: 'subscribe',
-            parameters: {
-                'mediaId': knownMediaId,
-                'subscribe': true
-            }
-        }, function (result) {
-            if (result.sourceInfo && !answered) {
-                answered = true;
-                var info = result.sourceInfo.programInfo[0];
-
-                setSubs(info);
-
-                setTracks(info);
-
-                unsubscribe(cb);
-            }
-
-            if ((result.error || {}).errorCode) {
-                answered = true;
-                // console.error('luna playback error', result.error);
-                unsubscribe(cb);
-                // unsubscribe();
-                // onVideoError();
-                return;
-            }
-
-            if ((result.unloadCompleted || {}).mediaId === knownMediaId && (result.unloadCompleted || {}).state) {
-                // strange case where it just.. ends? without ever getting result.sourceInfo
-                // onEnded();
-                // console.log('strange case of end');
-                // unsubscribe(cb);
-                return;
-            }
-
-            count_message++;
-
-            if (count_message === 30 && !answered) {
-                // cb();
-                unsubscribe(cb);
-            }
-        }, function() { // function(err)
-            // console.log('luna error log 2');
-            // console.error(err);
-        });
-    };
-
-    var unsubscribe = function (cb) {
-        if (!subscribed) return;
-        subscribed = false;
-        luna({
-            method: 'unsubscribe',
-            parameters: {
-                'mediaId': knownMediaId
-            }
-        }, function () { // function(result)
-            // console.log('unsubscribe result', JSON.stringify(result));
-            cb();
-        }, function () { // function(err)
-            // console.log('unsubscribe error', JSON.stringify(err));
-            cb();
-        });
-        cb();
-    };
-
-    // var unload = function (cb) {
-    //     luna({
-    //         method: 'unload',
-    //         parameters: {
-    //             'mediaId': knownMediaId
-    //         }
-    //     }, cb, cb);
-    // };
 
     var toggleSubtitles = function (status) {
         if (!videoElement.mediaId) return;
@@ -438,6 +342,69 @@ function WebOsVideo(options) {
         muted: false,
         playbackSpeed: false
     };
+
+    var gotTraktData = false;
+    var tracksData = { audio: [], subs: [] };
+
+    function retrieveExtendedTracks() {
+        if (!gotTraktData && stream !== null) {
+            gotTraktData = true;
+            getTracksData(stream.url, function(resp) {
+                var nrSubs = 0;
+                var nrAudio = 0;
+                textTracks = [];
+                audioTracks = [];
+                if (resp) {
+                    tracksData = resp;
+                }
+                if (((tracksData || {}).subs || []).length) {
+                    tracksData.subs.forEach(function(track) {
+                        if (device.unsupportedSubs.includes(track.codec || '')) {
+                            return;
+                        }
+                        var textTrackId = nrSubs;
+                        nrSubs++;
+                        if (!currentSubTrack && !textTracks.length) {
+                            currentSubTrack = textTrackId;
+                        }
+                        textTracks.push({
+                            id: 'EMBEDDED_' + textTrackId,
+                            lang: track.lang || 'eng',
+                            label: track.lang || 'eng',
+                            origin: 'EMBEDDED',
+                            embedded: true,
+                            mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
+                        });
+                    });
+                    onPropChanged('subtitlesTracks');
+                    onPropChanged('selectedSubtitlesTrackId');
+                }
+                if (((tracksData || {}).audio || []).length) {
+                    tracksData.audio.forEach(function(track) {
+                        if (device.unsupportedAudio.includes(track.codec || '')) {
+                            return;
+                        }
+                        var audioTrackId = nrAudio;
+                        nrAudio++;
+                        if (!currentAudioTrack && !audioTracks.length) {
+                            currentAudioTrack = audioTrackId;
+                        }
+                        audioTracks.push({
+                            id: 'EMBEDDED_' + audioTrackId,
+                            lang: track.lang || 'eng',
+                            label: track.lang || 'eng',
+                            origin: 'EMBEDDED',
+                            embedded: true,
+                            mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
+                        });
+                    });
+                    currentAudioTrack = 'EMBEDDED_0';
+                    onPropChanged('audioTracks');
+                    onPropChanged('selectedAudioTrackId');
+                }
+            });
+        }
+    }
 
     function getProp(propName) {
         switch (propName) {
@@ -971,15 +938,18 @@ function WebOsVideo(options) {
                     var initMediaId = function (cb) {
                         function retrieveMediaId() {
                             if (videoElement.mediaId) {
-                                knownMediaId = videoElement.mediaId;
                                 clearInterval(timer);
-                                subscribe(cb);
+                                retrieveExtendedTracks();
+                                retrieveDeviceInfo();
+                                cb();
                                 return;
                             }
                             count++;
                             if (count > 4) {
                                 // console.log('failed to get media id');
                                 clearInterval(timer);
+                                retrieveExtendedTracks();
+                                retrieveDeviceInfo();
                                 cb();
                             }
                         }

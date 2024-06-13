@@ -3,6 +3,7 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var Color = require('color');
 var ERROR = require('../error');
+var getTracksData = require('../tracksData');
 
 function TizenVideo(options) {
     options = options || {};
@@ -148,6 +149,26 @@ function TizenVideo(options) {
         playbackSpeed: false
     };
 
+    var gotTraktData = false;
+    var tracksData = { audio: [], subs: [] };
+
+    function retrieveExtendedTracks() {
+        if (!gotTraktData && stream !== null) {
+            gotTraktData = true;
+            getTracksData(stream.url, function(resp) {
+                if (resp) {
+                    tracksData = resp;
+                }
+                if (((tracksData || {}).subs || []).length) {
+                    onPropChanged('subtitlesTracks');
+                }
+                if (((tracksData || {}).audio || []).length) {
+                    onPropChanged('audioTracks');
+                }
+            });
+        }
+    }
+
     function getProp(propName) {
         switch (propName) {
             case 'stream': {
@@ -213,6 +234,14 @@ function TizenVideo(options) {
                             extra = JSON.parse(textTrack.extra_info);
                         } catch(e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
+                        if (((tracksData || {}).subs || []).length) {
+                            var extendedTrackData = tracksData.subs.find(function(el) {
+                                return (el || {}).id-1 === textTrack.index;
+                            });
+                            if (extendedTrackData) {
+                                textTrackLang = extendedTrackData.lang || 'eng';
+                            }
+                        }
                         textTracks.push({
                             id: textTrackId,
                             lang: textTrackLang,
@@ -307,6 +336,14 @@ function TizenVideo(options) {
                             extra = JSON.parse(audioTrack.extra_info);
                         } catch(e) {}
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
+                        if (((tracksData || {}).audio || []).length) {
+                            var extendedTrackData = tracksData.audio.find(function(el) {
+                                return (el || {}).id-1 === audioTrack.index;
+                            });
+                            if (extendedTrackData) {
+                                audioTrackLang = extendedTrackData.lang || 'eng';
+                            }
+                        }
                         audioTracks.push({
                             id: audioTrackId,
                             lang: audioTrackLang,
@@ -580,6 +617,16 @@ function TizenVideo(options) {
                         return;
                     }
                     onPropChanged('buffering');
+
+                    var tizenVersion = false;
+
+                    try {
+                        tizenVersion = parseFloat(global.tizen.systeminfo.getCapability('http://tizen.org/feature/platform.version'));
+                    } catch(e) {}
+
+                    if (!tizenVersion || tizenVersion >= 6) {
+                        retrieveExtendedTracks();
+                    }
 
                     window.webapis.avplay.open(stream.url);
                     window.webapis.avplay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
