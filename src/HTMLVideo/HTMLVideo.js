@@ -543,6 +543,7 @@ function HTMLVideo(options) {
                                 function attachOriginalSource() {
                                     var source = document.createElement('source');
                                     source.src = stream.url;
+                                    source.dataset.id = 'original-stream';
                                     videoElement.appendChild(source);
                                     videoElement.disableRemotePlayback = false;
 
@@ -587,6 +588,11 @@ function HTMLVideo(options) {
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
+                Array.from(videoElement.children || []).forEach(function(child) {
+                    if (child && child.dataset && child.dataset.id === 'original-stream' && child.remove) {
+                        child.remove();
+                    }
+                });
                 onPropChanged('stream');
                 onPropChanged('loaded');
                 onPropChanged('paused');
