@@ -589,8 +589,8 @@ function HTMLVideo(options) {
                 videoElement.load();
                 videoElement.currentTime = 0;
                 Array.from(videoElement.children || []).forEach(function(child) {
-                    if (child && child.dataset && child.dataset.id === 'original-stream' && child.remove) {
-                        child.remove();
+                    if (child && child.dataset && child.dataset.id === 'original-stream') {
+                        videoElement.removeChild(child);
                     }
                 });
                 onPropChanged('stream');
