@@ -12,7 +12,7 @@
         "browser": true
     },
     "parserOptions": {
-        "ecmaVersion": 5
+        "ecmaVersion": 8
     },
     "ignorePatterns": [
         "/*",
@@ -56,6 +56,7 @@
                 "allowEmptyCatch": true
             }
         ],
+        "no-inner-declarations": "off",
         "no-prototype-builtins": "off",
         "no-template-curly-in-string": "error",
         "no-trailing-spaces": "error",
@@ -67,7 +68,6 @@
                 "varsIgnorePattern": "_"
             }
         ],
-        "prefer-const": "error",
         "quotes": [
             "error",
             "single"
