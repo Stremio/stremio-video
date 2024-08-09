@@ -225,9 +225,6 @@ function TizenVideo(options) {
                     return [];
                 }
 
-                var state = await AVPlay.getState();
-                if (state !== 'READY') return [];
-
                 var totalTrackInfo = await AVPlay.getTotalTrackInfo();
                 var textTracks = [];
 
@@ -329,9 +326,6 @@ function TizenVideo(options) {
                 if (stream === null) {
                     return [];
                 }
-
-                var state = await AVPlay.getState();
-                if (state !== 'READY') return [];
 
                 var totalTrackInfo = await AVPlay.getTotalTrackInfo();
                 var audioTracks = [];
