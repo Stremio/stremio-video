@@ -31,21 +31,21 @@ function selectVideoImplementation(commandArgs, options) {
     }
 
     if (typeof commandArgs.streamingServerURL === 'string') {
-        if (typeof global.tizen !== 'undefined') {
+        if (commandArgs.platform === 'Tizen') {
             return withStreamingServer(withHTMLSubtitles(TizenVideo));
         }
-        if (typeof global.webOS !== 'undefined') {
+        if (commandArgs.platform === 'webOS') {
             return withStreamingServer(withHTMLSubtitles(WebOsVideo));
         }
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
     }
 
     if (typeof commandArgs.stream.url === 'string') {
-        if (typeof global.webOS !== 'undefined') {
-            return withVideoParams(withHTMLSubtitles(WebOsVideo));
-        }
-        if (typeof global.tizen !== 'undefined') {
+        if (commandArgs.platform === 'Tizen') {
             return withVideoParams(withHTMLSubtitles(TizenVideo));
+        }
+        if (commandArgs.platform === 'webOS') {
+            return withVideoParams(withHTMLSubtitles(WebOsVideo));
         }
         return withVideoParams(withHTMLSubtitles(HTMLVideo));
     }
