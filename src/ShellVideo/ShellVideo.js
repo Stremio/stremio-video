@@ -6,7 +6,7 @@ var ERROR = require('../error');
 var SUBS_SCALE_FACTOR = 0.0066;
 
 var stremioToMPVProps = {
-    'loaded': null,
+    'loaded': 'loaded',
     'stream': null,
     'paused': 'pause',
     'time': 'time-pos',
@@ -111,7 +111,8 @@ function ShellVideo(options) {
                 // for bitwise maths so the maximum supported video duration is 1073741823 (2 ^ 30 - 1)
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
-                if(intDuration > 0) events.emit('propChanged', 'loaded', 'true');
+                props.loaded = intDuration > 0;
+                onPropChanged('loaded');
                 break;
             }
             case 'time-pos': {
@@ -351,6 +352,7 @@ function ShellVideo(options) {
             }
             case 'unload': {
                 props = {
+                    loaded: false,
                     pause: false,
                     mute: false,
                     speed: 1,
@@ -363,6 +365,7 @@ function ShellVideo(options) {
                 continueFrom = 0;
                 avgDuration = 0;
                 ipc.send('mpv-command', ['stop']);
+                onPropChanged('loaded');
                 onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
