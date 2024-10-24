@@ -6,7 +6,6 @@ var ERROR = require('../error');
 var SUBS_SCALE_FACTOR = 0.0066;
 
 var stremioToMPVProps = {
-    'loaded': null,
     'stream': null,
     'paused': 'pause',
     'time': 'time-pos',
@@ -29,7 +28,7 @@ function ShellVideo(options) {
     options = options || {};
 
     var ipc = options.shellTransport;
-    var observedProps = {loaded: false};
+    var observedProps = {};
     var props = {};
     var stremioProps = {};
     Object.keys(stremioToMPVProps).forEach(function(key) {
@@ -351,7 +350,6 @@ function ShellVideo(options) {
             }
             case 'unload': {
                 props = {
-                    loaded: false,
                     pause: false,
                     mute: false,
                     speed: 1,
@@ -431,6 +429,7 @@ ShellVideo.manifest = {
     events: [
         'propValue',
         'propChanged',
+        'loaded',
         'ended',
         'error',
         'subtitlesTrackLoaded',
