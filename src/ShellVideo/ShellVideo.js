@@ -69,7 +69,6 @@ function ShellVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
-    var continueFrom = 0;
 
     var avgDuration = 0;
     var minClipDuration = 30;
@@ -117,11 +116,6 @@ function ShellVideo(options) {
             }
             case 'time-pos': {
                 props[args.name] = Math.round(args.data*1000);
-                if(continueFrom) {
-                    ipc.send('mpv-set-prop', ['time-pos', continueFrom]);
-                    props[args.name] = Math.round(continueFrom);
-                    continueFrom = 0;
-                }
                 break;
             }
             case 'sub-scale': {
@@ -310,7 +304,6 @@ function ShellVideo(options) {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     stream = commandArgs.stream;
                     onPropChanged('stream');
-                    continueFrom = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
 
                     setBackground(false);
 
@@ -327,7 +320,10 @@ function ShellVideo(options) {
                     ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
                     ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
 
-                    ipc.send('mpv-command', ['loadfile', stream.url]);
+                    if (commandArgs.time !== null && isFinite(commandArgs.time))
+                        ipc.send('mpv-command', ['loadfile', stream.url, 'replace', 'start=+'+Math.floor(parseInt(commandArgs.time, 10)/1000)]);
+                    else
+                        ipc.send('mpv-command', ['loadfile', stream.url]);
                     ipc.send('mpv-set-prop', ['pause', false]);
                     ipc.send('mpv-set-prop', ['speed', props.speed]);
                     ipc.send('mpv-set-prop', ['aid', props.aid]);
@@ -362,7 +358,6 @@ function ShellVideo(options) {
                     aid: null,
                     sid: null,
                 };
-                continueFrom = 0;
                 avgDuration = 0;
                 ipc.send('mpv-command', ['stop']);
                 onPropChanged('loaded');
