@@ -320,10 +320,11 @@ function ShellVideo(options) {
                     ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
                     ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
 
-                    if (commandArgs.time !== null && isFinite(commandArgs.time))
+                    if (commandArgs.time !== null && isFinite(commandArgs.time)) {
                         ipc.send('mpv-command', ['loadfile', stream.url, 'replace', 'start=+'+Math.floor(parseInt(commandArgs.time, 10)/1000)]);
-                    else
+                    } else {
                         ipc.send('mpv-command', ['loadfile', stream.url]);
+                    }
                     ipc.send('mpv-set-prop', ['pause', false]);
                     ipc.send('mpv-set-prop', ['speed', props.speed]);
                     ipc.send('mpv-set-prop', ['aid', props.aid]);
