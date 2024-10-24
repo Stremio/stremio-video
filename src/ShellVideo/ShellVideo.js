@@ -321,7 +321,7 @@ function ShellVideo(options) {
                     ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
 
                     if (commandArgs.time !== null && isFinite(commandArgs.time)) {
-                        ipc.send('mpv-command', ['loadfile', stream.url, 'replace', 'start=+'+Math.floor(parseInt(commandArgs.time, 10)/1000)]);
+                        ipc.send('mpv-command', ['loadfile', stream.url, 'replace', '-1', 'start=+'+Math.floor(parseInt(commandArgs.time, 10)/1000)]);
                     } else {
                         ipc.send('mpv-command', ['loadfile', stream.url]);
                     }
