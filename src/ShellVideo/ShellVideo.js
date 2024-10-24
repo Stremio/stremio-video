@@ -6,6 +6,7 @@ var ERROR = require('../error');
 var SUBS_SCALE_FACTOR = 0.0066;
 
 var stremioToMPVProps = {
+    'loaded': null,
     'stream': null,
     'paused': 'pause',
     'time': 'time-pos',
@@ -110,7 +111,7 @@ function ShellVideo(options) {
                 // for bitwise maths so the maximum supported video duration is 1073741823 (2 ^ 30 - 1)
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
-                events.emit('propChanged', 'loaded', 'true');
+                if(intDuration > 0) events.emit('propChanged', 'loaded', 'true');
                 break;
             }
             case 'time-pos': {
@@ -350,6 +351,7 @@ function ShellVideo(options) {
             }
             case 'unload': {
                 props = {
+                    loaded: false,
                     pause: false,
                     mute: false,
                     speed: 1,
