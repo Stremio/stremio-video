@@ -28,13 +28,15 @@ function ShellVideo(options) {
     options = options || {};
 
     var ipc = options.shellTransport;
-
+    var observedProps = {loaded: false};
+    var props = {};
     var stremioProps = {};
     Object.keys(stremioToMPVProps).forEach(function(key) {
         if(stremioToMPVProps[key]) {
             stremioProps[stremioToMPVProps[key]] = key;
         }
     });
+    command('unload');
 
     ipc.send('mpv-command', ['stop']);
     ipc.send('mpv-observe-prop', 'path');
@@ -66,13 +68,10 @@ function ShellVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
-    // var selectedSubtitlesTrackId = null;
-    var observedProps = {};
     var continueFrom = 0;
 
     var avgDuration = 0;
     var minClipDuration = 30;
-    var props = { };
 
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
@@ -111,6 +110,7 @@ function ShellVideo(options) {
                 // for bitwise maths so the maximum supported video duration is 1073741823 (2 ^ 30 - 1)
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
+                events.emit('propChanged', 'loaded', 'true');
                 break;
             }
             case 'time-pos': {
@@ -350,10 +350,12 @@ function ShellVideo(options) {
             }
             case 'unload': {
                 props = {
+                    pause: false,
                     mute: false,
                     speed: 1,
                     subtitlesTracks: [],
-                    buffering: true,
+                    audioTracks: [],
+                    buffering: false,
                     aid: null,
                     sid: null,
                 };
