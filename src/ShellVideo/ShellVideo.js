@@ -112,7 +112,7 @@ function ShellVideo(options) {
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
                 props.loaded = intDuration > 0;
-                onPropChanged('loaded');
+                if(props.loaded) onPropChanged('loaded');
                 break;
             }
             case 'time-pos': {
