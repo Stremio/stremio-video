@@ -6,6 +6,7 @@ var ERROR = require('../error');
 var SUBS_SCALE_FACTOR = 0.0066;
 
 var stremioToMPVProps = {
+    'loaded': null,
     'stream': null,
     'paused': 'pause',
     'time': 'time-pos',
@@ -429,7 +430,6 @@ ShellVideo.manifest = {
     events: [
         'propValue',
         'propChanged',
-        'loaded',
         'ended',
         'error',
         'subtitlesTrackLoaded',
