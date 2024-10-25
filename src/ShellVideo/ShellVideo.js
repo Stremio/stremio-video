@@ -6,6 +6,7 @@ var ERROR = require('../error');
 var SUBS_SCALE_FACTOR = 0.0066;
 
 var stremioToMPVProps = {
+    'loaded': 'loaded',
     'stream': null,
     'paused': 'pause',
     'time': 'time-pos',
@@ -24,17 +25,35 @@ var stremioToMPVProps = {
     'subtitlesOutlineColor': 'sub-border-color',
 };
 
+function parseVersion(version) {
+    return version.split('.').slice(0, 2).map(function (v) { return parseInt(v); });
+}
+
+function versionGTE(a, b) {
+    var versionA = parseVersion(a);
+    var versionB = parseVersion(b);
+    if (versionA[0] > versionB[0]) return true;
+    if (versionA[0] < versionB[0]) return false;
+    return versionA[1] >= versionB[1];
+}
+
 function ShellVideo(options) {
     options = options || {};
 
     var ipc = options.shellTransport;
-
+    var observedProps = {};
+    var props = {};
     var stremioProps = {};
     Object.keys(stremioToMPVProps).forEach(function(key) {
         if(stremioToMPVProps[key]) {
             stremioProps[stremioToMPVProps[key]] = key;
         }
     });
+    var resolveMPVVersion;
+    var waitForMPVVersion = new Promise(function (resolve) {
+        resolveMPVVersion = resolve;
+    });
+    command('unload');
 
     ipc.send('mpv-command', ['stop']);
     ipc.send('mpv-observe-prop', 'path');
@@ -66,13 +85,9 @@ function ShellVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
-    // var selectedSubtitlesTrackId = null;
-    var observedProps = {};
-    var continueFrom = 0;
 
     var avgDuration = 0;
     var minClipDuration = 30;
-    var props = { };
 
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
@@ -93,6 +108,9 @@ function ShellVideo(options) {
     ipc.on('mpv-prop-change', function(args) {
         switch (args.name) {
             case 'mpv-version':
+                resolveMPVVersion(args.data);
+                props[args.name] = logProp(args);
+                break;
             case 'ffmpeg-version': {
                 props[args.name] = logProp(args);
                 break;
@@ -111,15 +129,12 @@ function ShellVideo(options) {
                 // for bitwise maths so the maximum supported video duration is 1073741823 (2 ^ 30 - 1)
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
+                props.loaded = intDuration > 0;
+                if(props.loaded) onPropChanged('loaded');
                 break;
             }
             case 'time-pos': {
                 props[args.name] = Math.round(args.data*1000);
-                if(continueFrom) {
-                    ipc.send('mpv-set-prop', ['time-pos', continueFrom]);
-                    props[args.name] = Math.round(continueFrom);
-                    continueFrom = 0;
-                }
                 break;
             }
             case 'sub-scale': {
@@ -306,60 +321,72 @@ function ShellVideo(options) {
             case 'load': {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
-                    stream = commandArgs.stream;
-                    onPropChanged('stream');
-                    continueFrom = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
+                    waitForMPVVersion.then(function (mpvVersion) {
+                        stream = commandArgs.stream;
+                        onPropChanged('stream');
 
-                    setBackground(false);
+                        setBackground(false);
 
-                    ipc.send('mpv-set-prop', ['no-sub-ass']);
+                        ipc.send('mpv-set-prop', ['no-sub-ass']);
 
-                    // opengl-cb is an alias for the new name "libmpv", as shown in mpv's video/out/vo.c aliases
-                    // opengl is an alias for the new name "gpu"
-                    // When on Windows we use d3d for the rendering in separate window
-                    var windowRenderer = navigator.platform === 'Win32' ? 'direct3d' : 'opengl';
-                    var videoOutput = options.mpvSeparateWindow ? windowRenderer : 'opengl-cb';
-                    var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
-                    ipc.send('mpv-set-prop', ['vo', videoOutput]);
-                    ipc.send('mpv-set-prop', ['osc', separateWindow]);
-                    ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
-                    ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
+                        // opengl-cb is an alias for the new name "libmpv", as shown in mpv's video/out/vo.c aliases
+                        // opengl is an alias for the new name "gpu"
+                        // When on Windows we use d3d for the rendering in separate window
+                        var windowRenderer = navigator.platform === 'Win32' ? 'direct3d' : 'opengl';
+                        var videoOutput = options.mpvSeparateWindow ? windowRenderer : 'opengl-cb';
+                        var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
+                        ipc.send('mpv-set-prop', ['vo', videoOutput]);
+                        ipc.send('mpv-set-prop', ['osc', separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
 
-                    ipc.send('mpv-command', ['loadfile', stream.url]);
-                    ipc.send('mpv-set-prop', ['pause', false]);
-                    ipc.send('mpv-set-prop', ['speed', props.speed]);
-                    ipc.send('mpv-set-prop', ['aid', props.aid]);
-                    ipc.send('mpv-set-prop', ['mute', 'no']);
+                        var startAt = Math.floor(parseInt(commandArgs.time, 10) / 1000) || 0;
+                        if (startAt !== 0) {
+                            if (versionGTE(mpvVersion, '0.39')) {
+                                ipc.send('mpv-command', ['loadfile', stream.url, 'replace', '-1', 'start=+' + startAt]);
+                            } else {
+                                ipc.send('mpv-command', ['loadfile', stream.url, 'replace', 'start=+' + startAt]);
+                            }
+                        } else {
+                            ipc.send('mpv-command', ['loadfile', stream.url]);
+                        }
+                        ipc.send('mpv-set-prop', ['pause', false]);
+                        ipc.send('mpv-set-prop', ['speed', props.speed]);
+                        ipc.send('mpv-set-prop', ['aid', props.aid]);
+                        ipc.send('mpv-set-prop', ['mute', 'no']);
 
-                    onPropChanged('paused');
-                    onPropChanged('time');
-                    onPropChanged('duration');
-                    onPropChanged('buffering');
-                    onPropChanged('volume');
-                    onPropChanged('muted');
-                    onPropChanged('subtitlesTracks');
-                    onPropChanged('selectedSubtitlesTrackId');
+                        onPropChanged('paused');
+                        onPropChanged('time');
+                        onPropChanged('duration');
+                        onPropChanged('buffering');
+                        onPropChanged('volume');
+                        onPropChanged('muted');
+                        onPropChanged('subtitlesTracks');
+                        onPropChanged('selectedSubtitlesTrackId');
+                    });
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
                         stream: commandArgs ? commandArgs.stream : null
                     }));
                 }
-
                 break;
             }
             case 'unload': {
                 props = {
+                    loaded: false,
+                    pause: false,
                     mute: false,
                     speed: 1,
                     subtitlesTracks: [],
-                    buffering: true,
+                    audioTracks: [],
+                    buffering: false,
                     aid: null,
                     sid: null,
                 };
-                continueFrom = 0;
                 avgDuration = 0;
                 ipc.send('mpv-command', ['stop']);
+                onPropChanged('loaded');
                 onPropChanged('stream');
                 onPropChanged('paused');
                 onPropChanged('time');
