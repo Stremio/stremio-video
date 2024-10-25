@@ -6,6 +6,8 @@ var ERROR = require('../error');
 var getTracksData = require('../tracksData');
 var createAVPlay = require('./AVPlay');
 
+var SSA_DESCRIPTORS_REGEX = /^\{(\\\w+\d+)+\}/;
+
 function TizenVideo(options) {
     options = options || {};
 
@@ -50,10 +52,12 @@ function TizenVideo(options) {
     async function renderSubtitle(duration, text) {
         if (disabledSubs) return;
         var now = await getProp('time');
+        var cleanedText = text.replace(SSA_DESCRIPTORS_REGEX, '');
+
         // we ignore custom delay here, it's not needed for embedded subs
         lastSub = {
             duration: duration,
-            text: text,
+            text: cleanedText,
             now: now,
         };
         if (subtitleTimeout) {
@@ -69,7 +73,7 @@ function TizenVideo(options) {
         subtitlesElement.style.opacity = subtitlesOpacity;
 
         var cueNode = document.createElement('span');
-        cueNode.innerHTML = text;
+        cueNode.innerHTML = cleanedText;
         cueNode.style.display = 'inline-block';
         cueNode.style.padding = '0.2em';
         cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
