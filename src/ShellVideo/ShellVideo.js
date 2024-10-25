@@ -26,7 +26,7 @@ var stremioToMPVProps = {
 };
 
 function parseVersion(version) {
-    return version.split('.').slice(0, 2).map(function (v) { return parseInt(v) });
+    return version.split('.').slice(0, 2).map(function (v) { return parseInt(v); });
 }
 
 function versionGTE(a, b) {
@@ -109,6 +109,8 @@ function ShellVideo(options) {
         switch (args.name) {
             case 'mpv-version':
                 resolveMPVVersion(args.data);
+                props[args.name] = logProp(args);
+                break;
             case 'ffmpeg-version': {
                 props[args.name] = logProp(args);
                 break;
@@ -338,7 +340,7 @@ function ShellVideo(options) {
                         ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
 
-                        var startAt = Math.floor(parseInt(commandArgs.time, 10) / 1000) || 0
+                        var startAt = Math.floor(parseInt(commandArgs.time, 10) / 1000) || 0;
                         if (startAt !== 0) {
                             if (versionGTE(mpvVersion, '0.39')) {
                                 ipc.send('mpv-command', ['loadfile', stream.url, 'replace', '-1', 'start=+' + startAt]);
