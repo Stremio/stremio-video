@@ -25,6 +25,18 @@ var stremioToMPVProps = {
     'subtitlesOutlineColor': 'sub-border-color',
 };
 
+function parseVersion(version) {
+    return version.split('.').slice(0, 2).map(function (v) { return parseInt(v) });
+}
+
+function versionGTE(a, b) {
+    var versionA = parseVersion(a);
+    var versionB = parseVersion(b);
+    if (versionA[0] > versionB[0]) return true;
+    if (versionA[0] < versionB[0]) return false;
+    return versionA[1] >= versionB[1];
+}
+
 function ShellVideo(options) {
     options = options || {};
 
@@ -36,6 +48,10 @@ function ShellVideo(options) {
         if(stremioToMPVProps[key]) {
             stremioProps[stremioToMPVProps[key]] = key;
         }
+    });
+    var resolveMPVVersion;
+    var waitForMPVVersion = new Promise(function (resolve) {
+        resolveMPVVersion = resolve;
     });
     command('unload');
 
@@ -92,6 +108,7 @@ function ShellVideo(options) {
     ipc.on('mpv-prop-change', function(args) {
         switch (args.name) {
             case 'mpv-version':
+                resolveMPVVersion(args.data);
             case 'ffmpeg-version': {
                 props[args.name] = logProp(args);
                 break;
@@ -302,49 +319,55 @@ function ShellVideo(options) {
             case 'load': {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
-                    stream = commandArgs.stream;
-                    onPropChanged('stream');
+                    waitForMPVVersion.then(function (mpvVersion) {
+                        stream = commandArgs.stream;
+                        onPropChanged('stream');
 
-                    setBackground(false);
+                        setBackground(false);
 
-                    ipc.send('mpv-set-prop', ['no-sub-ass']);
+                        ipc.send('mpv-set-prop', ['no-sub-ass']);
 
-                    // opengl-cb is an alias for the new name "libmpv", as shown in mpv's video/out/vo.c aliases
-                    // opengl is an alias for the new name "gpu"
-                    // When on Windows we use d3d for the rendering in separate window
-                    var windowRenderer = navigator.platform === 'Win32' ? 'direct3d' : 'opengl';
-                    var videoOutput = options.mpvSeparateWindow ? windowRenderer : 'opengl-cb';
-                    var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
-                    ipc.send('mpv-set-prop', ['vo', videoOutput]);
-                    ipc.send('mpv-set-prop', ['osc', separateWindow]);
-                    ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
-                    ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
+                        // opengl-cb is an alias for the new name "libmpv", as shown in mpv's video/out/vo.c aliases
+                        // opengl is an alias for the new name "gpu"
+                        // When on Windows we use d3d for the rendering in separate window
+                        var windowRenderer = navigator.platform === 'Win32' ? 'direct3d' : 'opengl';
+                        var videoOutput = options.mpvSeparateWindow ? windowRenderer : 'opengl-cb';
+                        var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
+                        ipc.send('mpv-set-prop', ['vo', videoOutput]);
+                        ipc.send('mpv-set-prop', ['osc', separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
 
-                    if (commandArgs.time !== null && isFinite(commandArgs.time)) {
-                        ipc.send('mpv-command', ['loadfile', stream.url, 'replace', '-1', 'start=+'+Math.floor(parseInt(commandArgs.time, 10)/1000)]);
-                    } else {
-                        ipc.send('mpv-command', ['loadfile', stream.url]);
-                    }
-                    ipc.send('mpv-set-prop', ['pause', false]);
-                    ipc.send('mpv-set-prop', ['speed', props.speed]);
-                    ipc.send('mpv-set-prop', ['aid', props.aid]);
-                    ipc.send('mpv-set-prop', ['mute', 'no']);
+                        var startAt = Math.floor(parseInt(commandArgs.time, 10) / 1000) || 0
+                        if (startAt !== 0) {
+                            if (versionGTE(mpvVersion, '0.39')) {
+                                ipc.send('mpv-command', ['loadfile', stream.url, 'replace', '-1', 'start=+' + startAt]);
+                            } else {
+                                ipc.send('mpv-command', ['loadfile', stream.url, 'replace', 'start=+' + startAt]);
+                            }
+                        } else {
+                            ipc.send('mpv-command', ['loadfile', stream.url]);
+                        }
+                        ipc.send('mpv-set-prop', ['pause', false]);
+                        ipc.send('mpv-set-prop', ['speed', props.speed]);
+                        ipc.send('mpv-set-prop', ['aid', props.aid]);
+                        ipc.send('mpv-set-prop', ['mute', 'no']);
 
-                    onPropChanged('paused');
-                    onPropChanged('time');
-                    onPropChanged('duration');
-                    onPropChanged('buffering');
-                    onPropChanged('volume');
-                    onPropChanged('muted');
-                    onPropChanged('subtitlesTracks');
-                    onPropChanged('selectedSubtitlesTrackId');
+                        onPropChanged('paused');
+                        onPropChanged('time');
+                        onPropChanged('duration');
+                        onPropChanged('buffering');
+                        onPropChanged('volume');
+                        onPropChanged('muted');
+                        onPropChanged('subtitlesTracks');
+                        onPropChanged('selectedSubtitlesTrackId');
+                    });
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
                         stream: commandArgs ? commandArgs.stream : null
                     }));
                 }
-
                 break;
             }
             case 'unload': {
