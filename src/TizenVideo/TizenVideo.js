@@ -6,7 +6,7 @@ var ERROR = require('../error');
 var getTracksData = require('../tracksData');
 var createAVPlay = require('./AVPlay');
 
-var SSA_DESCRIPTORS_REGEX = /^\{(\\\w+\d+)+\}/;
+var SSA_DESCRIPTORS_REGEX = /^\{(\\an[1-8])+\}/i;
 
 function TizenVideo(options) {
     options = options || {};
