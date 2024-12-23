@@ -116,6 +116,7 @@ function ShellVideo(options) {
                 break;
             }
             case 'duration': {
+                setBackground(false);
                 var intDuration = args.data | 0;
                 // Accumulate average duration over time. if it is greater than minClipDuration
                 // and equal to the currently reported duration, it is returned as video length.
@@ -324,8 +325,6 @@ function ShellVideo(options) {
                     waitForMPVVersion.then(function (mpvVersion) {
                         stream = commandArgs.stream;
                         onPropChanged('stream');
-
-                        setBackground(false);
 
                         ipc.send('mpv-set-prop', ['no-sub-ass']);
 
