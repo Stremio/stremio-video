@@ -95,6 +95,12 @@ function ShellVideo(options) {
         for(var container = options.containerElement; container; container = container.parentElement) {
             container.style.background = bg;
         }
+        if (((window || {}).document || {}).getElementsByTagName) {
+            var body = window.document.getElementsByTagName('body');
+            if ((body || [])[0]) {
+                body[0].style.background = bg;
+            }
+        }
     }
     function logProp(args) {
         // eslint-disable-next-line no-console
