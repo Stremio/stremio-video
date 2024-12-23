@@ -352,7 +352,12 @@ function ShellVideo(options) {
                         }
                         ipc.send('mpv-set-prop', ['pause', false]);
                         ipc.send('mpv-set-prop', ['speed', props.speed]);
-                        ipc.send('mpv-set-prop', ['aid', props.aid]);
+                        if (props.aid) {
+                            if (typeof props.aid === 'string' && props.aid.startsWith('EMBEDDED_'))
+                                ipc.send('mpv-set-prop', ['aid', props.aid.slice('EMBEDDED_'.length)]);
+                            else
+                                ipc.send('mpv-set-prop', ['aid', props.aid]);
+                        }
                         ipc.send('mpv-set-prop', ['mute', 'no']);
 
                         onPropChanged('paused');
