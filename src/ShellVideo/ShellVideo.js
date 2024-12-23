@@ -116,6 +116,7 @@ function ShellVideo(options) {
                 break;
             }
             case 'duration': {
+                setBackground(false);
                 var intDuration = args.data | 0;
                 // Accumulate average duration over time. if it is greater than minClipDuration
                 // and equal to the currently reported duration, it is returned as video length.
@@ -325,8 +326,6 @@ function ShellVideo(options) {
                         stream = commandArgs.stream;
                         onPropChanged('stream');
 
-                        setBackground(false);
-
                         ipc.send('mpv-set-prop', ['no-sub-ass']);
 
                         // opengl-cb is an alias for the new name "libmpv", as shown in mpv's video/out/vo.c aliases
@@ -352,7 +351,13 @@ function ShellVideo(options) {
                         }
                         ipc.send('mpv-set-prop', ['pause', false]);
                         ipc.send('mpv-set-prop', ['speed', props.speed]);
-                        ipc.send('mpv-set-prop', ['aid', props.aid]);
+                        if (props.aid) {
+                            if (typeof props.aid === 'string' && props.aid.startsWith('EMBEDDED_')) {
+                                ipc.send('mpv-set-prop', ['aid', props.aid.slice('EMBEDDED_'.length)]);
+                            } else {
+                                ipc.send('mpv-set-prop', ['aid', props.aid]);
+                            }
+                        }
                         ipc.send('mpv-set-prop', ['mute', 'no']);
 
                         onPropChanged('paused');
