@@ -114,6 +114,7 @@ function ShellVideo(options) {
     ipc.on('mpv-prop-change', function(args) {
         switch (args.name) {
             case 'mpv-version':
+                setBackground(false);
                 resolveMPVVersion(args.data);
                 props[args.name] = logProp(args);
                 break;
@@ -122,7 +123,6 @@ function ShellVideo(options) {
                 break;
             }
             case 'duration': {
-                setBackground(false);
                 var intDuration = args.data | 0;
                 // Accumulate average duration over time. if it is greater than minClipDuration
                 // and equal to the currently reported duration, it is returned as video length.
