@@ -2,6 +2,7 @@ var ChromecastSenderVideo = require('../ChromecastSenderVideo');
 var ShellVideo = require('../ShellVideo');
 var HTMLVideo = require('../HTMLVideo');
 var TizenVideo = require('../TizenVideo');
+var TitanVideo = require('../TitanVideo');
 var WebOsVideo = require('../WebOsVideo');
 var IFrameVideo = require('../IFrameVideo');
 var YouTubeVideo = require('../YouTubeVideo');
@@ -37,6 +38,9 @@ function selectVideoImplementation(commandArgs, options) {
         if (commandArgs.platform === 'webOS') {
             return withStreamingServer(withHTMLSubtitles(WebOsVideo));
         }
+        if (window.Titanos) {
+            return withStreamingServer(withHTMLSubtitles(TitanVideo));
+        }
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
     }
 
@@ -46,6 +50,9 @@ function selectVideoImplementation(commandArgs, options) {
         }
         if (commandArgs.platform === 'webOS') {
             return withVideoParams(withHTMLSubtitles(WebOsVideo));
+        }
+        if (window.Titanos) {
+            return withVideoParams(withHTMLSubtitles(TitanVideo));
         }
         return withVideoParams(withHTMLSubtitles(HTMLVideo));
     }
