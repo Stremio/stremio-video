@@ -3,7 +3,6 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var Color = require('color');
 var ERROR = require('../error');
-var HLS_CONFIG = require('./hlsConfig');
 
 function TitanVideo(options) {
     options = options || {};
