@@ -225,14 +225,33 @@ function withHTMLSubtitles(Video) {
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
-                        fetch(selectedTrack.url)
-                            .then(function(resp) {
-                                if (resp.ok) {
-                                    return resp.text();
-                                }
 
-                                throw new Error(resp.status + ' (' + resp.statusText + ')');
-                            })
+                        function getSubtitlesData() {
+                            if (typeof selectedTrack.url === 'string') {
+                                return fetch(selectedTrack.url)
+                                    .then(function(resp) {
+                                        if (resp.ok) {
+                                            return resp.text();
+                                        }
+
+                                        throw new Error(resp.status + ' (' + resp.statusText + ')');
+                                    });
+                            }
+
+                            if (selectedTrack.buffer instanceof ArrayBuffer) {
+                                try {
+                                    const uInt8Array = new Uint8Array(selectedTrack.buffer);
+                                    const text = new TextDecoder().decode(uInt8Array);
+                                    return Promise.resolve(text);
+                                } catch(e) {
+                                    return Promise.reject(e);
+                                }
+                            }
+
+                            return Promise.reject('No `url` or `buffer` field available for this track');
+                        }
+
+                        getSubtitlesData()
                             .then(function(text) {
                                 return subtitlesConverter.convert(text);
                             })
@@ -366,13 +385,34 @@ function withHTMLSubtitles(Video) {
                             .filter(function(track, index, tracks) {
                                 return track &&
                                     typeof track.id === 'string' &&
-                                    typeof track.url === 'string' &&
                                     typeof track.lang === 'string' &&
                                     typeof track.label === 'string' &&
                                     typeof track.origin === 'string' &&
                                     !track.embedded &&
                                     index === tracks.findIndex(function(t) { return t.id === track.id; });
                             });
+                        onPropChanged('extraSubtitlesTracks');
+                    }
+
+                    return true;
+                }
+                case 'addLocalSubtitles': {
+                    if (commandArgs && typeof commandArgs.filename === 'string' && commandArgs.buffer instanceof ArrayBuffer) {
+                        var id = 'LOCAL_' + tracks
+                            .filter(function(track) { return track.local; })
+                            .length;
+
+                        tracks.push({
+                            id: id,
+                            url: null,
+                            buffer: commandArgs.buffer,
+                            lang: 'local',
+                            label: commandArgs.filename,
+                            origin: 'LOCAL',
+                            local: true,
+                            embedded: false,
+                        });
+
                         onPropChanged('extraSubtitlesTracks');
                     }
 
@@ -477,7 +517,7 @@ function withHTMLSubtitles(Video) {
         external: Video.manifest.external,
         props: Video.manifest.props.concat(['extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'])
+        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         events: Video.manifest.events.concat(['propValue', 'propChanged', 'error', 'extraSubtitlesTrackLoaded'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
