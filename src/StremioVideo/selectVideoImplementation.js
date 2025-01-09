@@ -38,7 +38,7 @@ function selectVideoImplementation(commandArgs, options) {
         if (commandArgs.platform === 'webOS') {
             return withStreamingServer(withHTMLSubtitles(WebOsVideo));
         }
-        if (window.Titanos) {
+        if (commandArgs.platform === 'TitanOS') {
             return withStreamingServer(withHTMLSubtitles(TitanVideo));
         }
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
@@ -51,7 +51,7 @@ function selectVideoImplementation(commandArgs, options) {
         if (commandArgs.platform === 'webOS') {
             return withVideoParams(withHTMLSubtitles(WebOsVideo));
         }
-        if (window.Titanos) {
+        if (commandArgs.platform === 'TitanOS') {
             return withVideoParams(withHTMLSubtitles(TitanVideo));
         }
         return withVideoParams(withHTMLSubtitles(HTMLVideo));
