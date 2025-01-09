@@ -255,7 +255,7 @@ function withHTMLSubtitles(Video) {
                                     }
 
                                     if (!isFallback && typeof selectedTrack.fallbackUrl === 'string') {
-                                        loadSubtitleFromUrl(selectedTrack.fallbackUrl, true)
+                                        loadSubtitleFromUrl(selectedTrack.fallbackUrl, true);
                                         return;
                                     }
 
@@ -266,7 +266,7 @@ function withHTMLSubtitles(Video) {
                                     }));
                                 });
                         }
-                        loadSubtitleFromUrl(selectedTrack.url)
+                        loadSubtitleFromUrl(selectedTrack.url);
                     }
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
