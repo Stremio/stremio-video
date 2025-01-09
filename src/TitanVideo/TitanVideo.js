@@ -186,7 +186,7 @@ function TitanVideo(options) {
 
                 return Array.from(videoElement.textTracks)
                     .filter(function(track) {
-                        return track.kind === 'subtitles'
+                        return track.kind === 'subtitles';
                     })
                     .map(function(track, index) {
                         return Object.freeze({
@@ -474,7 +474,7 @@ function TitanVideo(options) {
             case 'selectedAudioTrackId': {
                 if (stream !== null) {
                     for (var index = 0; index < videoElement.audioTracks.length; index++) {
-                        videoElement.audioTracks[i].enabled = !!('EMBEDDED_' + String(index) === propValue)
+                        videoElement.audioTracks[index].enabled = !!('EMBEDDED_' + String(index) === propValue);
                     }
                 }
 
