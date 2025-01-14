@@ -631,10 +631,12 @@ function TizenVideo(options) {
                     }
                     onPropChanged('buffering');
 
-                    var TIZEN_MATCHES = navigator.userAgent.match(/Tizen (\d+\.\d+)/i)
+                    var tizenVersion = false;
+
+                    var TIZEN_MATCHES = navigator.userAgent.match(/Tizen (\d+\.\d+)/i);
 
                     if (TIZEN_MATCHES && TIZEN_MATCHES[1]) {
-                        tizenVersion = parseFloat(TIZEN_MATCHES[1])
+                        tizenVersion = parseFloat(TIZEN_MATCHES[1]);
                     }
 
                     if (!tizenVersion || tizenVersion >= 6) {
