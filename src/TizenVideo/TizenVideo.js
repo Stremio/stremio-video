@@ -633,9 +633,11 @@ function TizenVideo(options) {
 
                     var tizenVersion = false;
 
-                    try {
-                        tizenVersion = parseFloat(global.tizen.systeminfo.getCapability('http://tizen.org/feature/platform.version'));
-                    } catch(e) {}
+                    var TIZEN_MATCHES = navigator.userAgent.match(/Tizen (\d+\.\d+)/i);
+
+                    if (TIZEN_MATCHES && TIZEN_MATCHES[1]) {
+                        tizenVersion = parseFloat(TIZEN_MATCHES[1]);
+                    }
 
                     if (!tizenVersion || tizenVersion >= 6) {
                         retrieveExtendedTracks();

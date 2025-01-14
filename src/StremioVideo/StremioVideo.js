@@ -2,6 +2,7 @@ var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var selectVideoImplementation = require('./selectVideoImplementation');
+var platform = require('../platform');
 var ERROR = require('../error');
 
 function StremioVideo() {
@@ -25,6 +26,9 @@ function StremioVideo() {
             action = deepFreeze(cloneDeep(action));
             options = options || {};
             if (action.type === 'command' && action.commandName === 'load' && action.commandArgs) {
+                if (action.commandArgs.platform) {
+                    platform.set(action.commandArgs.platform);
+                }
                 var Video = selectVideoImplementation(action.commandArgs, options);
                 if (video !== null && video.constructor !== Video) {
                     video.dispatch({ type: 'command', commandName: 'destroy' });
