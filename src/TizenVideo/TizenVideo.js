@@ -631,11 +631,11 @@ function TizenVideo(options) {
                     }
                     onPropChanged('buffering');
 
-                    var tizenVersion = false;
+                    var TIZEN_MATCHES = navigator.userAgent.match(/Tizen (\d+\.\d+)/i)
 
-                    try {
-                        tizenVersion = parseFloat(global.tizen.systeminfo.getCapability('http://tizen.org/feature/platform.version'));
-                    } catch(e) {}
+                    if (TIZEN_MATCHES && TIZEN_MATCHES[1]) {
+                        tizenVersion = parseFloat(TIZEN_MATCHES[1])
+                    }
 
                     if (!tizenVersion || tizenVersion >= 6) {
                         retrieveExtendedTracks();
