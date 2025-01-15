@@ -58,15 +58,7 @@ function TitanVideo(options) {
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
-    var loadedSubsAudio = false;
     videoElement.onplaying = function() {
-        if (!loadedSubsAudio) {
-            loadedSubsAudio = true;
-            onPropChanged('subtitlesTracks');
-            onPropChanged('selectedSubtitlesTrackId');
-            onPropChanged('audioTracks');
-            onPropChanged('selectedAudioTrackId');
-        }
         onPropChanged('time');
         onPropChanged('buffering');
         onPropChanged('buffered');
@@ -499,6 +491,16 @@ function TitanVideo(options) {
                     }
                 }
 
+                var selectedAudioTrack = getProp('audioTracks')
+                    .find(function(track) {
+                        return track.id === propValue;
+                    });
+
+                if (selectedAudioTrack) {
+                    onPropChanged('selectedAudioTrackId');
+                    events.emit('audioTrackLoaded', selectedAudioTrack);
+                }
+
                 break;
             }
             case 'volume': {
@@ -541,6 +543,24 @@ function TitanVideo(options) {
                     onPropChanged('duration');
                     onPropChanged('buffering');
                     onPropChanged('buffered');
+                    if (videoElement.textTracks) {
+                        videoElement.textTracks.onaddtrack = function() {
+                            videoElement.textTracks.onaddtrack = null;
+                            setTimeout(function() {
+                                onPropChanged('subtitlesTracks');
+                                onPropChanged('selectedSubtitlesTrackId');
+                            });
+                        }
+                    }
+                    if (videoElement.audioTracks) {
+                        videoElement.audioTracks.onaddtrack = function() {
+                            videoElement.audioTracks.onaddtrack = null;
+                            setTimeout(function() {
+                                onPropChanged('audioTracks');
+                                onPropChanged('selectedAudioTrackId');
+                            });
+                        }
+                    }
                     videoElement.src = stream.url;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
