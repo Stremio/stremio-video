@@ -58,7 +58,15 @@ function TitanVideo(options) {
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
+    var loadedSubsAudio = false;
     videoElement.onplaying = function() {
+        if (!loadedSubsAudio) {
+            loadedSubsAudio = true;
+            onPropChanged('subtitlesTracks');
+            onPropChanged('selectedSubtitlesTrackId');
+            onPropChanged('audioTracks');
+            onPropChanged('selectedAudioTrackId');
+        }
         onPropChanged('time');
         onPropChanged('buffering');
         onPropChanged('buffered');
@@ -533,10 +541,6 @@ function TitanVideo(options) {
                     onPropChanged('duration');
                     onPropChanged('buffering');
                     onPropChanged('buffered');
-                    onPropChanged('subtitlesTracks');
-                    onPropChanged('selectedSubtitlesTrackId');
-                    onPropChanged('audioTracks');
-                    onPropChanged('selectedAudioTrackId');
                     videoElement.src = stream.url;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
