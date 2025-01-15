@@ -39,7 +39,6 @@ function selectVideoImplementation(commandArgs, options) {
             return withStreamingServer(withHTMLSubtitles(WebOsVideo));
         }
         if (commandArgs.platform === 'Titan' || commandArgs.platform === 'NetTV') {
-            console.log('selectVideoImplementation using Titan Player with server');
             return withStreamingServer(withHTMLSubtitles(TitanVideo));
         }
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));

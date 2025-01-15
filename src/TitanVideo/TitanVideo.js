@@ -537,7 +537,7 @@ function TitanVideo(options) {
                                 onPropChanged('subtitlesTracks');
                                 onPropChanged('selectedSubtitlesTrackId');
                             });
-                        }
+                        };
                     }
                     if (videoElement.audioTracks) {
                         videoElement.audioTracks.onaddtrack = function() {
@@ -546,7 +546,7 @@ function TitanVideo(options) {
                                 onPropChanged('audioTracks');
                                 onPropChanged('selectedAudioTrackId');
                             });
-                        }
+                        };
                     }
                     videoElement.src = stream.url;
                 } else {
