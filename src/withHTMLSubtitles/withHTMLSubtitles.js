@@ -266,6 +266,7 @@ function withHTMLSubtitles(Video) {
                                     }));
                                 });
                         }
+                        console.log('selectedTrack', selectedTrack);
                         loadSubtitleFromUrl(selectedTrack.url);
                     }
                     renderSubtitles();
