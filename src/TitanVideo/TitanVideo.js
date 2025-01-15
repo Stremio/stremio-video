@@ -176,11 +176,18 @@ function TitanVideo(options) {
                 return Math.floor(time * 1000);
             }
             case 'subtitlesTracks': {
+                console.log('subtitlesTracks 1')
                 if (stream === null) {
+                console.log('subtitlesTracks 2')
                     return [];
                 }
 
+                console.log('subtitlesTracks 3')
+                console.log(videoElement.textTracks)
+                console.log(typeof videoElement.textTracks)
+
                 if (!videoElement.textTracks || !Array.from(videoElement.textTracks).length) {
+                console.log('subtitlesTracks 4')
                     return [];
                 }
 
@@ -252,11 +259,17 @@ function TitanVideo(options) {
                 return styleElement.sheet.cssRules[0].style.textShadow.slice(0, styleElement.sheet.cssRules[0].style.textShadow.indexOf(')') + 1);
             }
             case 'audioTracks': {
+                console.log('audioTracks 1')
                 if (stream === null) {
+                console.log('audioTracks 2')
                     return [];
                 }
 
+                console.log('audioTracks 3')
+                console.log(videoElement.audioTracks)
+                console.log(typeof videoElement.audioTracks)
                 if (!videoElement.audioTracks || !Array.from(videoElement.audioTracks).length) {
+                console.log('audioTracks 4')
                     return [];
                 }
 
