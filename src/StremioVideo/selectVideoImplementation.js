@@ -11,9 +11,6 @@ var withHTMLSubtitles = require('../withHTMLSubtitles');
 var withVideoParams = require('../withVideoParams');
 
 function selectVideoImplementation(commandArgs, options) {
-
-    console.log('selectVideoImplementation platform', commandArgs.platform);
-
     if (!commandArgs.stream || typeof commandArgs.stream.externalUrl === 'string') {
         return null;
     }
@@ -56,7 +53,6 @@ function selectVideoImplementation(commandArgs, options) {
             return withVideoParams(withHTMLSubtitles(WebOsVideo));
         }
         if (commandArgs.platform === 'Titan' || commandArgs.platform === 'NetTV') {
-            console.log('selectVideoImplementation using Titan Player');
             return withVideoParams(withHTMLSubtitles(TitanVideo));
         }
         return withVideoParams(withHTMLSubtitles(HTMLVideo));
