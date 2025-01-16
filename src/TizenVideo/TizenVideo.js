@@ -252,10 +252,19 @@ function TizenVideo(options) {
                                 textTrackLang = extendedTrackData.lang || 'eng';
                             }
                         }
+                        var textTrackLabel = null;
+                        if (((tracksData || {}).subs || []).length) {
+                            var extendedTrackData = tracksData.subs.find(function(el) {
+                                return (el || {}).id-1 === textTrack.index;
+                            });
+                            if (extendedTrackData) {
+                                textTrackLabel = extendedTrackData.label;
+                            }
+                        }
                         textTracks.push({
                             id: textTrackId,
                             lang: textTrackLang,
-                            label: textTrackLang,
+                            label: textTrackLabel,
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: !disabledSubs && textTrackId === currentSubTrack ? 'showing' : 'disabled',
@@ -354,10 +363,19 @@ function TizenVideo(options) {
                                 audioTrackLang = extendedTrackData.lang || 'eng';
                             }
                         }
+                        var audioTrackLabel = null;
+                        if (((tracksData || {}).subs || []).length) {
+                            var extendedTrackData = tracksData.subs.find(function(el) {
+                                return (el || {}).id-1 === audioTrack.index;
+                            });
+                            if (extendedTrackData) {
+                                audioTrackLabel = extendedTrackData.label;
+                            }
+                        }
                         audioTracks.push({
                             id: audioTrackId,
                             lang: audioTrackLang,
-                            label: audioTrackLang,
+                            label: audioTrackLabel,
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',

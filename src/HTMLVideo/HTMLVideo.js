@@ -188,8 +188,8 @@ function HTMLVideo(options) {
                     .map(function(track, index) {
                         return Object.freeze({
                             id: 'EMBEDDED_' + String(index),
-                            lang: track.language,
-                            label: track.label,
+                            lang: track.language.length > 0 ? track.language : null,
+                            label: track.label.length > 0 ? track.label : null,
                             origin: 'EMBEDDED',
                             embedded: true
                         });
