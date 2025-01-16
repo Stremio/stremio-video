@@ -244,21 +244,14 @@ function TizenVideo(options) {
                             extra = JSON.parse(textTrack.extra_info);
                         } catch(e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
-                        if (((tracksData || {}).subs || []).length) {
-                            var extendedTrackData = tracksData.subs.find(function(el) {
-                                return (el || {}).id-1 === textTrack.index;
-                            });
-                            if (extendedTrackData) {
-                                textTrackLang = extendedTrackData.lang || 'eng';
-                            }
-                        }
                         var textTrackLabel = null;
                         if (((tracksData || {}).subs || []).length) {
                             var extendedTrackData = tracksData.subs.find(function(el) {
                                 return (el || {}).id-1 === textTrack.index;
                             });
                             if (extendedTrackData) {
-                                textTrackLabel = extendedTrackData.label;
+                                textTrackLang = extendedTrackData.lang || 'eng';
+                                textTrackLabel = extendedTrackData.label || null;
                             }
                         }
                         textTracks.push({
@@ -355,21 +348,14 @@ function TizenVideo(options) {
                             extra = JSON.parse(audioTrack.extra_info);
                         } catch(e) {}
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
+                        var audioTrackLabel = null;
                         if (((tracksData || {}).audio || []).length) {
                             var extendedTrackData = tracksData.audio.find(function(el) {
                                 return (el || {}).id-1 === audioTrack.index;
                             });
                             if (extendedTrackData) {
                                 audioTrackLang = extendedTrackData.lang || 'eng';
-                            }
-                        }
-                        var audioTrackLabel = null;
-                        if (((tracksData || {}).subs || []).length) {
-                            var extendedTrackData = tracksData.subs.find(function(el) {
-                                return (el || {}).id-1 === audioTrack.index;
-                            });
-                            if (extendedTrackData) {
-                                audioTrackLabel = extendedTrackData.label;
+                                audioTrackLabel = extendedTrackData.label || null;
                             }
                         }
                         audioTracks.push({
