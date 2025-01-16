@@ -192,7 +192,7 @@ function TitanVideo(options) {
                         return Object.freeze({
                             id: 'EMBEDDED_' + String(index),
                             lang: track.language,
-                            label: track.label || track.language,
+                            label: track.label || null,
                             origin: 'EMBEDDED',
                             embedded: true
                         });
@@ -265,7 +265,7 @@ function TitanVideo(options) {
                         return Object.freeze({
                             id: 'EMBEDDED_' + String(index),
                             lang: track.language,
-                            label: track.label || track.language,
+                            label: track.label || null,
                             origin: 'EMBEDDED',
                             embedded: true
                         });

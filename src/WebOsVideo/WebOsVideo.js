@@ -370,7 +370,7 @@ function WebOsVideo(options) {
                         textTracks.push({
                             id: 'EMBEDDED_' + textTrackId,
                             lang: track.lang || 'eng',
-                            label: track.lang || 'eng',
+                            label: track.label || null,
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
@@ -392,7 +392,7 @@ function WebOsVideo(options) {
                         audioTracks.push({
                             id: 'EMBEDDED_' + audioTrackId,
                             lang: track.lang || 'eng',
-                            label: track.lang || 'eng',
+                            label: track.label || null,
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',

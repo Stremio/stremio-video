@@ -189,7 +189,7 @@ function HTMLVideo(options) {
                         return Object.freeze({
                             id: 'EMBEDDED_' + String(index),
                             lang: track.language,
-                            label: track.label,
+                            label: track.label || null,
                             origin: 'EMBEDDED',
                             embedded: true
                         });
