@@ -226,9 +226,9 @@ function withHTMLSubtitles(Video) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
 
-                        function getSubtitlesData() {
-                            if (typeof selectedTrack.url === 'string') {
-                                return fetch(selectedTrack.url)
+                        function getSubtitlesData(track) {
+                            if (typeof track.url === 'string') {
+                                return fetch(track.url)
                                     .then(function(resp) {
                                         if (resp.ok) {
                                             return resp.text();
@@ -238,9 +238,9 @@ function withHTMLSubtitles(Video) {
                                     });
                             }
 
-                            if (selectedTrack.buffer instanceof ArrayBuffer) {
+                            if (track.buffer instanceof ArrayBuffer) {
                                 try {
-                                    const uInt8Array = new Uint8Array(selectedTrack.buffer);
+                                    const uInt8Array = new Uint8Array(track.buffer);
                                     const text = new TextDecoder().decode(uInt8Array);
                                     return Promise.resolve(text);
                                 } catch(e) {
@@ -251,33 +251,41 @@ function withHTMLSubtitles(Video) {
                             return Promise.reject('No `url` or `buffer` field available for this track');
                         }
 
-                        getSubtitlesData()
-                            .then(function(text) {
-                                return subtitlesConverter.convert(text);
-                            })
-                            .then(function(text) {
-                                return subtitlesParser.parse(text);
-                            })
-                            .then(function(result) {
-                                if (selectedTrackId !== selectedTrack.id) {
-                                    return;
-                                }
+                        function loadSubtitles(track, isFallback) {
+                            getSubtitlesData(track)
+                                .then(function(text) {
+                                    return subtitlesConverter.convert(text);
+                                })
+                                .then(function(text) {
+                                    return subtitlesParser.parse(text);
+                                })
+                                .then(function(result) {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
 
-                                cuesByTime = result;
-                                renderSubtitles();
-                                events.emit('extraSubtitlesTrackLoaded', selectedTrack);
-                            })
-                            .catch(function(error) {
-                                if (selectedTrackId !== selectedTrack.id) {
-                                    return;
-                                }
+                                    cuesByTime = result;
+                                    renderSubtitles();
+                                    events.emit('extraSubtitlesTrackLoaded', selectedTrack);
+                                })
+                                .catch(function(error) {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
 
-                                onError(Object.assign({}, ERROR.WITH_HTML_SUBTITLES.LOAD_FAILED, {
-                                    error: error,
-                                    track: selectedTrack,
-                                    critical: false
-                                }));
-                            });
+                                    if (!isFallback && typeof selectedTrack.fallbackUrl === 'string') {
+                                        loadSubtitles(selectedTrack, true);
+                                        return;
+                                    }
+
+                                    onError(Object.assign({}, ERROR.WITH_HTML_SUBTITLES.LOAD_FAILED, {
+                                        error: error,
+                                        track: selectedTrack,
+                                        critical: false
+                                    }));
+                                });
+                        }
+                        loadSubtitles(selectedTrack);
                     }
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
