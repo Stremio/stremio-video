@@ -410,7 +410,7 @@ function withHTMLSubtitles(Video) {
                             .filter(function(track) { return track.local; })
                             .length;
 
-                        tracks.push({
+                        var track = {
                             id: id,
                             url: null,
                             buffer: commandArgs.buffer,
@@ -419,9 +419,12 @@ function withHTMLSubtitles(Video) {
                             origin: 'LOCAL',
                             local: true,
                             embedded: false,
-                        });
+                        };
+
+                        tracks.push(track);
 
                         onPropChanged('extraSubtitlesTracks');
+                        events.emit('extraSubtitlesTrackAdded', track);
                     }
 
                     return true;
@@ -527,7 +530,7 @@ function withHTMLSubtitles(Video) {
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        events: Video.manifest.events.concat(['propValue', 'propChanged', 'error', 'extraSubtitlesTrackLoaded'])
+        events: Video.manifest.events.concat(['propValue', 'propChanged', 'error', 'extraSubtitlesTrackLoaded', 'extraSubtitlesTrackAdded'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };
 
