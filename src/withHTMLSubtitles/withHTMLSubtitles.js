@@ -225,15 +225,34 @@ function withHTMLSubtitles(Video) {
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
-                        function loadSubtitleFromUrl(url, isFallback) {
-                            fetch(url)
-                                .then(function(resp) {
-                                    if (resp.ok) {
-                                        return resp.text();
-                                    }
 
-                                    throw new Error(resp.status + ' (' + resp.statusText + ')');
-                                })
+                        function getSubtitlesData(track) {
+                            if (typeof track.url === 'string') {
+                                return fetch(track.url)
+                                    .then(function(resp) {
+                                        if (resp.ok) {
+                                            return resp.text();
+                                        }
+
+                                        throw new Error(resp.status + ' (' + resp.statusText + ')');
+                                    });
+                            }
+
+                            if (track.buffer instanceof ArrayBuffer) {
+                                try {
+                                    const uInt8Array = new Uint8Array(track.buffer);
+                                    const text = new TextDecoder().decode(uInt8Array);
+                                    return Promise.resolve(text);
+                                } catch(e) {
+                                    return Promise.reject(e);
+                                }
+                            }
+
+                            return Promise.reject('No `url` or `buffer` field available for this track');
+                        }
+
+                        function loadSubtitles(track, isFallback) {
+                            getSubtitlesData(track)
                                 .then(function(text) {
                                     return subtitlesConverter.convert(text);
                                 })
@@ -255,7 +274,7 @@ function withHTMLSubtitles(Video) {
                                     }
 
                                     if (!isFallback && typeof selectedTrack.fallbackUrl === 'string') {
-                                        loadSubtitleFromUrl(selectedTrack.fallbackUrl, true);
+                                        loadSubtitles(selectedTrack, true);
                                         return;
                                     }
 
@@ -266,7 +285,7 @@ function withHTMLSubtitles(Video) {
                                     }));
                                 });
                         }
-                        loadSubtitleFromUrl(selectedTrack.url);
+                        loadSubtitles(selectedTrack);
                     }
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
@@ -374,7 +393,6 @@ function withHTMLSubtitles(Video) {
                             .filter(function(track, index, tracks) {
                                 return track &&
                                     typeof track.id === 'string' &&
-                                    typeof track.url === 'string' &&
                                     typeof track.lang === 'string' &&
                                     typeof track.label === 'string' &&
                                     typeof track.origin === 'string' &&
@@ -382,6 +400,31 @@ function withHTMLSubtitles(Video) {
                                     index === tracks.findIndex(function(t) { return t.id === track.id; });
                             });
                         onPropChanged('extraSubtitlesTracks');
+                    }
+
+                    return true;
+                }
+                case 'addLocalSubtitles': {
+                    if (commandArgs && typeof commandArgs.filename === 'string' && commandArgs.buffer instanceof ArrayBuffer) {
+                        var id = 'LOCAL_' + tracks
+                            .filter(function(track) { return track.local; })
+                            .length;
+
+                        var track = {
+                            id: id,
+                            url: null,
+                            buffer: commandArgs.buffer,
+                            lang: 'local',
+                            label: commandArgs.filename,
+                            origin: 'LOCAL',
+                            local: true,
+                            embedded: false,
+                        };
+
+                        tracks.push(track);
+
+                        onPropChanged('extraSubtitlesTracks');
+                        events.emit('extraSubtitlesTrackAdded', track);
                     }
 
                     return true;
@@ -485,9 +528,9 @@ function withHTMLSubtitles(Video) {
         external: Video.manifest.external,
         props: Video.manifest.props.concat(['extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks'])
+        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        events: Video.manifest.events.concat(['propValue', 'propChanged', 'error', 'extraSubtitlesTrackLoaded'])
+        events: Video.manifest.events.concat(['propValue', 'propChanged', 'error', 'extraSubtitlesTrackLoaded', 'extraSubtitlesTrackAdded'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
     };
 
