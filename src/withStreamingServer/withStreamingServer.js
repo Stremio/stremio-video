@@ -259,6 +259,8 @@ function withStreamingServer(Video) {
                                 commandArgs: Object.assign({}, commandArgs, {
                                     tracks: commandArgs.tracks.map(function(track) {
                                         return Object.assign({}, track, {
+                                            // fallback is used in case server conversion fails (if server is offline)
+                                            fallbackUrl: track.url,
                                             url: typeof track.url === 'string' ?
                                                 url.resolve(loadArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
                                                 :

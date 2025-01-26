@@ -225,40 +225,48 @@ function withHTMLSubtitles(Video) {
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
-                        fetch(selectedTrack.url)
-                            .then(function(resp) {
-                                if (resp.ok) {
-                                    return resp.text();
-                                }
+                        function loadSubtitleFromUrl(url, isFallback) {
+                            fetch(url)
+                                .then(function(resp) {
+                                    if (resp.ok) {
+                                        return resp.text();
+                                    }
 
-                                throw new Error(resp.status + ' (' + resp.statusText + ')');
-                            })
-                            .then(function(text) {
-                                return subtitlesConverter.convert(text);
-                            })
-                            .then(function(text) {
-                                return subtitlesParser.parse(text);
-                            })
-                            .then(function(result) {
-                                if (selectedTrackId !== selectedTrack.id) {
-                                    return;
-                                }
+                                    throw new Error(resp.status + ' (' + resp.statusText + ')');
+                                })
+                                .then(function(text) {
+                                    return subtitlesConverter.convert(text);
+                                })
+                                .then(function(text) {
+                                    return subtitlesParser.parse(text);
+                                })
+                                .then(function(result) {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
 
-                                cuesByTime = result;
-                                renderSubtitles();
-                                events.emit('extraSubtitlesTrackLoaded', selectedTrack);
-                            })
-                            .catch(function(error) {
-                                if (selectedTrackId !== selectedTrack.id) {
-                                    return;
-                                }
+                                    cuesByTime = result;
+                                    renderSubtitles();
+                                    events.emit('extraSubtitlesTrackLoaded', selectedTrack);
+                                })
+                                .catch(function(error) {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
 
-                                onError(Object.assign({}, ERROR.WITH_HTML_SUBTITLES.LOAD_FAILED, {
-                                    error: error,
-                                    track: selectedTrack,
-                                    critical: false
-                                }));
-                            });
+                                    if (!isFallback && typeof selectedTrack.fallbackUrl === 'string') {
+                                        loadSubtitleFromUrl(selectedTrack.fallbackUrl, true);
+                                        return;
+                                    }
+
+                                    onError(Object.assign({}, ERROR.WITH_HTML_SUBTITLES.LOAD_FAILED, {
+                                        error: error,
+                                        track: selectedTrack,
+                                        critical: false
+                                    }));
+                                });
+                        }
+                        loadSubtitleFromUrl(selectedTrack.url);
                     }
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
