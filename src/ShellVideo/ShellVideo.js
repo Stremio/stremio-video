@@ -189,8 +189,8 @@ function ShellVideo(options) {
                     .map(function(x, index) {
                         return {
                             id: 'EMBEDDED_' + x.id,
-                            lang: x.lang === undefined ? 'Track ' + (index + 1) : x.lang,
-                            label: x.title === undefined || x.lang === undefined ? '' : x.title || x.lang,
+                            lang: x.lang === undefined ? 'Other Tracks' : x.lang,
+                            label: x.title || x.lang || '',
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: x.id === props.sid ? 'showing' : 'disabled',
