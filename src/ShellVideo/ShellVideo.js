@@ -342,15 +342,13 @@ function ShellVideo(options) {
                         // opengl-cb is an alias for the new name "libmpv", as shown in mpv's video/out/vo.c aliases
                         // opengl is an alias for the new name "gpu"
                         // When on Windows we use d3d for the rendering in separate window
-                        if (window.qt && (!window.chrome || !window.chrome.webview)) {
-                            var windowRenderer = navigator.platform === 'Win32' ? 'direct3d' : 'opengl';
-                            var videoOutput = options.mpvSeparateWindow ? windowRenderer : 'opengl-cb';
-                            var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
-                            ipc.send('mpv-set-prop', ['vo', videoOutput]);
-                            ipc.send('mpv-set-prop', ['osc', separateWindow]);
-                            ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
-                            ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
-                        }
+                        var windowRenderer = navigator.platform === 'Win32' ? 'direct3d' : 'opengl';
+                        var videoOutput = options.mpvSeparateWindow ? windowRenderer : 'opengl-cb';
+                        var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
+                        ipc.send('mpv-set-prop', ['vo', videoOutput]);
+                        ipc.send('mpv-set-prop', ['osc', separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
 
                         var startAt = Math.floor(parseInt(commandArgs.time, 10) / 1000) || 0;
                         if (startAt !== 0) {
