@@ -123,7 +123,6 @@ function ShellVideo(options) {
                 break;
             }
             case 'duration': {
-                setBackground(false);
                 var intDuration = args.data | 0;
                 // Accumulate average duration over time. if it is greater than minClipDuration
                 // and equal to the currently reported duration, it is returned as video length.
@@ -138,7 +137,10 @@ function ShellVideo(options) {
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
                 props.loaded = intDuration > 0;
-                if(props.loaded) onPropChanged('loaded');
+                if(props.loaded) {
+                    setBackground(false);
+                    onPropChanged('loaded');
+                }
                 break;
             }
             case 'time-pos': {
