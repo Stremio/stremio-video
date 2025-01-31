@@ -347,10 +347,10 @@ function ShellVideo(options) {
                         var windowRenderer = navigator.platform === 'Win32' ? 'direct3d' : 'opengl';
                         var videoOutput = options.mpvSeparateWindow ? windowRenderer : 'opengl-cb';
                         var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
-                        ipc.send('mpv-set-prop', ['vo', videoOutput]);
+                        ipc.send('mpv-set-prop', ['vo', window.chrome && window.chrome.webview ? 'gpu-next' : videoOutput]);
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
-                        ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
-                        ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-default-bindings', window.chrome && window.chrome.webview ? 'yes' : separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-vo-keyboard', window.chrome && window.chrome.webview ? 'yes' : separateWindow]);
 
                         var startAt = Math.floor(parseInt(commandArgs.time, 10) / 1000) || 0;
                         if (startAt !== 0) {
