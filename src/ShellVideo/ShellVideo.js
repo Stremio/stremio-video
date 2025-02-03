@@ -198,8 +198,8 @@ function ShellVideo(options) {
                         return {
                             id: 'EMBEDDED_' + x.id,
                             lang: x.lang === undefined ? 'Other Tracks' : x.lang,
-                            label: x.title.replace('External', '') || x.lang || '',
-                            origin: x.title.includes("External") ? 'External' : 'EMBEDDED',
+                            label: x.title.includes("External") ? x.lang : (x.title || x.lang || ''),
+                            origin: x.title.includes("External") ? x.title.replace('External', '') : 'EMBEDDED',
                             embedded: true,
                             mode: x.id === props.sid ? 'showing' : 'disabled',
                         };
