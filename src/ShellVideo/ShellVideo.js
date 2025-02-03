@@ -21,6 +21,7 @@ var stremioToMPVProps = {
     'selectedSubtitlesTrackId': 'sid',
     'subtitlesSize': 'sub-scale',
     'subtitlesOffset': 'sub-pos',
+    'subtitlesDelay': 'sub-delay',
     'subtitlesTextColor': 'sub-color',
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
@@ -78,6 +79,7 @@ function ShellVideo(options) {
     ipc.send('mpv-observe-prop', 'sid');
     ipc.send('mpv-observe-prop', 'sub-scale');
     ipc.send('mpv-observe-prop', 'sub-pos');
+    ipc.send('mpv-observe-prop', 'sub-delay');
     ipc.send('mpv-observe-prop', 'speed');
 
     ipc.send('mpv-observe-prop', 'mpv-version');
@@ -153,6 +155,10 @@ function ShellVideo(options) {
             }
             case 'sub-pos': {
                 props[args.name] = 100 - args.data;
+                break;
+            }
+            case 'sub-delay': {
+                props[args.name] = Math.round(args.data*1000);
                 break;
             }
             case 'paused-for-cache':
@@ -309,6 +315,10 @@ function ShellVideo(options) {
             }
             case 'subtitlesSize': {
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue * SUBS_SCALE_FACTOR]);
+                break;
+            }
+            case 'subtitlesDelay': {
+                ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue]);
                 break;
             }
             case 'subtitlesOffset': {
