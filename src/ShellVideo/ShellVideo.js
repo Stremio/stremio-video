@@ -20,6 +20,8 @@ var stremioToMPVProps = {
     'subtitlesTracks': 'subtitlesTracks',
     'selectedSubtitlesTrackId': 'sid',
     'subtitlesSize': 'sub-scale',
+    'subtitlesOffset': 'sub-pos',
+    'subtitlesDelay': 'sub-delay',
     'subtitlesTextColor': 'sub-color',
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
@@ -77,6 +79,7 @@ function ShellVideo(options) {
     ipc.send('mpv-observe-prop', 'sid');
     ipc.send('mpv-observe-prop', 'sub-scale');
     ipc.send('mpv-observe-prop', 'sub-pos');
+    ipc.send('mpv-observe-prop', 'sub-delay');
     ipc.send('mpv-observe-prop', 'speed');
 
     ipc.send('mpv-observe-prop', 'mpv-version');
@@ -122,7 +125,6 @@ function ShellVideo(options) {
                 break;
             }
             case 'duration': {
-                setBackground(false);
                 var intDuration = args.data | 0;
                 // Accumulate average duration over time. if it is greater than minClipDuration
                 // and equal to the currently reported duration, it is returned as video length.
@@ -137,7 +139,10 @@ function ShellVideo(options) {
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
                 props.loaded = intDuration > 0;
-                if(props.loaded) onPropChanged('loaded');
+                if(props.loaded) {
+                    setBackground(false);
+                    onPropChanged('loaded');
+                }
                 break;
             }
             case 'time-pos': {
@@ -146,6 +151,14 @@ function ShellVideo(options) {
             }
             case 'sub-scale': {
                 props[args.name] = Math.round(args.data / SUBS_SCALE_FACTOR);
+                break;
+            }
+            case 'sub-pos': {
+                props[args.name] = 100 - args.data;
+                break;
+            }
+            case 'sub-delay': {
+                props[args.name] = Math.round(args.data*1000);
                 break;
             }
             case 'paused-for-cache':
@@ -304,8 +317,12 @@ function ShellVideo(options) {
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue * SUBS_SCALE_FACTOR]);
                 break;
             }
-            case 'subtitlesOffset': {
+            case 'subtitlesDelay': {
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue]);
+                break;
+            }
+            case 'subtitlesOffset': {
+                ipc.send('mpv-set-prop', [stremioToMPVProps[propName], 100 - propValue]);
                 break;
             }
             case 'subtitlesTextColor':
@@ -346,7 +363,7 @@ function ShellVideo(options) {
                         var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['vo', videoOutput]);
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
-                        ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-default-bindings', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
 
                         var startAt = Math.floor(parseInt(commandArgs.time, 10) / 1000) || 0;
