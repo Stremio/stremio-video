@@ -334,6 +334,10 @@ function ShellVideo(options) {
 
                         ipc.send('mpv-set-prop', ['no-sub-ass']);
 
+                        // Hardware decoding
+                        var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
+                        ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
+
                         // opengl-cb is an alias for the new name "libmpv", as shown in mpv's video/out/vo.c aliases
                         // opengl is an alias for the new name "gpu"
                         // When on Windows we use d3d for the rendering in separate window
