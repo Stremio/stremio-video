@@ -342,7 +342,7 @@ function ShellVideo(options) {
                         var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['vo', videoOutput]);
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
-                        ipc.send('mpv-set-prop', ['input-defalt-bindings', separateWindow]);
+                        ipc.send('mpv-set-prop', ['input-default-bindings', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
 
                         var startAt = Math.floor(parseInt(commandArgs.time, 10) / 1000) || 0;
