@@ -66,6 +66,9 @@ function StremioVideo() {
                     video.on('extraSubtitlesTrackLoaded', function(track) {
                         events.emit('extraSubtitlesTrackLoaded', track);
                     });
+                    video.on('extraSubtitlesTrackAdded', function(track) {
+                        events.emit('extraSubtitlesTrackAdded', track);
+                    });
                     if (Video.manifest.external) {
                         video.on('implementationChanged', function(manifest) {
                             events.emit('implementationChanged', manifest);
