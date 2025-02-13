@@ -226,9 +226,11 @@ function withHTMLSubtitles(Video) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
 
-                        function getSubtitlesData(track) {
-                            if (typeof track.url === 'string') {
-                                return fetch(track.url)
+                        function getSubtitlesData(track, isFallback) {
+                            var url = isFallback ? track.fallbackUrl : track.url;
+
+                            if (typeof url === 'string') {
+                                return fetch(url)
                                     .then(function(resp) {
                                         if (resp.ok) {
                                             return resp.text();
@@ -252,7 +254,7 @@ function withHTMLSubtitles(Video) {
                         }
 
                         function loadSubtitles(track, isFallback) {
-                            getSubtitlesData(track)
+                            getSubtitlesData(track, isFallback)
                                 .then(function(text) {
                                     return subtitlesConverter.convert(text);
                                 })
