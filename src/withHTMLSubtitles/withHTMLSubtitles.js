@@ -227,7 +227,7 @@ function withHTMLSubtitles(Video) {
                         delay = 0;
 
                         function getSubtitlesData(track, isFallback) {
-                            var url = isFallback ? selectedTrack.fallbackUrl : track.url;
+                            var url = isFallback ? track.fallbackUrl : track.url;
 
                             if (typeof url === 'string') {
                                 return fetch(url)
