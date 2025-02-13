@@ -171,6 +171,7 @@ function TitanVideo(options) {
         cueNode.style.color = textColor;
         cueNode.style.backgroundColor = backgroundColor;
         cueNode.style.textShadow = '1px 1px 0.1em ' + outlineColor;
+        cueNode.style.whiteSpace = 'pre-wrap';
 
         subtitlesElement.appendChild(cueNode);
         subtitlesElement.appendChild(document.createElement('br'));
@@ -466,6 +467,7 @@ function TitanVideo(options) {
             }
             case 'time': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
+                    renderSubtitle('', 'hide');
                     videoElement.currentTime = parseInt(propValue, 10) / 1000;
                     onPropChanged('time');
                 }
