@@ -41,48 +41,39 @@ function TitanVideo(options) {
     };
     videoElement.ontimeupdate = function() {
         onPropChanged('time');
-        onPropChanged('buffered');
     };
     videoElement.ondurationchange = function() {
         onPropChanged('duration');
     };
     videoElement.onwaiting = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onseeking = function() {
         onPropChanged('time');
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onseeked = function() {
         onPropChanged('time');
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onstalled = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onplaying = function() {
         onPropChanged('time');
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.oncanplay = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.canplaythrough = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onloadedmetadata = function() {
         onPropChanged('loaded');
     };
     videoElement.onloadeddata = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onvolumechange = function() {
         onPropChanged('volume');
@@ -118,7 +109,6 @@ function TitanVideo(options) {
         time: false,
         duration: false,
         buffering: false,
-        buffered: false,
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false,
         subtitlesOffset: false,
@@ -240,20 +230,6 @@ function TitanVideo(options) {
                 }
 
                 return videoElement.readyState < videoElement.HAVE_FUTURE_DATA;
-            }
-            case 'buffered': {
-                if (stream === null) {
-                    return null;
-                }
-
-                var time = videoElement.currentTime !== null && isFinite(videoElement.currentTime) ? videoElement.currentTime : 0;
-                for (var i = 0; i < videoElement.buffered.length; i++) {
-                    if (videoElement.buffered.start(i) <= time && time <= videoElement.buffered.end(i)) {
-                        return Math.floor(videoElement.buffered.end(i) * 1000);
-                    }
-                }
-
-                return Math.floor(time * 1000);
             }
             case 'subtitlesTracks': {
                 if (stream === null) {
@@ -637,7 +613,6 @@ function TitanVideo(options) {
                     onPropChanged('time');
                     onPropChanged('duration');
                     onPropChanged('buffering');
-                    onPropChanged('buffered');
                     if (videoElement.textTracks) {
                         videoElement.textTracks.onaddtrack = function() {
                             videoElement.textTracks.onaddtrack = null;
@@ -679,7 +654,6 @@ function TitanVideo(options) {
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
-                onPropChanged('buffered');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
                 onPropChanged('audioTracks');
@@ -766,7 +740,7 @@ TitanVideo.canPlayStream = function(stream) {
 TitanVideo.manifest = {
     name: 'TitanVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
