@@ -21,9 +21,6 @@ function TitanVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
-    var styleElement = document.createElement('style');
-    containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: rgb(34, 34, 34) 1px 1px 0.1em; }');
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -717,7 +714,6 @@ function TitanVideo(options) {
                 videoElement.onratechange = null;
                 videoElement.textTracks.onchange = null;
                 containerElement.removeChild(videoElement);
-                containerElement.removeChild(styleElement);
                 break;
             }
         }
