@@ -466,6 +466,9 @@ function TitanVideo(options) {
                         .find(function(track) {
                             return track.id === propValue;
                         });
+
+                    renderSubtitle('', 'hide');
+
                     if (selectedSubtitlesTrack) {
                         onPropChanged('selectedSubtitlesTrackId');
                         events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
