@@ -157,8 +157,7 @@ function TitanVideo(options) {
         cueNode.innerHTML = text;
         cueNode.style.display = 'inline-block';
         cueNode.style.padding = '0.2em';
-        var fontSizeMultiplier = window.screen720p ? 1.538 : 1
-        cueNode.style.fontSize = Math.floor((size / 25) * fontSizeMultiplier) + 'vmin';
+        cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
         cueNode.style.color = textColor;
         cueNode.style.backgroundColor = backgroundColor;
         cueNode.style.textShadow = '1px 1px 0.1em ' + outlineColor;
