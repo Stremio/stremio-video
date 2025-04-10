@@ -103,6 +103,7 @@ function HTMLVideo(options) {
     var destroyed = false;
     var stream = null;
     var subtitlesOffset = 0;
+    var subtitlesOpacity = 1;
     var observedProps = {
         stream: false,
         loaded: false,
@@ -243,6 +244,13 @@ function HTMLVideo(options) {
                 }
 
                 return styleElement.sheet.cssRules[0].style.textShadow.slice(0, styleElement.sheet.cssRules[0].style.textShadow.indexOf(')') + 1);
+            }
+            case 'subtitlesOpacity': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return Math.round(subtitlesOpacity * 100);
             }
             case 'audioTracks': {
                 if (hls === null || !Array.isArray(hls.audioTracks)) {
@@ -460,6 +468,21 @@ function HTMLVideo(options) {
 
                 break;
             }
+            case 'subtitlesOpacity': {
+                if (typeof propValue === 'number') {
+                    try {
+                        subtitlesOpacity = Math.min(Math.max(propValue / 100, 0), 1);
+                        styleElement.sheet.cssRules[0].style.opacity = subtitlesOpacity + '';
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error('VVideo with HTML Subtitles', error);
+                    }
+
+                    onPropChanged('subtitlesOpacity');
+                }
+
+                break;
+            }
             case 'selectedAudioTrackId': {
                 if (hls !== null) {
                     var selecterdAudioTrack = getProp('audioTracks')
@@ -591,6 +614,7 @@ function HTMLVideo(options) {
                 onPropChanged('subtitlesTextColor');
                 onPropChanged('subtitlesBackgroundColor');
                 onPropChanged('subtitlesOutlineColor');
+                onPropChanged('subtitlesOpacity');
                 onPropChanged('volume');
                 onPropChanged('muted');
                 onPropChanged('playbackSpeed');
@@ -671,7 +695,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
