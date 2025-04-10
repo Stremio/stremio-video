@@ -81,7 +81,8 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
                 cueNode.style.whiteSpace = 'pre-wrap';
-                cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
+                var fontSizeMultiplier = window.screen720p ? 1.538 : 1;
+                cueNode.style.fontSize = Math.floor((size / 25) * fontSizeMultiplier) + 'vmin';
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
                 cueNode.style.textShadow = '1px 1px 0.1em ' + outlineColor;
