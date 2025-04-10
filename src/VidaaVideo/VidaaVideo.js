@@ -1,13 +1,11 @@
 var EventEmitter = require('eventemitter3');
-var Hls = require('hls.js');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
-var Color = require('color');
 var ERROR = require('../error');
-var getContentType = require('./getContentType');
-var HLS_CONFIG = require('./hlsConfig');
 
-function HTMLVideo(options) {
+var SSA_DESCRIPTORS_REGEX = /^\{(\\an[1-8])+\}/i;
+
+function VidaaVideo(options) {
     options = options || {};
 
     var containerElement = options.containerElement;
@@ -15,9 +13,6 @@ function HTMLVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
-    var styleElement = document.createElement('style');
-    containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: rgb(34, 34, 34) 1px 1px 0.1em; }');
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -38,48 +33,39 @@ function HTMLVideo(options) {
     };
     videoElement.ontimeupdate = function() {
         onPropChanged('time');
-        onPropChanged('buffered');
     };
     videoElement.ondurationchange = function() {
         onPropChanged('duration');
     };
     videoElement.onwaiting = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onseeking = function() {
         onPropChanged('time');
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onseeked = function() {
         onPropChanged('time');
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onstalled = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onplaying = function() {
         onPropChanged('time');
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.oncanplay = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.canplaythrough = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onloadedmetadata = function() {
         onPropChanged('loaded');
     };
     videoElement.onloadeddata = function() {
         onPropChanged('buffering');
-        onPropChanged('buffered');
     };
     videoElement.onvolumechange = function() {
         onPropChanged('volume');
@@ -98,12 +84,20 @@ function HTMLVideo(options) {
     };
     containerElement.appendChild(videoElement);
 
-    var hls = null;
+    var subtitlesElement = document.createElement('div');
+    subtitlesElement.style.position = 'absolute';
+    subtitlesElement.style.right = '0';
+    subtitlesElement.style.bottom = '0';
+    subtitlesElement.style.left = '0';
+    subtitlesElement.style.zIndex = '1';
+    subtitlesElement.style.textAlign = 'center';
+    containerElement.style.position = 'relative';
+    containerElement.style.zIndex = '0';
+    containerElement.appendChild(subtitlesElement);
+
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
-    var subtitlesOffset = 0;
-    var subtitlesOpacity = 1;
     var observedProps = {
         stream: false,
         loaded: false,
@@ -111,14 +105,8 @@ function HTMLVideo(options) {
         time: false,
         duration: false,
         buffering: false,
-        buffered: false,
         subtitlesTracks: false,
         selectedSubtitlesTrackId: false,
-        subtitlesOffset: false,
-        subtitlesSize: false,
-        subtitlesTextColor: false,
-        subtitlesBackgroundColor: false,
-        subtitlesOutlineColor: false,
         audioTracks: false,
         selectedAudioTrackId: false,
         volume: false,
@@ -166,20 +154,6 @@ function HTMLVideo(options) {
 
                 return videoElement.readyState < videoElement.HAVE_FUTURE_DATA;
             }
-            case 'buffered': {
-                if (stream === null) {
-                    return null;
-                }
-
-                var time = videoElement.currentTime !== null && isFinite(videoElement.currentTime) ? videoElement.currentTime : 0;
-                for (var i = 0; i < videoElement.buffered.length; i++) {
-                    if (videoElement.buffered.start(i) <= time && time <= videoElement.buffered.end(i)) {
-                        return Math.floor(videoElement.buffered.end(i) * 1000);
-                    }
-                }
-
-                return Math.floor(time * 1000);
-            }
             case 'subtitlesTracks': {
                 if (stream === null) {
                     return [];
@@ -210,82 +184,44 @@ function HTMLVideo(options) {
                         return result;
                     }, null);
             }
-            case 'subtitlesOffset': {
-                if (destroyed) {
-                    return null;
-                }
-
-                return subtitlesOffset;
-            }
-            case 'subtitlesSize': {
-                if (destroyed) {
-                    return null;
-                }
-
-                return parseInt(styleElement.sheet.cssRules[0].style.fontSize, 10) * 25;
-            }
-            case 'subtitlesTextColor': {
-                if (destroyed) {
-                    return null;
-                }
-
-                return styleElement.sheet.cssRules[0].style.color;
-            }
-            case 'subtitlesBackgroundColor': {
-                if (destroyed) {
-                    return null;
-                }
-
-                return styleElement.sheet.cssRules[0].style.backgroundColor;
-            }
-            case 'subtitlesOutlineColor': {
-                if (destroyed) {
-                    return null;
-                }
-
-                return styleElement.sheet.cssRules[0].style.textShadow.slice(0, styleElement.sheet.cssRules[0].style.textShadow.indexOf(')') + 1);
-            }
-            case 'subtitlesOpacity': {
-                if (destroyed) {
-                    return null;
-                }
-
-                return Math.round(subtitlesOpacity * 100);
-            }
             case 'audioTracks': {
-                if (hls === null || !Array.isArray(hls.audioTracks)) {
+                if (stream === null) {
                     return [];
                 }
 
-                return hls.audioTracks
-                    .map(function(track) {
+                if (!videoElement.audioTracks || !Array.from(videoElement.audioTracks).length) {
+                    return [];
+                }
+
+                return Array.from(videoElement.audioTracks)
+                    .map(function(track, index) {
                         return Object.freeze({
-                            id: 'EMBEDDED_' + String(track.id),
-                            lang: typeof track.lang === 'string' && track.lang.length > 0 ?
-                                track.lang
-                                :
-                                typeof track.name === 'string' && track.name.length > 0 ?
-                                    track.name
-                                    :
-                                    String(track.id),
-                            label: typeof track.name === 'string' && track.name.length > 0 ?
-                                track.name
-                                :
-                                typeof track.lang === 'string' && track.lang.length > 0 ?
-                                    track.lang
-                                    :
-                                    String(track.id),
+                            id: 'EMBEDDED_' + String(index),
+                            lang: track.language,
+                            label: track.label || null,
                             origin: 'EMBEDDED',
                             embedded: true
                         });
                     });
             }
             case 'selectedAudioTrackId': {
-                if (hls === null || hls.audioTrack === null || !isFinite(hls.audioTrack) || hls.audioTrack === -1) {
+
+                if (stream === null) {
                     return null;
                 }
 
-                return 'EMBEDDED_' + String(hls.audioTrack);
+                if (!videoElement.audioTracks || !Array.from(videoElement.audioTracks).length) {
+                    return null;
+                }
+
+                return Array.from(videoElement.audioTracks)
+                    .reduce(function(result, track, index) {
+                        if (result === null && track.enabled) {
+                            return 'EMBEDDED_' + String(index);
+                        }
+
+                        return result;
+                    }, null);
             }
             case 'volume': {
                 if (destroyed || videoElement.volume === null || !isFinite(videoElement.volume)) {
@@ -317,7 +253,7 @@ function HTMLVideo(options) {
         Array.from(videoElement.textTracks).forEach(function(track) {
             Array.from(track.cues || []).forEach(function(cue) {
                 cue.snapToLines = false;
-                cue.line = 100 - subtitlesOffset;
+                cue.line = 100;
             });
         });
     }
@@ -409,91 +345,21 @@ function HTMLVideo(options) {
 
                 break;
             }
-            case 'subtitlesOffset': {
-                if (propValue !== null && isFinite(propValue)) {
-                    subtitlesOffset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
-                    onCueChange();
-                    onPropChanged('subtitlesOffset');
-                }
-
-                break;
-            }
-            case 'subtitlesSize': {
-                if (propValue !== null && isFinite(propValue)) {
-                    styleElement.sheet.cssRules[0].style.fontSize = Math.floor(Math.max(0, parseInt(propValue, 10)) / 25) + 'vmin';
-                    onPropChanged('subtitlesSize');
-                }
-
-                break;
-            }
-            case 'subtitlesTextColor': {
-                if (typeof propValue === 'string') {
-                    try {
-                        styleElement.sheet.cssRules[0].style.color = Color(propValue).rgb().string();
-                    } catch (error) {
-                        // eslint-disable-next-line no-console
-                        console.error('HTMLVideo', error);
-                    }
-
-                    onPropChanged('subtitlesTextColor');
-                }
-
-                break;
-            }
-            case 'subtitlesBackgroundColor': {
-                if (typeof propValue === 'string') {
-                    try {
-                        styleElement.sheet.cssRules[0].style.backgroundColor = Color(propValue).rgb().string();
-                    } catch (error) {
-                        // eslint-disable-next-line no-console
-                        console.error('HTMLVideo', error);
-                    }
-
-                    onPropChanged('subtitlesBackgroundColor');
-                }
-
-                break;
-            }
-            case 'subtitlesOutlineColor': {
-                if (typeof propValue === 'string') {
-                    try {
-                        styleElement.sheet.cssRules[0].style.textShadow = Color(propValue).rgb().string() + ' 1px 1px 0.1em';
-                    } catch (error) {
-                        // eslint-disable-next-line no-console
-                        console.error('HTMLVideo', error);
-                    }
-
-                    onPropChanged('subtitlesOutlineColor');
-                }
-
-                break;
-            }
-            case 'subtitlesOpacity': {
-                if (typeof propValue === 'number') {
-                    try {
-                        subtitlesOpacity = Math.min(Math.max(propValue / 100, 0), 1);
-                        styleElement.sheet.cssRules[0].style.opacity = subtitlesOpacity + '';
-                    } catch (error) {
-                        // eslint-disable-next-line no-console
-                        console.error('VVideo with HTML Subtitles', error);
-                    }
-
-                    onPropChanged('subtitlesOpacity');
-                }
-
-                break;
-            }
             case 'selectedAudioTrackId': {
-                if (hls !== null) {
-                    var selecterdAudioTrack = getProp('audioTracks')
-                        .find(function(track) {
-                            return track.id === propValue;
-                        });
-                    hls.audioTrack = selecterdAudioTrack ? parseInt(selecterdAudioTrack.id.split('_').pop(), 10) : -1;
-                    if (selecterdAudioTrack) {
-                        onPropChanged('selectedAudioTrackId');
-                        events.emit('audioTrackLoaded', selecterdAudioTrack);
+                if (stream !== null) {
+                    for (var index = 0; index < videoElement.audioTracks.length; index++) {
+                        videoElement.audioTracks[index].enabled = !!('EMBEDDED_' + String(index) === propValue);
                     }
+                }
+
+                var selectedAudioTrack = getProp('audioTracks')
+                    .find(function(track) {
+                        return track.id === propValue;
+                    });
+
+                if (selectedAudioTrack) {
+                    onPropChanged('selectedAudioTrackId');
+                    events.emit('audioTrackLoaded', selectedAudioTrack);
                 }
 
                 break;
@@ -537,40 +403,25 @@ function HTMLVideo(options) {
                     onPropChanged('time');
                     onPropChanged('duration');
                     onPropChanged('buffering');
-                    onPropChanged('buffered');
-                    onPropChanged('subtitlesTracks');
-                    onPropChanged('selectedSubtitlesTrackId');
-                    onPropChanged('audioTracks');
-                    onPropChanged('selectedAudioTrackId');
-                    getContentType(stream)
-                        .then(function(contentType) {
-                            if (stream !== commandArgs.stream) {
-                                return;
-                            }
-
-                            if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
-                                hls = new Hls(HLS_CONFIG);
-                                hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
-                                    onPropChanged('audioTracks');
-                                    onPropChanged('selectedAudioTrackId');
-                                });
-                                hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
-                                    onPropChanged('audioTracks');
-                                    onPropChanged('selectedAudioTrackId');
-                                });
-                                hls.loadSource(stream.url);
-                                hls.attachMedia(videoElement);
-                            } else {
-                                videoElement.src = stream.url;
-                            }
-                        })
-                        .catch(function() {
-                            if (stream !== commandArgs.stream) {
-                                return;
-                            }
-
-                            videoElement.src = stream.url;
-                        });
+                    if (videoElement.textTracks) {
+                        videoElement.textTracks.onaddtrack = function() {
+                            videoElement.textTracks.onaddtrack = null;
+                            setTimeout(function() {
+                                onPropChanged('subtitlesTracks');
+                                onPropChanged('selectedSubtitlesTrackId');
+                            });
+                        };
+                    }
+                    if (videoElement.audioTracks) {
+                        videoElement.audioTracks.onaddtrack = function() {
+                            videoElement.audioTracks.onaddtrack = null;
+                            setTimeout(function() {
+                                onPropChanged('audioTracks');
+                                onPropChanged('selectedAudioTrackId');
+                            });
+                        };
+                    }
+                    videoElement.src = stream.url;
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
@@ -584,12 +435,6 @@ function HTMLVideo(options) {
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;
                 });
-                if (hls !== null) {
-                    hls.removeAllListeners();
-                    hls.detachMedia(videoElement);
-                    hls.destroy();
-                    hls = null;
-                }
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
@@ -599,7 +444,6 @@ function HTMLVideo(options) {
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
-                onPropChanged('buffered');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
                 onPropChanged('audioTracks');
@@ -609,12 +453,6 @@ function HTMLVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
-                onPropChanged('subtitlesOffset');
-                onPropChanged('subtitlesSize');
-                onPropChanged('subtitlesTextColor');
-                onPropChanged('subtitlesBackgroundColor');
-                onPropChanged('subtitlesOutlineColor');
-                onPropChanged('subtitlesOpacity');
                 onPropChanged('volume');
                 onPropChanged('muted');
                 onPropChanged('playbackSpeed');
@@ -637,7 +475,6 @@ function HTMLVideo(options) {
                 videoElement.onratechange = null;
                 videoElement.textTracks.onchange = null;
                 containerElement.removeChild(videoElement);
-                containerElement.removeChild(styleElement);
                 break;
             }
         }
@@ -677,27 +514,20 @@ function HTMLVideo(options) {
     };
 }
 
-HTMLVideo.canPlayStream = function(stream) {
-    if (!stream || (stream.behaviorHints && stream.behaviorHints.notWebReady)) {
+VidaaVideo.canPlayStream = function(stream) {
+    if (!stream) {
         return Promise.resolve(false);
     }
 
-    return getContentType(stream)
-        .then(function(contentType) {
-            var video = document.createElement('video');
-            return !!video.canPlayType(contentType) || (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported());
-        })
-        .catch(function() {
-            return false;
-        });
+    return Promise.resolve(true);
 };
 
-HTMLVideo.manifest = {
-    name: 'HTMLVideo',
+VidaaVideo.manifest = {
+    name: 'VidaaVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'volume', 'muted', 'playbackSpeed'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
 
-module.exports = HTMLVideo;
+module.exports = VidaaVideo;
