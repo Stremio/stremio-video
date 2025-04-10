@@ -398,7 +398,6 @@ function ShellVideo(options) {
                         onPropChanged('time');
                         onPropChanged('duration');
                         onPropChanged('buffering');
-                        onPropChanged('volume');
                         onPropChanged('muted');
                         onPropChanged('subtitlesTracks');
                         onPropChanged('selectedSubtitlesTrackId');
@@ -431,7 +430,6 @@ function ShellVideo(options) {
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
-                onPropChanged('volume');
                 onPropChanged('muted');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
