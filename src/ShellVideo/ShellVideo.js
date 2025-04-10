@@ -161,6 +161,13 @@ function ShellVideo(options) {
                 props[args.name] = Math.round(args.data*1000);
                 break;
             }
+            case 'volume': {
+                if (typeof args.data === 'number' && isFinite(args.data)) {
+                    props[args.name] = args.data;
+                    onPropChanged('volume');
+                }
+                break;
+            }
             case 'paused-for-cache':
             case 'seeking':
             {
@@ -391,7 +398,6 @@ function ShellVideo(options) {
                         onPropChanged('time');
                         onPropChanged('duration');
                         onPropChanged('buffering');
-                        onPropChanged('volume');
                         onPropChanged('muted');
                         onPropChanged('subtitlesTracks');
                         onPropChanged('selectedSubtitlesTrackId');
@@ -424,7 +430,6 @@ function ShellVideo(options) {
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
-                onPropChanged('volume');
                 onPropChanged('muted');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
