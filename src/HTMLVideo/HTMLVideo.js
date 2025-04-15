@@ -457,7 +457,8 @@ function HTMLVideo(options) {
             case 'subtitlesOutlineColor': {
                 if (typeof propValue === 'string') {
                     try {
-                        styleElement.sheet.cssRules[0].style.textShadow = Color(propValue).rgb().string() + ' 1px 1px 0.1em';
+                        var outlineColor = Color(propValue).rgb().string();
+                        styleElement.sheet.cssRules[0].style.textShadow = '-0.05em -0.05em 0.05em ' + outlineColor + ', 0px -0.05em 0.05em ' + outlineColor + ', 0.05em -0.05em 0.05em ' + outlineColor + ', -0.05em 0px 0.05em ' + outlineColor + ', 0.05em 0px 0.05em ' + outlineColor + ', -0.05em 0.05em 0.05em ' + outlineColor + ', 0px 0.05em 0.05em ' + outlineColor + ', 0.05em 0.05em 0.05em ' + outlineColor;
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
