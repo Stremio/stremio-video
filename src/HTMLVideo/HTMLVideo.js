@@ -17,7 +17,7 @@ function HTMLVideo(options) {
 
     var styleElement = document.createElement('style');
     containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: rgb(34, 34, 34) 1px 1px 0.1em; }');
+    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }');
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -458,7 +458,7 @@ function HTMLVideo(options) {
                 if (typeof propValue === 'string') {
                     try {
                         var outlineColor = Color(propValue).rgb().string();
-                        styleElement.sheet.cssRules[0].style.textShadow = '-0.05em -0.05em 0.05em ' + outlineColor + ', 0px -0.05em 0.05em ' + outlineColor + ', 0.05em -0.05em 0.05em ' + outlineColor + ', -0.05em 0px 0.05em ' + outlineColor + ', 0.05em 0px 0.05em ' + outlineColor + ', -0.05em 0.05em 0.05em ' + outlineColor + ', 0px 0.05em 0.05em ' + outlineColor + ', 0.05em 0.05em 0.05em ' + outlineColor;
+                        styleElement.sheet.cssRules[0].style.textShadow = '-0.15rem -0.15rem 0.15rem ' + outlineColor + ', 0px -0.15rem 0.15rem ' + outlineColor + ', 0.15rem -0.15rem 0.15rem ' + outlineColor + ', -0.15rem 0px 0.15rem ' + outlineColor + ', 0.15rem 0px 0.15rem ' + outlineColor + ', -0.15rem 0.15rem 0.15rem ' + outlineColor + ', 0px 0.15rem 0.15rem ' + outlineColor + ', 0.15rem 0.15rem 0.15rem ' + outlineColor;
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);

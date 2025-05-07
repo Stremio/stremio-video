@@ -95,7 +95,7 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.fontSize = Math.floor((size / 25) * fontSizeMultiplier) + 'vmin';
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
-                cueNode.style.textShadow = '-0.05em -0.05em 0.05em ' + outlineColor + ', 0px -0.05em 0.05em ' + outlineColor + ', 0.05em -0.05em 0.05em ' + outlineColor + ', -0.05em 0px 0.05em ' + outlineColor + ', 0.05em 0px 0.05em ' + outlineColor + ', -0.05em 0.05em 0.05em ' + outlineColor + ', 0px 0.05em 0.05em ' + outlineColor + ', 0.05em 0.05em 0.05em ' + outlineColor;
+                cueNode.style.textShadow = '-0.15rem -0.15rem 0.15rem ' + outlineColor + ', 0px -0.15rem 0.15rem ' + outlineColor + ', 0.15rem -0.15rem 0.15rem ' + outlineColor + ', -0.15rem 0px 0.15rem ' + outlineColor + ', 0.15rem 0px 0.15rem ' + outlineColor + ', -0.15rem 0.15rem 0.15rem ' + outlineColor + ', 0px 0.15rem 0.15rem ' + outlineColor + ', 0.15rem 0.15rem 0.15rem ' + outlineColor;
                 subtitlesElement.appendChild(cueNode);
                 subtitlesElement.appendChild(document.createElement('br'));
             });
