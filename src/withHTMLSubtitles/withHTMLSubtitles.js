@@ -51,10 +51,8 @@ function withHTMLSubtitles(Video) {
         var size = 100;
         var offset = 0;
         var textColor = 'rgb(255, 255, 255)';
-
+        var backgroundColor = 'rgba(0, 0, 0, 0)';
         var outlineColor = 'rgb(34, 34, 34)';
-        var backgroundColor = outlineColor;
-
         var opacity = 1;
 
         var observedProps = {
