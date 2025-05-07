@@ -52,15 +52,8 @@ function withHTMLSubtitles(Video) {
         var offset = 0;
         var textColor = 'rgb(255, 255, 255)';
 
-        var subsBgStyle = 1;
         var outlineColor = 'rgb(34, 34, 34)';
-        // Calculate the #c010r. First slice the # and cast to int
-        var intColor = parseInt(outlineColor.slice(1), 16);
-        var backgroundColor = 'rgba(' +
-            ((intColor >> 16) & 255) + ', ' + // Red
-            ((intColor >> 8) & 255) + ', ' + // Green
-            (intColor & 255) + ', ' + // Blue
-            subsBgStyle + ')'; // Alpha
+        var backgroundColor = outlineColor;
 
         var opacity = 1;
 
