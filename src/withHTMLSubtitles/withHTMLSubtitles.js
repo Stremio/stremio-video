@@ -54,6 +54,7 @@ function withHTMLSubtitles(Video) {
         var backgroundColor = 'rgba(0, 0, 0, 0)';
         var outlineColor = 'rgb(34, 34, 34)';
         var opacity = 1;
+
         var observedProps = {
             extraSubtitlesTracks: false,
             selectedExtraSubtitlesTrackId: false,
@@ -85,7 +86,7 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.fontSize = Math.floor((size / 25) * fontSizeMultiplier) + 'vmin';
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
-                cueNode.style.textShadow = '1px 1px 0.1em ' + outlineColor;
+                cueNode.style.textShadow = '-0.15rem -0.15rem 0.15rem ' + outlineColor + ', 0px -0.15rem 0.15rem ' + outlineColor + ', 0.15rem -0.15rem 0.15rem ' + outlineColor + ', -0.15rem 0px 0.15rem ' + outlineColor + ', 0.15rem 0px 0.15rem ' + outlineColor + ', -0.15rem 0.15rem 0.15rem ' + outlineColor + ', 0px 0.15rem 0.15rem ' + outlineColor + ', 0.15rem 0.15rem 0.15rem ' + outlineColor;
                 subtitlesElement.appendChild(cueNode);
                 subtitlesElement.appendChild(document.createElement('br'));
             });
