@@ -90,6 +90,8 @@ function ShellVideo(options) {
     var stream = null;
     // Flag to track intentional navigation (next video button)
     var isNavigating = false;
+    // Safety mechanism to prevent multiple ended events
+    var endedEventProcessed = false;
 
     var avgDuration = 0;
     var minClipDuration = 30;
@@ -232,17 +234,18 @@ function ShellVideo(options) {
         }
     });
     ipc.on('mpv-event-ended', function(args) {
-        console.log('[ShellVideo] mpv-event-ended received', { error: !!args.error, isNavigating: isNavigating });
+        console.log('[ShellVideo] mpv-event-ended received', { error: !!args.error, isNavigating: isNavigating, endedEventProcessed: endedEventProcessed });
         
         if (args.error) {
             console.log('[ShellVideo] Error in mpv-event-ended:', args.error);
             onError(args.error);
         }
-        else if (!isNavigating) {
+        else if (!isNavigating && !endedEventProcessed) {
             console.log('[ShellVideo] Natural video end detected, calling onEnded()');
+            endedEventProcessed = true; // Mark as processed to prevent duplicates
             onEnded();
         } else {
-            console.log('[ShellVideo] Navigating in progress, skipping onEnded call');
+            console.log('[ShellVideo] Skipping onEnded call - isNavigating:', isNavigating, 'endedEventProcessed:', endedEventProcessed);
         }
     });
 
@@ -367,6 +370,8 @@ function ShellVideo(options) {
         switch (commandName) {
             case 'load': {
                 command('unload');
+                // Reset ended event flag when loading new content
+                endedEventProcessed = false;
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     waitForMPVVersion.then(function (mpvVersion) {
                         stream = commandArgs.stream;
@@ -438,6 +443,7 @@ function ShellVideo(options) {
                     aid: null,
                     sid: null,
                 };
+                // Do not reset isNavigating flag on unload to preserve it during navigation
                 avgDuration = 0;
                 ipc.send('mpv-command', ['stop']);
                 onPropChanged('loaded');
@@ -455,6 +461,9 @@ function ShellVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
+                // Reset flags when destroying to avoid stale state
+                isNavigating = false;
+                endedEventProcessed = false;
                 events.removeAllListeners();
                 break;
             }
@@ -464,6 +473,11 @@ function ShellVideo(options) {
                 if (commandArgs && commandArgs.isNavigating !== undefined) {
                     console.log('[ShellVideo] Setting isNavigating flag from', isNavigating, 'to', commandArgs.isNavigating);
                     isNavigating = commandArgs.isNavigating;
+                    
+                    // If we're starting navigation, reset the ended event flag
+                    if (commandArgs.isNavigating) {
+                        endedEventProcessed = false;
+                    }
                 }
                 break;
             }
