@@ -88,10 +88,9 @@ function ShellVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
-    // Flag to track intentional navigation (next video button)
+    // Flag to track if we're currently in a navigation initiated by the application
     var isNavigating = false;
-    // Safety mechanism to prevent multiple ended events
-    var endedEventProcessed = false;
+
 
     var avgDuration = 0;
     var minClipDuration = 30;
@@ -234,18 +233,18 @@ function ShellVideo(options) {
         }
     });
     ipc.on('mpv-event-ended', function(args) {
-        console.log('[ShellVideo] mpv-event-ended received', { error: !!args.error, isNavigating: isNavigating, endedEventProcessed: endedEventProcessed });
+        console.log('[ShellVideo] mpv-event-ended received', { error: !!args.error, isNavigating: isNavigating });
         
         if (args.error) {
             console.log('[ShellVideo] Error in mpv-event-ended:', args.error);
             onError(args.error);
         }
-        else if (!isNavigating && !endedEventProcessed) {
+        // Only process ended event if we're not in a navigation initiated by the app
+        else if (!isNavigating) {
             console.log('[ShellVideo] Natural video end detected, calling onEnded()');
-            endedEventProcessed = true; // Mark as processed to prevent duplicates
             onEnded();
         } else {
-            console.log('[ShellVideo] Skipping onEnded call - isNavigating:', isNavigating, 'endedEventProcessed:', endedEventProcessed);
+            console.log('[ShellVideo] In navigation, ignoring mpv-event-ended');
         }
     });
 
@@ -369,9 +368,12 @@ function ShellVideo(options) {
         
         switch (commandName) {
             case 'load': {
+                // Set isNavigating to true during the load operation to prevent processing ended events
+                var wasNavigating = isNavigating;
+                isNavigating = true;
+                
                 command('unload');
-                // Reset ended event flag when loading new content
-                endedEventProcessed = false;
+                
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     waitForMPVVersion.then(function (mpvVersion) {
                         stream = commandArgs.stream;
@@ -422,8 +424,13 @@ function ShellVideo(options) {
                         onPropChanged('muted');
                         onPropChanged('subtitlesTracks');
                         onPropChanged('selectedSubtitlesTrackId');
+                        
+                        // Reset isNavigating to its previous state once the load is complete
+                        // This allows normal ended events to be processed after load if we weren't in a navigation
+                        isNavigating = wasNavigating;
                     });
                 } else {
+                    isNavigating = wasNavigating;
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
                         stream: commandArgs ? commandArgs.stream : null
@@ -443,7 +450,6 @@ function ShellVideo(options) {
                     aid: null,
                     sid: null,
                 };
-                // Do not reset isNavigating flag on unload to preserve it during navigation
                 avgDuration = 0;
                 ipc.send('mpv-command', ['stop']);
                 onPropChanged('loaded');
@@ -461,23 +467,15 @@ function ShellVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
-                // Reset flags when destroying to avoid stale state
-                isNavigating = false;
-                endedEventProcessed = false;
                 events.removeAllListeners();
                 break;
             }
-            // Track when navigating to next video
+            // Set the navigation state
             case 'captureEndingData': {
                 console.log('[ShellVideo] captureEndingData called with args:', commandArgs);
                 if (commandArgs && commandArgs.isNavigating !== undefined) {
                     console.log('[ShellVideo] Setting isNavigating flag from', isNavigating, 'to', commandArgs.isNavigating);
                     isNavigating = commandArgs.isNavigating;
-                    
-                    // If we're starting navigation, reset the ended event flag
-                    if (commandArgs.isNavigating) {
-                        endedEventProcessed = false;
-                    }
                 }
                 break;
             }
