@@ -232,8 +232,18 @@ function ShellVideo(options) {
         }
     });
     ipc.on('mpv-event-ended', function(args) {
-        if (args.error) onError(args.error);
-        else if (!isNavigating) onEnded(); // Only trigger onEnded if not manually navigating
+        console.log('[ShellVideo] mpv-event-ended received', { error: !!args.error, isNavigating: isNavigating });
+        
+        if (args.error) {
+            console.log('[ShellVideo] Error in mpv-event-ended:', args.error);
+            onError(args.error);
+        }
+        else if (!isNavigating) {
+            console.log('[ShellVideo] Natural video end detected, calling onEnded()');
+            onEnded();
+        } else {
+            console.log('[ShellVideo] Navigating in progress, skipping onEnded call');
+        }
     });
 
     function getProp(propName) {
@@ -243,12 +253,14 @@ function ShellVideo(options) {
         return null;
     }
     function onError(error) {
+        console.log('[ShellVideo] onError called:', error);
         events.emit('error', error);
         if (error.critical) {
             command('unload');
         }
     }
     function onEnded() {
+        console.log('[ShellVideo] onEnded called - emitting ended event');
         events.emit('ended');
     }
     function onPropChanged(propName) {
@@ -350,6 +362,8 @@ function ShellVideo(options) {
         }
     }
     function command(commandName, commandArgs) {
+        console.log('[ShellVideo] command called:', commandName, commandArgs ? { ...commandArgs, stream: commandArgs.stream ? '(stream object)' : null } : null);
+        
         switch (commandName) {
             case 'load': {
                 command('unload');
@@ -446,7 +460,9 @@ function ShellVideo(options) {
             }
             // Track when navigating to next video
             case 'captureEndingData': {
+                console.log('[ShellVideo] captureEndingData called with args:', commandArgs);
                 if (commandArgs && commandArgs.isNavigating !== undefined) {
+                    console.log('[ShellVideo] Setting isNavigating flag from', isNavigating, 'to', commandArgs.isNavigating);
                     isNavigating = commandArgs.isNavigating;
                 }
                 break;
