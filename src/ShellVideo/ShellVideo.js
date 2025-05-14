@@ -88,6 +88,8 @@ function ShellVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
+    // Flag to track intentional navigation (next video button)
+    var isNavigating = false;
 
     var avgDuration = 0;
     var minClipDuration = 30;
@@ -231,7 +233,7 @@ function ShellVideo(options) {
     });
     ipc.on('mpv-event-ended', function(args) {
         if (args.error) onError(args.error);
-        else onEnded();
+        else if (!isNavigating) onEnded(); // Only trigger onEnded if not manually navigating
     });
 
     function getProp(propName) {
@@ -442,6 +444,13 @@ function ShellVideo(options) {
                 events.removeAllListeners();
                 break;
             }
+            // Track when navigating to next video
+            case 'captureEndingData': {
+                if (commandArgs && commandArgs.isNavigating !== undefined) {
+                    isNavigating = commandArgs.isNavigating;
+                }
+                break;
+            }
         }
     }
 
@@ -487,7 +496,7 @@ ShellVideo.manifest = {
     name: 'ShellVideo',
     external: false,
     props: Object.keys(stremioToMPVProps),
-    commands: ['load', 'unload', 'destroy'],
+    commands: ['load', 'unload', 'destroy', 'captureEndingData'],
     events: [
         'propValue',
         'propChanged',
