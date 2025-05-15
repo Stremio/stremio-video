@@ -5,6 +5,9 @@ var ERROR = require('../error');
 
 var SUBS_SCALE_FACTOR = 0.0066;
 
+// Minimum time between ended events (in milliseconds)
+var ENDED_EVENT_DEBOUNCE = 1000;
+
 var stremioToMPVProps = {
     'loaded': 'loaded',
     'stream': null,
@@ -88,30 +91,12 @@ function ShellVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
+    
+    // Timestamp of the last processed ended event - used to debounce multiple events
+    var lastEndedEventTime = 0;
 
     var avgDuration = 0;
     var minClipDuration = 30;
-
-    function setBackground(visible) {
-        // This is a bit of a hack but there is no better way so far
-        var bg = visible ? '' : 'transparent';
-        for(var container = options.containerElement; container; container = container.parentElement) {
-            container.style.background = bg;
-        }
-        if (((window || {}).document || {}).getElementsByTagName) {
-            var body = window.document.getElementsByTagName('body');
-            if ((body || [])[0]) {
-                body[0].style.background = bg;
-            }
-        }
-    }
-    function logProp(args) {
-        // eslint-disable-next-line no-console
-        console.log(args.name+': '+args.data);
-    }
-    function embeddedProp(args) {
-        return args.data ? 'EMBEDDED_' + args.data.toString() : null;
-    }
 
     var last_time = 0;
     ipc.on('mpv-prop-change', function(args) {
@@ -230,8 +215,36 @@ function ShellVideo(options) {
         }
     });
     ipc.on('mpv-event-ended', function(args) {
-        if (args.error) onError(args.error);
-        else onEnded();
+        // Don't process events if component is destroyed
+        if (destroyed) {
+            console.log('[ShellVideo] Ignoring event - component destroyed');
+            return;
+        }
+        
+        var now = Date.now();
+        var timeSinceLastEnded = now - lastEndedEventTime;
+        
+        console.log('[ShellVideo] mpv-event-ended received', { 
+            error: !!args.error, 
+            destroyed: destroyed,
+            timeSinceLastEnded: timeSinceLastEnded + 'ms',
+            debounceActive: timeSinceLastEnded < ENDED_EVENT_DEBOUNCE
+        });
+        
+        if (args.error) {
+            console.log('[ShellVideo] Error in mpv-event-ended:', args.error);
+            onError(args.error);
+            return;
+        }
+        
+        // Simple debounce to prevent multiple ended events
+        if (timeSinceLastEnded > ENDED_EVENT_DEBOUNCE) {
+            console.log('[ShellVideo] Processing video end, calling onEnded()');
+            lastEndedEventTime = now; // Update timestamp
+            onEnded();
+        } else {
+            console.log('[ShellVideo] Ignoring duplicate ended event (debounce active)');
+        }
     });
 
     function getProp(propName) {
@@ -241,12 +254,14 @@ function ShellVideo(options) {
         return null;
     }
     function onError(error) {
+        console.log('[ShellVideo] onError called:', error);
         events.emit('error', error);
         if (error.critical) {
             command('unload');
         }
     }
     function onEnded() {
+        console.log('[ShellVideo] onEnded called - emitting ended event');
         events.emit('ended');
     }
     function onPropChanged(propName) {
@@ -348,9 +363,12 @@ function ShellVideo(options) {
         }
     }
     function command(commandName, commandArgs) {
+        console.log('[ShellVideo] command called:', commandName, commandArgs ? { ...commandArgs, stream: commandArgs.stream ? '(stream object)' : null } : null);
+        
         switch (commandName) {
             case 'load': {
                 command('unload');
+                
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     waitForMPVVersion.then(function (mpvVersion) {
                         stream = commandArgs.stream;
@@ -442,6 +460,11 @@ function ShellVideo(options) {
                 events.removeAllListeners();
                 break;
             }
+            case 'captureEndingData': {
+                // No longer needed, but keep for logging
+                console.log('[ShellVideo] captureEndingData called with args:', commandArgs);
+                break;
+            }
         }
     }
 
@@ -487,7 +510,7 @@ ShellVideo.manifest = {
     name: 'ShellVideo',
     external: false,
     props: Object.keys(stremioToMPVProps),
-    commands: ['load', 'unload', 'destroy'],
+    commands: ['load', 'unload', 'destroy', 'captureEndingData'],
     events: [
         'propValue',
         'propChanged',
