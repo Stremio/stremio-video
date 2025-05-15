@@ -5,6 +5,9 @@ var ERROR = require('../error');
 
 var SUBS_SCALE_FACTOR = 0.0066;
 
+// Minimum time between ended events (in milliseconds)
+var ENDED_EVENT_DEBOUNCE = 3000;
+
 var stremioToMPVProps = {
     'loaded': 'loaded',
     'stream': null,
@@ -90,10 +93,24 @@ function ShellVideo(options) {
     var stream = null;
     // Flag to track if we're currently in a navigation initiated by the application
     var isNavigating = false;
-
+    // Flag to indicate that navigation to a new page has begun - once set to true,
+    // it should never be reset during this page's lifecycle
+    var navigationInProgress = false;
+    
+    // Timestamp of the last processed ended event - used to debounce multiple events
+    var lastEndedEventTime = 0;
 
     var avgDuration = 0;
     var minClipDuration = 30;
+
+    // Add a handler for the mpv-disable-events command
+    if (ipc) {
+        ipc.on('mpv-disable-events', function() {
+            console.log('[ShellVideo] Received mpv-disable-events command from shell');
+            navigationInProgress = true;
+            console.log('[ShellVideo] Set navigationInProgress to true - all future events will be ignored');
+        });
+    }
 
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
@@ -233,18 +250,43 @@ function ShellVideo(options) {
         }
     });
     ipc.on('mpv-event-ended', function(args) {
-        console.log('[ShellVideo] mpv-event-ended received', { error: !!args.error, isNavigating: isNavigating });
+        // Critical fix: If navigation to another page has started, ignore ALL events
+        if (navigationInProgress) {
+            console.log('[ShellVideo] Ignoring event - navigation to new page in progress');
+            return;
+        }
+        
+        var now = Date.now();
+        var timeSinceLastEnded = now - lastEndedEventTime;
+        
+        console.log('[ShellVideo] mpv-event-ended received', { 
+            error: !!args.error, 
+            isNavigating: isNavigating,
+            navigationInProgress: navigationInProgress,
+            timeSinceLastEnded: timeSinceLastEnded + 'ms',
+            debounceActive: timeSinceLastEnded < ENDED_EVENT_DEBOUNCE
+        });
         
         if (args.error) {
             console.log('[ShellVideo] Error in mpv-event-ended:', args.error);
             onError(args.error);
+            return;
         }
-        // Only process ended event if we're not in a navigation initiated by the app
-        else if (!isNavigating) {
-            console.log('[ShellVideo] Natural video end detected, calling onEnded()');
+        
+        // Critical fix: Debounce multiple ended events that MPV sends in quick succession
+        // Only process the event if:
+        // 1. We're not in a navigation AND
+        // 2. We haven't processed an ended event recently
+        if (!isNavigating && timeSinceLastEnded > ENDED_EVENT_DEBOUNCE) {
+            console.log('[ShellVideo] Processing natural video end, calling onEnded()');
+            lastEndedEventTime = now; // Update timestamp
             onEnded();
         } else {
-            console.log('[ShellVideo] In navigation, ignoring mpv-event-ended');
+            if (isNavigating) {
+                console.log('[ShellVideo] Ignoring ended event during navigation');
+            } else {
+                console.log('[ShellVideo] Ignoring duplicate ended event (debounce active)');
+            }
         }
     });
 
@@ -467,6 +509,9 @@ function ShellVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
+                // Reset all state
+                isNavigating = false;
+                lastEndedEventTime = 0;
                 events.removeAllListeners();
                 break;
             }
@@ -476,6 +521,14 @@ function ShellVideo(options) {
                 if (commandArgs && commandArgs.isNavigating !== undefined) {
                     console.log('[ShellVideo] Setting isNavigating flag from', isNavigating, 'to', commandArgs.isNavigating);
                     isNavigating = commandArgs.isNavigating;
+                    
+                    // Critical fix: If we're starting navigation with a next video,
+                    // set the permanent navigationInProgress flag
+                    if (commandArgs.isNavigating && commandArgs.nextVideo) {
+                        console.log('[ShellVideo] Setting navigationInProgress to TRUE - will ignore all future events');
+                        navigationInProgress = true;
+                        lastEndedEventTime = Date.now();
+                    }
                 }
                 break;
             }
