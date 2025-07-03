@@ -110,7 +110,7 @@ function ShellVideo(options) {
         console.log(args.name+': '+args.data);
     }
     function embeddedProp(args) {
-        return args.data ? 'EMBEDDED_' + args.data.toString() : null;
+        return args.data && args.data !== 'no' ? 'EMBEDDED_' + args.data.toString() : null;
     }
 
     var last_time = 0;
