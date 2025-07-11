@@ -253,11 +253,11 @@ function HTMLVideo(options) {
                 return Math.round(subtitlesOpacity * 100);
             }
             case 'audioTracks': {
-                if (hls === null || !Array.isArray(hls.audioTracks)) {
+                if (hls === null || !Array.isArray(hls.audioTrackController.tracks)) {
                     return [];
                 }
 
-                return hls.audioTracks
+                return hls.audioTrackController.tracks
                     .map(function(track) {
                         return Object.freeze({
                             id: 'EMBEDDED_' + String(track.id),
@@ -281,11 +281,11 @@ function HTMLVideo(options) {
                     });
             }
             case 'selectedAudioTrackId': {
-                if (hls === null || hls.audioTrack === null || !isFinite(hls.audioTrack) || hls.audioTrack === -1) {
+                if (hls === null || hls.audioTrackController.currentTrack.id === null || !isFinite(hls.audioTrackController.currentTrack.id) || hls.audioTrackController.currentTrack.id === -1) {
                     return null;
                 }
 
-                return 'EMBEDDED_' + String(hls.audioTrack);
+                return 'EMBEDDED_' + String(hls.audioTrackController.currentTrack.id);
             }
             case 'volume': {
                 if (destroyed || videoElement.volume === null || !isFinite(videoElement.volume)) {
