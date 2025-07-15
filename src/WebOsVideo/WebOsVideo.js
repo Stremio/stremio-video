@@ -398,7 +398,9 @@ function WebOsVideo(options) {
                             mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
                         });
                     });
-                    currentAudioTrack = 'EMBEDDED_0';
+                    if (!currentAudioTrack) {
+                        currentAudioTrack = 'EMBEDDED_0';
+                    }
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
                 }
