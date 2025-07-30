@@ -86,7 +86,7 @@ function HTMLVideo(options) {
         onPropChanged('volume');
         onPropChanged('muted');
     };
-    videoElement.onratechange = function(ev) {
+    videoElement.onratechange = function() {
         onPropChanged('playbackSpeed');
     };
     videoElement.textTracks.onchange = function() {
@@ -562,10 +562,10 @@ function HTMLVideo(options) {
                                 });
                                 hls.loadSource(stream.url);
                                 hls.attachMedia(videoElement);
-                                videoElement.playbackRate = commandArgs.playbackSpeed ?? 1;
                             } else {
                                 videoElement.src = stream.url;
                             }
+                            videoElement.playbackRate = commandArgs.playbackSpeed !== null && isFinite(commandArgs.playbackSpeed) ? parseInt(commandArgs.playbackSpeed, 10) : 1;
                         })
                         .catch(function() {
                             if (stream !== commandArgs.stream) {
