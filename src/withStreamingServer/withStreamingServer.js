@@ -378,7 +378,7 @@ function withStreamingServer(Video) {
                         });
 
                         // HTML5 video doesn't support multiple audio tracks, so we can't switch languages
-                        const supportedAudioTracks = supportedStreams.filter((stream) => stream.track === 'audio' && options.audioCodecs.includes(stream.codec));
+                        const supportedAudioTracks = probe.streams.filter((stream) => stream.track === 'audio' && options.audioCodecs.includes(stream.codec));
 
                         return isFormatSupported && areStreamsSupported && supportedAudioTracks.length < 2;
                     })
