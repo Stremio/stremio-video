@@ -24,6 +24,7 @@ function HTMLVideo(options) {
     videoElement.style.backgroundColor = 'black';
     videoElement.controls = false;
     videoElement.playsInline = true;
+
     videoElement.onerror = function() {
         onVideoError();
     };
@@ -85,7 +86,7 @@ function HTMLVideo(options) {
         onPropChanged('volume');
         onPropChanged('muted');
     };
-    videoElement.onratechange = function() {
+    videoElement.onratechange = function(ev) {
         onPropChanged('playbackSpeed');
     };
     videoElement.textTracks.onchange = function() {
@@ -561,6 +562,7 @@ function HTMLVideo(options) {
                                 });
                                 hls.loadSource(stream.url);
                                 hls.attachMedia(videoElement);
+                                videoElement.playbackRate = commandArgs.playbackSpeed ?? 1;
                             } else {
                                 videoElement.src = stream.url;
                             }
