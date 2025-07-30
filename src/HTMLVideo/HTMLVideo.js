@@ -24,6 +24,7 @@ function HTMLVideo(options) {
     videoElement.style.backgroundColor = 'black';
     videoElement.controls = false;
     videoElement.playsInline = true;
+
     videoElement.onerror = function() {
         onVideoError();
     };
@@ -564,6 +565,7 @@ function HTMLVideo(options) {
                             } else {
                                 videoElement.src = stream.url;
                             }
+                            videoElement.playbackRate = commandArgs.playbackSpeed !== null && isFinite(commandArgs.playbackSpeed) ? parseInt(commandArgs.playbackSpeed, 10) : 1;
                         })
                         .catch(function() {
                             if (stream !== commandArgs.stream) {
