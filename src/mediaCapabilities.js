@@ -49,7 +49,7 @@ var AUDIO_CODEC_CONFIGS = [
 ];
 
 function canPlay(config, options) {
-    return config.force || options.mediaElement.canPlayType(config.mime)
+    return config.force || typeof options.mediaElement.canPlayType === 'function' && options.mediaElement.canPlayType(config.mime)
         ? [config.codec].concat(config.aliases || [])
         : [];
 }
