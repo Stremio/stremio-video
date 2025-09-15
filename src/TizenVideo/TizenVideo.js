@@ -4,7 +4,6 @@ var deepFreeze = require('deep-freeze');
 var Color = require('color');
 var ERROR = require('../error');
 var getTracksData = require('../tracksData');
-var createAVPlay = require('./AVPlay');
 
 var SSA_DESCRIPTORS_REGEX = /^\{(\\an[1-8])+\}/i;
 
@@ -21,7 +20,7 @@ function TizenVideo(options) {
         throw new Error('Container element required to be instance of HTMLElement');
     }
 
-    var AVPlay = createAVPlay(options.transport);
+    var AVPlay = window.webapis.avplay;
 
     var promiseAudioTrackChange = false;
 
@@ -41,17 +40,17 @@ function TizenVideo(options) {
     var lastSub;
     var disabledSubs = false;
 
-    async function refreshSubtitle() {
+    function refreshSubtitle() {
         if (lastSub) {
-            var currentTime = await getProp('time');
+            var currentTime = getProp('time');
             var lastSubDurationDiff = lastSub.duration - (currentTime - lastSub.now);
             if (lastSubDurationDiff > 0) renderSubtitle(lastSubDurationDiff, lastSub.text);
         }
     }
 
-    async function renderSubtitle(duration, text) {
+    function renderSubtitle(duration, text) {
         if (disabledSubs) return;
-        var now = await getProp('time');
+        var now = getProp('time');
         var cleanedText = text.replace(SSA_DESCRIPTORS_REGEX, '');
 
         // we ignore custom delay here, it's not needed for embedded subs
@@ -178,7 +177,7 @@ function TizenVideo(options) {
         }
     }
 
-    async function getProp(propName) {
+    function getProp(propName) {
         switch (propName) {
             case 'stream': {
                 return stream;
@@ -191,7 +190,7 @@ function TizenVideo(options) {
                     return null;
                 }
 
-                var state = await AVPlay.getState();
+                var state = AVPlay.getState();
                 var isPaused = !!(state === 'PAUSED');
 
                 if (!isPaused && promiseAudioTrackChange) {
@@ -202,7 +201,7 @@ function TizenVideo(options) {
                 return isPaused;
             }
             case 'time': {
-                var currentTime = await AVPlay.getCurrentTime();
+                var currentTime = AVPlay.getCurrentTime();
                 if (stream === null || currentTime === null || !isFinite(currentTime)) {
                     return null;
                 }
@@ -210,7 +209,7 @@ function TizenVideo(options) {
                 return Math.floor(currentTime);
             }
             case 'duration': {
-                var duration = await AVPlay.getDuration();
+                var duration = AVPlay.getDuration();
                 if (stream === null || duration === null || !isFinite(duration)) {
                     return null;
                 }
@@ -229,7 +228,7 @@ function TizenVideo(options) {
                     return [];
                 }
 
-                var totalTrackInfo = await AVPlay.getTotalTrackInfo();
+                var totalTrackInfo = AVPlay.getTotalTrackInfo();
                 var textTracks = [];
 
                 for (var i = 0; i < totalTrackInfo.length; i++) {
@@ -272,7 +271,7 @@ function TizenVideo(options) {
                     return null;
                 }
 
-                var currentTracks = await AVPlay.getCurrentStreamInfo();
+                var currentTracks = AVPlay.getCurrentStreamInfo();
                 var currentIndex;
 
                 for (var i = 0; i < currentTracks.length; i++) {
@@ -333,7 +332,7 @@ function TizenVideo(options) {
                     return [];
                 }
 
-                var totalTrackInfo = await AVPlay.getTotalTrackInfo();
+                var totalTrackInfo = AVPlay.getTotalTrackInfo();
                 var audioTracks = [];
 
                 for (var i = 0; i < totalTrackInfo.length; i++) {
@@ -380,7 +379,7 @@ function TizenVideo(options) {
                     return promiseAudioTrackChange;
                 }
 
-                var currentTracks = await AVPlay.getCurrentStreamInfo();
+                var currentTracks = AVPlay.getCurrentStreamInfo();
                 var currentIndex = false;
 
                 for (var i = 0; i < currentTracks.length; i++) {
@@ -414,20 +413,20 @@ function TizenVideo(options) {
     function onEnded() {
         events.emit('ended');
     }
-    async function onPropChanged(propName) {
+    function onPropChanged(propName) {
         if (observedProps[propName]) {
-            var propValue = await getProp(propName);
+            var propValue = getProp(propName);
             events.emit('propChanged', propName, propValue);
         }
     }
-    async function observeProp(propName) {
+    function observeProp(propName) {
         if (observedProps.hasOwnProperty(propName)) {
-            var propValue = await getProp(propName);
+            var propValue = getProp(propName);
             events.emit('propValue', propName, propValue);
             observedProps[propName] = true;
         }
     }
-    async function setProp(propName, propValue) {
+    function setProp(propName, propValue) {
         switch (propName) {
             case 'paused': {
                 if (stream !== null) {
@@ -446,10 +445,10 @@ function TizenVideo(options) {
 
                 // the paused state is usually correct, but i have seen it not change on tizen 3
                 // which causes all kinds of issues in the UI: (only happens with some videos)
-                var lastKnownProp = await getProp('paused');
+                var lastKnownProp = getProp('paused');
 
-                setTimeout(async function() {
-                    if (await getProp('paused') !== lastKnownProp) {
+                setTimeout(function() {
+                    if (getProp('paused') !== lastKnownProp) {
                         onPropChanged('paused');
                     }
                 }, 1000);
@@ -478,7 +477,7 @@ function TizenVideo(options) {
 
                         currentSubTrack = propValue;
 
-                        var subtitlesTracks = await getProp('subtitlesTracks');
+                        var subtitlesTracks = getProp('subtitlesTracks');
                         var selectedSubtitlesTrack = subtitlesTracks
                             .find(function(track) {
                                 return track.id === propValue;
@@ -584,13 +583,13 @@ function TizenVideo(options) {
                 if (stream !== null) {
                     currentAudioTrack = propValue;
 
-                    var audioTracks = await getProp('audioTracks');
+                    var audioTracks = getProp('audioTracks');
                     var selectedAudioTrack = audioTracks
                         .find(function(track) {
                             return track.id === propValue;
                         });
 
-                    if (await getProp('paused')) {
+                    if (getProp('paused')) {
                         // issues before this logic:
                         // tizen 3 does not allow changing audio track when paused
                         // tizen 5 does, but it will only change getProp('selectedAudioTrackId') after playback starts
