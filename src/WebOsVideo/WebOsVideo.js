@@ -20,52 +20,6 @@ function luna(params, call, fail, method) {
     window.webOS.service.request(method || 'luna://com.webos.media', params);
 }
 
-function launchVideoApp(params, success, failure) {
-    window.webOS.service.request('luna://com.webos.applicationManager', {
-        method: 'launch',
-        parameters: {
-            'id': params.id,
-            'params': {
-                'payload':[
-                    {
-                        'fullPath': params.url,
-                        'artist':'',
-                        'subtitle':'',
-                        'dlnaInfo':{
-                            'flagVal':4096,
-                            'cleartextSize':'-1',
-                            'contentLength':'-1',
-                            'opVal':1,
-                            'protocolInfo':'http-get:*:video/x-matroska:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
-                            'duration':0
-                        },
-                        'mediaType':'VIDEO',
-                        'thumbnail':'',
-                        'deviceType':'DMR',
-                        'album':'',
-                        'fileName': params.name,
-                        'lastPlayPosition': params.position
-                    }
-                ]
-            }
-        },
-        onSuccess: function () {
-            success && success();
-        },
-        onFailure: function () {
-            failure && failure(new Error('Failed to launch' + params.id));
-
-            if (params.id === 'com.webos.app.photovideo') {
-                params.id = 'com.webos.app.smartshare';
-                launchVideoApp(params, success, failure);
-            } else if(params.id === 'com.webos.app.smartshare') {
-                params.id = 'com.webos.app.mediadiscovery';
-                launchVideoApp(params, success, failure);
-            }
-        }
-    });
-}
-
 var webOsColors = ['none', 'black', 'white', 'yellow', 'red', 'green', 'blue'];
 var stremioColors = {
     // rgba
@@ -562,28 +516,10 @@ function WebOsVideo(options) {
             }
             case 3: {
                 error = ERROR.HTML_VIDEO.MEDIA_ERR_DECODE;
-                launchVideoApp({
-                    id: 'com.webos.app.photovideo',
-                    url: stream.url,
-                    name: 'Stremio',
-                    position: -1,
-                }, null, function(e) {
-                    // eslint-disable-next-line no-console
-                    console.error(e);
-                });
                 break;
             }
             case 4: {
                 error = ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED;
-                launchVideoApp({
-                    id: 'com.webos.app.photovideo',
-                    url: stream.url,
-                    name: 'Stremio',
-                    position: -1,
-                }, null, function(e) {
-                    // eslint-disable-next-line no-console
-                    console.error(e);
-                });
                 break;
             }
             default: {
