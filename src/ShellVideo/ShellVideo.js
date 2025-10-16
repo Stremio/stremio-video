@@ -362,13 +362,11 @@ function ShellVideo(options) {
                         var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
-                        // opengl-cb is an alias for the new name "libmpv", as shown in mpv's video/out/vo.c aliases
-                        // opengl is an alias for the new name "gpu"
-                        // When on Windows we use d3d for the rendering in separate window
-                        var windowRenderer = navigator.platform === 'Win32' ? 'direct3d' : 'opengl';
-                        var videoOutput = options.mpvSeparateWindow ? windowRenderer : 'opengl-cb';
-                        var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
+                        // Video mode
+                        var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
                         ipc.send('mpv-set-prop', ['vo', videoOutput]);
+
+                        var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-default-bindings', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
