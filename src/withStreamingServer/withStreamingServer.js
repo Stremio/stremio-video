@@ -4,7 +4,6 @@ var hat = require('hat');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
-var convertStream = require('./convertStream');
 var fetchVideoParams = require('./fetchVideoParams');
 var isPlayerLoaded = require('./isPlayerLoaded');
 var supportsTranscoding = require('../supportsTranscoding');
@@ -104,91 +103,88 @@ function withStreamingServer(Video) {
                         video.dispatch({ type: 'command', commandName: 'unload' });
                         loadArgs = commandArgs;
                         onPropChanged('stream');
-                        convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo, commandArgs.streamingServerSettings)
-                            .then(function(result) {
-                                var mediaURL = result.url;
-                                var infoHash = result.infoHash;
-                                var fileIdx = result.fileIdx;
-                                var formats = Array.isArray(commandArgs.formats) ?
-                                    commandArgs.formats
-                                    :
-                                    mediaCapabilities.formats;
-                                var videoCodecs = Array.isArray(commandArgs.videoCodecs) ?
-                                    commandArgs.videoCodecs
-                                    :
-                                    mediaCapabilities.videoCodecs;
-                                var audioCodecs = Array.isArray(commandArgs.audioCodecs) ?
-                                    commandArgs.audioCodecs
-                                    :
-                                    mediaCapabilities.audioCodecs;
-                                var maxAudioChannels = commandArgs.maxAudioChannels !== null && isFinite(commandArgs.maxAudioChannels) ?
-                                    commandArgs.maxAudioChannels
-                                    :
-                                    mediaCapabilities.maxAudioChannels;
-                                var canPlayStreamOptions = Object.assign({}, commandArgs, {
-                                    formats: formats,
-                                    videoCodecs: videoCodecs,
-                                    audioCodecs: audioCodecs,
-                                    maxAudioChannels: maxAudioChannels
+                        var mediaURL = commandArgs.stream.deepLinks.externalPlayer.streaming;
+                        var infoHash = commandArgs.stream.infoHash;
+                        var fileIdx = commandArgs.stream.fileIdx;
+                        var formats = Array.isArray(commandArgs.formats) ?
+                            commandArgs.formats
+                            :
+                            mediaCapabilities.formats;
+                        var videoCodecs = Array.isArray(commandArgs.videoCodecs) ?
+                            commandArgs.videoCodecs
+                            :
+                            mediaCapabilities.videoCodecs;
+                        var audioCodecs = Array.isArray(commandArgs.audioCodecs) ?
+                            commandArgs.audioCodecs
+                            :
+                            mediaCapabilities.audioCodecs;
+                        var maxAudioChannels = commandArgs.maxAudioChannels !== null && isFinite(commandArgs.maxAudioChannels) ?
+                            commandArgs.maxAudioChannels
+                            :
+                            mediaCapabilities.maxAudioChannels;
+                        var canPlayStreamOptions = Object.assign({}, commandArgs, {
+                            formats: formats,
+                            videoCodecs: videoCodecs,
+                            audioCodecs: audioCodecs,
+                            maxAudioChannels: maxAudioChannels
+                        });
+                        return (commandArgs.forceTranscoding ? Promise.resolve(false) : VideoWithStreamingServer.canPlayStream({ url: mediaURL }, canPlayStreamOptions))
+                            .catch(function(error) {
+                                console.warn('Media probe error', error);
+                                return false;
+                            })
+                            .then(function(canPlay) {
+                                if (canPlay) {
+                                    return {
+                                        mediaURL: mediaURL,
+                                        infoHash: infoHash,
+                                        fileIdx: fileIdx,
+                                        stream: {
+                                            url: mediaURL
+                                        }
+                                    };
+                                }
+
+                                var id = hat();
+                                var queryParams = new URLSearchParams([['mediaURL', mediaURL]]);
+                                if (commandArgs.forceTranscoding) {
+                                    queryParams.set('forceTranscoding', '1');
+                                }
+
+                                videoCodecs.forEach(function(videoCodec) {
+                                    queryParams.append('videoCodecs', videoCodec);
                                 });
-                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : VideoWithStreamingServer.canPlayStream({ url: mediaURL }, canPlayStreamOptions))
-                                    .catch(function(error) {
-                                        console.warn('Media probe error', error);
-                                        return false;
-                                    })
-                                    .then(function(canPlay) {
-                                        if (canPlay) {
-                                            return {
-                                                mediaURL: mediaURL,
-                                                infoHash: infoHash,
-                                                fileIdx: fileIdx,
-                                                stream: {
-                                                    url: mediaURL
-                                                }
-                                            };
-                                        }
 
-                                        var id = hat();
-                                        var queryParams = new URLSearchParams([['mediaURL', mediaURL]]);
-                                        if (commandArgs.forceTranscoding) {
-                                            queryParams.set('forceTranscoding', '1');
-                                        }
+                                audioCodecs.forEach(function(audioCodec) {
+                                    queryParams.append('audioCodecs', audioCodec);
+                                });
 
-                                        videoCodecs.forEach(function(videoCodec) {
-                                            queryParams.append('videoCodecs', videoCodec);
-                                        });
+                                queryParams.set('maxAudioChannels', maxAudioChannels);
 
-                                        audioCodecs.forEach(function(audioCodec) {
-                                            queryParams.append('audioCodecs', audioCodec);
-                                        });
-
-                                        queryParams.set('maxAudioChannels', maxAudioChannels);
-
-                                        return {
-                                            mediaURL: mediaURL,
-                                            infoHash: infoHash,
-                                            fileIdx: fileIdx,
-                                            stream: {
-                                                url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
-                                                subtitles: Array.isArray(commandArgs.stream.subtitles) ?
-                                                    commandArgs.stream.subtitles.map(function(track) {
-                                                        return Object.assign({}, track, {
-                                                            url: typeof track.url === 'string' ?
-                                                                url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
-                                                                :
-                                                                track.url
-                                                        });
-                                                    })
-                                                    :
-                                                    [],
-                                                behaviorHints: {
-                                                    headers: {
-                                                        'content-type': 'application/vnd.apple.mpegurl'
-                                                    }
-                                                }
+                                return {
+                                    mediaURL: mediaURL,
+                                    infoHash: infoHash,
+                                    fileIdx: fileIdx,
+                                    stream: {
+                                        url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
+                                        subtitles: Array.isArray(commandArgs.stream.subtitles) ?
+                                            commandArgs.stream.subtitles.map(function(track) {
+                                                return Object.assign({}, track, {
+                                                    url: typeof track.url === 'string' ?
+                                                        url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
+                                                        :
+                                                        track.url
+                                                });
+                                            })
+                                            :
+                                            [],
+                                        behaviorHints: {
+                                            headers: {
+                                                'content-type': 'application/vnd.apple.mpegurl'
                                             }
-                                        };
-                                    });
+                                        }
+                                    }
+                                };
                             })
                             .then(function(result) {
                                 if (commandArgs !== loadArgs) {
