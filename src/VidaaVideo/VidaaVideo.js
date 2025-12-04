@@ -329,9 +329,17 @@ function VidaaVideo(options) {
             }
             case 'selectedSubtitlesTrackId': {
                 if (stream !== null) {
+                    // important: disable all first
                     Array.from(videoElement.textTracks)
                         .forEach(function(track, index) {
-                            track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                            track.mode = 'disabled';
+                        });
+                    // then enable selected
+                    Array.from(videoElement.textTracks)
+                        .forEach(function(track, index) {
+                            if ('EMBEDDED_' + String(index) === propValue) {
+                                track.mode = 'showing';
+                            }
                         });
                     var selecterdSubtitlesTrack = getProp('subtitlesTracks')
                         .find(function(track) {
