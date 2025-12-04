@@ -38,7 +38,7 @@ function TizenVideo(options) {
     objElement.style.backgroundColor = 'black';
 
     var lastSub;
-    var disabledSubs = false;
+    var disabledSubs = true;
 
     function refreshSubtitle() {
         if (lastSub) {
@@ -235,9 +235,6 @@ function TizenVideo(options) {
                     if (totalTrackInfo[i].type === 'TEXT') {
                         var textTrack = totalTrackInfo[i];
                         var textTrackId = 'EMBEDDED_' + String(textTrack.index);
-                        if (!currentSubTrack && !textTracks.length) {
-                            currentSubTrack = textTrackId;
-                        }
                         var extra = {};
                         try {
                             extra = JSON.parse(textTrack.extra_info);
