@@ -414,6 +414,11 @@ function VidaaVideo(options) {
                     if (videoElement.textTracks) {
                         videoElement.textTracks.onaddtrack = function() {
                             setTimeout(function() {
+                                // disable all embedded tracks on start
+                                Array.from(videoElement.textTracks)
+                                    .forEach(function(track, index) {
+                                        track.mode = 'disabled';
+                                    });
                                 onPropChanged('subtitlesTracks');
                                 onPropChanged('selectedSubtitlesTrackId');
                             });
