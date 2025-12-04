@@ -356,7 +356,8 @@ function ShellVideo(options) {
                         stream = commandArgs.stream;
                         onPropChanged('stream');
 
-                        ipc.send('mpv-set-prop', ['sub-ass-override', 'strip']);
+                        var subAssOverride = commandArgs.assSubtitlesStyling ? 'strip' : 'no';
+                        ipc.send('mpv-set-prop', ['sub-ass-override', subAssOverride]);
 
                         // Hardware decoding
                         var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
