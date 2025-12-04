@@ -331,7 +331,7 @@ function VidaaVideo(options) {
                 if (stream !== null) {
                     // important: disable all first
                     Array.from(videoElement.textTracks)
-                        .forEach(function(track, index) {
+                        .forEach(function(track) {
                             track.mode = 'disabled';
                         });
                     // then enable selected
@@ -416,7 +416,7 @@ function VidaaVideo(options) {
                             setTimeout(function() {
                                 // disable all embedded tracks on start
                                 Array.from(videoElement.textTracks)
-                                    .forEach(function(track, index) {
+                                    .forEach(function(track) {
                                         track.mode = 'disabled';
                                     });
                                 onPropChanged('subtitlesTracks');
