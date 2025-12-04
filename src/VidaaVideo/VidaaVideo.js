@@ -413,7 +413,6 @@ function VidaaVideo(options) {
                     onPropChanged('buffering');
                     if (videoElement.textTracks) {
                         videoElement.textTracks.onaddtrack = function() {
-                            videoElement.textTracks.onaddtrack = null;
                             setTimeout(function() {
                                 onPropChanged('subtitlesTracks');
                                 onPropChanged('selectedSubtitlesTrackId');
@@ -422,7 +421,6 @@ function VidaaVideo(options) {
                     }
                     if (videoElement.audioTracks) {
                         videoElement.audioTracks.onaddtrack = function() {
-                            videoElement.audioTracks.onaddtrack = null;
                             setTimeout(function() {
                                 onPropChanged('audioTracks');
                                 onPropChanged('selectedAudioTrackId');
@@ -439,6 +437,8 @@ function VidaaVideo(options) {
                 break;
             }
             case 'unload': {
+                videoElement.textTracks.onaddtrack = null;
+                videoElement.audioTracks.onaddtrack = null;
                 stream = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;
