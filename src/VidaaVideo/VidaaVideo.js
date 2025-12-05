@@ -418,8 +418,9 @@ function VidaaVideo(options) {
                                 // we'll first select some embedded track
                                 Array.from(videoElement.textTracks)
                                     .forEach(function(track, index) {
-                                        if (!index)
+                                        if (!index) {
                                             track.mode = 'showing';
+                                        }
                                     });
                                 setTimeout(function() {
                                     // then disable all embedded tracks on start
