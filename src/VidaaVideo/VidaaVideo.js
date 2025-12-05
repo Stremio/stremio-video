@@ -414,13 +414,24 @@ function VidaaVideo(options) {
                     if (videoElement.textTracks) {
                         videoElement.textTracks.onaddtrack = function() {
                             setTimeout(function() {
-                                // disable all embedded tracks on start
+                                // starts with embedded track selected
+                                // we'll first select some embedded track
                                 Array.from(videoElement.textTracks)
-                                    .forEach(function(track) {
-                                        track.mode = 'disabled';
+                                    .forEach(function(track, index) {
+                                        if (!index)
+                                            track.mode = 'showing';
                                     });
-                                onPropChanged('subtitlesTracks');
-                                onPropChanged('selectedSubtitlesTrackId');
+                                setTimeout(function() {
+                                    // then disable all embedded tracks on start
+                                    Array.from(videoElement.textTracks)
+                                        .forEach(function(track) {
+                                            track.mode = 'disabled';
+                                        });
+                                    setTimeout(function() {
+                                        onPropChanged('subtitlesTracks');
+                                        onPropChanged('selectedSubtitlesTrackId');
+                                    });
+                                });
                             });
                         };
                     }
