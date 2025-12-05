@@ -463,32 +463,26 @@ function TizenVideo(options) {
             }
             case 'selectedSubtitlesTrackId': {
                 if (stream !== null) {
-                    if ((currentSubTrack || '').indexOf('EMBEDDED_') === 0) {
-                        if ((propValue || '').indexOf('EMBEDDED_') === -1) {
-                            renderSubtitle(1, '');
-                            disabledSubs = true;
-                            onPropChanged('selectedSubtitlesTrackId');
-                            return;
-                        }
-                        disabledSubs = false;
-
-                        currentSubTrack = propValue;
-
-                        var subtitlesTracks = getProp('subtitlesTracks');
-                        var selectedSubtitlesTrack = subtitlesTracks
-                            .find(function(track) {
-                                return track.id === propValue;
-                            });
-
-                        AVPlay.setSelectTrack('TEXT', parseInt(currentSubTrack.replace('EMBEDDED_', '')));
-
-                        if (selectedSubtitlesTrack) {
-                            events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
-                            onPropChanged('selectedSubtitlesTrackId');
-                        }
-                    } else if (!propValue) {
+                    if ((propValue || '').indexOf('EMBEDDED_') === -1 || !propValue) {
                         renderSubtitle(1, '');
                         disabledSubs = true;
+                        onPropChanged('selectedSubtitlesTrackId');
+                        return;
+                    }
+
+                    var subtitlesTracks = getProp('subtitlesTracks');
+                    var selectedSubtitlesTrack = subtitlesTracks
+                        .find(function(track) {
+                            return track.id === propValue;
+                        });
+
+                    if (selectedSubtitlesTrack) {
+                        disabledSubs = false;
+                        currentSubTrack = propValue;
+
+                        AVPlay.setSelectTrack('TEXT', parseInt(selectedSubtitlesTrack.id.replace('EMBEDDED_', '')));
+
+                        events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
                         onPropChanged('selectedSubtitlesTrackId');
                     }
                 }
