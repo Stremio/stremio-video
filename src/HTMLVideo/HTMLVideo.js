@@ -7,6 +7,8 @@ var ERROR = require('../error');
 var getContentType = require('./getContentType');
 var HLS_CONFIG = require('./hlsConfig');
 
+var isSafari = navigator.userAgent.includes("Safari") && !(/(chrome|firefox)/i.test(window.navigator.userAgent)) && (navigator.vendor || "").startsWith("Apple");
+
 function HTMLVideo(options) {
     options = options || {};
 
@@ -559,6 +561,22 @@ function HTMLVideo(options) {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
                                 });
+
+                                // adds the original stream source, so Safari can use it for AirPlay when it needs to
+                                // see more details here: https://github.com/video-dev/hls.js/issues/5989#issuecomment-1825916766
+                                function attachOriginalSource() {
+                                    var source = document.createElement('source');
+                                    source.src = stream.url;
+                                    source.dataset.id = 'original-stream';
+                                    videoElement.appendChild(source);
+                                    videoElement.disableRemotePlayback = false;
+
+                                    hls.off(Hls.Events.MEDIA_ATTACHING, attachOriginalSource);
+                                }
+                                
+                                if (isSafari)
+                                    hls.on(Hls.Events.MEDIA_ATTACHING, attachOriginalSource);
+
                                 hls.loadSource(stream.url);
                                 hls.attachMedia(videoElement);
                             } else {
@@ -594,6 +612,11 @@ function HTMLVideo(options) {
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
+                Array.from(videoElement.children || []).forEach(function(child) {
+                    if (child && child.dataset && child.dataset.id === 'original-stream') {
+                        videoElement.removeChild(child);
+                    }
+                });
                 onPropChanged('stream');
                 onPropChanged('loaded');
                 onPropChanged('paused');
