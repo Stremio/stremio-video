@@ -81,6 +81,11 @@ function HTMLVideo(options) {
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
+    videoElement.onloadedmetadata = function() {
+        onPropChanged('buffering');
+        onPropChanged('buffered');
+        setProp('time', startTime);
+    };
     videoElement.onvolumechange = function() {
         onPropChanged('volume');
         onPropChanged('muted');
@@ -102,6 +107,7 @@ function HTMLVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
+    var startTime = null;
     var subtitlesOffset = 0;
     var subtitlesOpacity = 1;
     var observedProps = {
@@ -384,7 +390,7 @@ function HTMLVideo(options) {
                 break;
             }
             case 'time': {
-                if (stream !== null && propValue !== null && isFinite(propValue)) {
+                if (stream !== null && videoElement.readyState >= videoElement.HAVE_METADATA && propValue !== null && isFinite(propValue)) {
                     videoElement.currentTime = parseInt(propValue, 10) / 1000;
                     onPropChanged('time');
                 }
@@ -530,10 +536,10 @@ function HTMLVideo(options) {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     stream = commandArgs.stream;
+                    startTime = commandArgs.time;
                     onPropChanged('stream');
                     onPropChanged('loaded');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
-                    videoElement.currentTime = commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) / 1000 : 0;
                     onPropChanged('paused');
                     onPropChanged('time');
                     onPropChanged('duration');
@@ -582,6 +588,7 @@ function HTMLVideo(options) {
             }
             case 'unload': {
                 stream = null;
+                startTime = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;
                 });
@@ -634,6 +641,7 @@ function HTMLVideo(options) {
                 videoElement.oncanplay = null;
                 videoElement.canplaythrough = null;
                 videoElement.onloadeddata = null;
+                videoElement.onloadedmetadata = null;
                 videoElement.onvolumechange = null;
                 videoElement.onratechange = null;
                 videoElement.textTracks.onchange = null;
