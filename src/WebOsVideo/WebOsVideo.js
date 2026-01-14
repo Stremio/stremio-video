@@ -154,7 +154,7 @@ function WebOsVideo(options) {
 
     var audioTracks = [];
 
-    var count_message = 0;
+    var _count_message = 0;
 
     var subStyles = {
         color: 'white',
@@ -565,7 +565,7 @@ function WebOsVideo(options) {
                     try {
                         videoElement.currentTime = parseInt(propValue, 10) / 1000;
                         onPropChanged('time');
-                    } catch(e) {
+                    } catch(_e) {
                         // console.log('webos video change time error');
                         // console.error(e);
                     }
@@ -899,7 +899,7 @@ function WebOsVideo(options) {
 
                         try {
                             videoElement.load();
-                        } catch(e) {
+                        } catch(_e) {
                             // console.log('can\'t load video');
                             // console.error(e);
                         }
@@ -907,7 +907,7 @@ function WebOsVideo(options) {
                         try {
                             // console.log('try play');
                             videoElement.play();
-                        } catch(e) {
+                        } catch(_e) {
                             // console.log('can\'t start video');
                             // console.error(e);
                         }

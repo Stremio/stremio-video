@@ -3,7 +3,7 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 
-var SSA_DESCRIPTORS_REGEX = /^\{(\\an[1-8])+\}/i;
+var _SSA_DESCRIPTORS_REGEX = /^\{(\\an[1-8])+\}/i;
 
 function VidaaVideo(options) {
     options = options || {};

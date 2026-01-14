@@ -238,7 +238,7 @@ function TizenVideo(options) {
                         var extra = {};
                         try {
                             extra = JSON.parse(textTrack.extra_info);
-                        } catch(e) {}
+                        } catch(_e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
                         var textTrackLabel = null;
                         if (((tracksData || {}).subs || []).length) {
@@ -342,7 +342,7 @@ function TizenVideo(options) {
                         var extra = {};
                         try {
                             extra = JSON.parse(audioTrack.extra_info);
-                        } catch(e) {}
+                        } catch(_e) {}
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
                         var audioTrackLabel = null;
                         if (((tracksData || {}).audio || []).length) {
@@ -605,7 +605,7 @@ function TizenVideo(options) {
 
                     try {
                         AVPlay.setSpeed(videoSpeed);
-                    } catch (e) {}
+                    } catch (_e) {}
 
                     onPropChanged('playbackSpeed');
                 }
@@ -663,7 +663,7 @@ function TizenVideo(options) {
                             retries++;
                             try {
                                 AVPlay.stop();
-                            } catch(e) {}
+                            } catch(_e) {}
                             command('load', commandArgs);
                         } else {
                             onError(Object.assign({}, ERROR.STREAM_FAILED_TO_LOAD, {

@@ -26,6 +26,6 @@
         "vtt.js": "github:jaruba/vtt.js#84d33d157848407d790d78423dacc41a096294f0"
     },
     "devDependencies": {
-        "eslint": "7.32.0"
+        "eslint": "9.39.2"
     }
 }
