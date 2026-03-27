@@ -281,7 +281,14 @@ function HTMLVideo(options) {
                     });
             }
             case 'selectedAudioTrackId': {
-                if (hls === null || hls.audioTrackController.currentTrack.id === null || !isFinite(hls.audioTrackController.currentTrack.id) || hls.audioTrackController.currentTrack.id === -1) {
+                if (
+                    hls === null
+                    || hls.audioTrackController.currentTrack === null
+                    || hls.audioTrackController.currentTrack === undefined
+                    || hls.audioTrackController.currentTrack.id === null
+                    || !isFinite(hls.audioTrackController.currentTrack.id)
+                    || hls.audioTrackController.currentTrack.id === -1
+                ) {
                     return null;
                 }
 
