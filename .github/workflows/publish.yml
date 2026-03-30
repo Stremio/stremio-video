@@ -18,7 +18,7 @@ jobs:
         node-version: 16
         registry-url: https://registry.npmjs.org/
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v6
     - name: Install NPM Dependencies
       run: npm install
     - name: Publish to NPM
