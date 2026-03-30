@@ -22,4 +22,4 @@ jobs:
     - name: Install NPM Dependencies
       run: npm install
     - name: Publish to NPM
-      run: npm publish --access public
+      run: npm publish --access public --provenance
