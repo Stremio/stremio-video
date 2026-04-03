@@ -12,6 +12,7 @@ var stremioToMPVProps = {
     'time': 'time-pos',
     'duration': 'duration',
     'buffering': 'buffering',
+    'buffered': 'demuxer-cache-time',
     'volume': 'volume',
     'muted': 'mute',
     'playbackSpeed': 'speed',
@@ -73,6 +74,7 @@ function ShellVideo(options) {
 
     ipc.send('mpv-observe-prop', 'paused-for-cache');
     ipc.send('mpv-observe-prop', 'cache-buffering-state');
+    ipc.send('mpv-observe-prop', 'demuxer-cache-time');
 
     ipc.send('mpv-observe-prop', 'aid');
     ipc.send('mpv-observe-prop', 'vid');
@@ -175,6 +177,12 @@ function ShellVideo(options) {
                     props.buffering = args.data;
                     onPropChanged('buffering');
                 }
+                break;
+            }
+            case 'demuxer-cache-time': {
+                var cacheTime = args.data || 0;
+                props[args.name] = cacheTime > 0 ? Math.floor(cacheTime * 1000) : null;
+                onPropChanged('buffered');
                 break;
             }
             case 'aid':
@@ -397,6 +405,7 @@ function ShellVideo(options) {
                         onPropChanged('time');
                         onPropChanged('duration');
                         onPropChanged('buffering');
+                        onPropChanged('buffered');
                         onPropChanged('muted');
                         onPropChanged('subtitlesTracks');
                         onPropChanged('selectedSubtitlesTrackId');
@@ -418,6 +427,7 @@ function ShellVideo(options) {
                     subtitlesTracks: [],
                     audioTracks: [],
                     buffering: false,
+                    buffered: null,
                     aid: null,
                     sid: null,
                 };
@@ -429,6 +439,7 @@ function ShellVideo(options) {
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
+                onPropChanged('buffered');
                 onPropChanged('muted');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
