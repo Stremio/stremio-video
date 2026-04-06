@@ -7,7 +7,7 @@ var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
 
-const PREVIEW_INTERVAL = 30000;
+const PREVIEW_INTERVAL = 300000;
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
