@@ -3,6 +3,7 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var Color = require('color');
 var ERROR = require('../error');
+var binarySearchUpperBound = require('./binarySearchUpperBound');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
@@ -40,8 +41,13 @@ function withHTMLSubtitles(Video) {
         containerElement.appendChild(subtitlesElement);
 
         var videoState = {
-            time: null
+            time: null,
+            paused: false,
+            lastSyncAt: null
         };
+        var rafId = null;
+        var lastTimeIndex = null;
+        var forceRender = false;
         var cuesByTime = null;
         var events = new EventEmitter();
         var destroyed = false;
@@ -67,18 +73,62 @@ function withHTMLSubtitles(Video) {
             extraSubtitlesOpacity: false
         };
 
+        function getCurrentTime() {
+            if (videoState.time === null || !isFinite(videoState.time)) {
+                return null;
+            }
+            if (videoState.paused || videoState.lastSyncAt === null) {
+                return videoState.time;
+            }
+            return videoState.time + (Date.now() - videoState.lastSyncAt);
+        }
+        function startRenderLoop() {
+            if (rafId !== null) {
+                return;
+            }
+            (function loop() {
+                renderSubtitles();
+                rafId = requestAnimationFrame(loop);
+            })();
+        }
+        function stopRenderLoop() {
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        }
         function renderSubtitles() {
+            var time = getCurrentTime();
+
+            if (cuesByTime === null || time === null) {
+                if (lastTimeIndex !== null) {
+                    while (subtitlesElement.hasChildNodes()) {
+                        subtitlesElement.removeChild(subtitlesElement.lastChild);
+                    }
+                    lastTimeIndex = null;
+                }
+                forceRender = false;
+                return;
+            }
+
+            var timeIndex = binarySearchUpperBound(cuesByTime.times, time - delay);
+            if (timeIndex === lastTimeIndex && !forceRender) {
+                return;
+            }
+            lastTimeIndex = timeIndex;
+            forceRender = false;
+
             while (subtitlesElement.hasChildNodes()) {
                 subtitlesElement.removeChild(subtitlesElement.lastChild);
             }
 
-            if (cuesByTime === null || videoState.time === null || !isFinite(videoState.time)) {
+            if (timeIndex === -1) {
                 return;
             }
 
             subtitlesElement.style.bottom = offset + '%';
             subtitlesElement.style.opacity = opacity;
-            subtitlesRenderer.render(cuesByTime, videoState.time - delay).forEach(function(cueNode) {
+            subtitlesRenderer.render(cuesByTime, time - delay).forEach(function(cueNode) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
                 cueNode.style.whiteSpace = 'pre-wrap';
@@ -101,7 +151,17 @@ function withHTMLSubtitles(Video) {
             switch (propName) {
                 case 'time': {
                     videoState.time = propValue;
-                    renderSubtitles();
+                    videoState.lastSyncAt = Date.now();
+                    break;
+                }
+                case 'paused': {
+                    if (propValue && !videoState.paused && videoState.lastSyncAt !== null && videoState.time !== null) {
+                        videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt);
+                        videoState.lastSyncAt = Date.now();
+                    } else if (!propValue && videoState.paused) {
+                        videoState.lastSyncAt = Date.now();
+                    }
+                    videoState.paused = propValue;
                     break;
                 }
             }
@@ -269,7 +329,7 @@ function withHTMLSubtitles(Video) {
                                     }
 
                                     cuesByTime = result;
-                                    renderSubtitles();
+                                    startRenderLoop();
                                     events.emit('extraSubtitlesTrackLoaded', selectedTrack);
                                 })
                                 .catch(function(error) {
@@ -299,6 +359,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesDelay': {
                     if (selectedTrackId !== null && propValue !== null && isFinite(propValue)) {
                         delay = parseInt(propValue, 10);
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesDelay');
                     }
@@ -308,6 +369,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesSize': {
                     if (propValue !== null && isFinite(propValue)) {
                         size = Math.max(0, parseInt(propValue, 10));
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesSize');
                     }
@@ -317,6 +379,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesOffset': {
                     if (propValue !== null && isFinite(propValue)) {
                         offset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesOffset');
                     }
@@ -332,6 +395,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesTextColor');
                     }
@@ -347,6 +411,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesBackgroundColor');
                     }
@@ -362,6 +427,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesOutlineColor');
                     }
@@ -377,6 +443,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesOpacity');
                     }
@@ -450,6 +517,8 @@ function withHTMLSubtitles(Video) {
                     return false;
                 }
                 case 'unload': {
+                    stopRenderLoop();
+                    lastTimeIndex = null;
                     cuesByTime = null;
                     tracks = [];
                     selectedTrackId = null;
