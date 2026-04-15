@@ -3,6 +3,7 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var Color = require('color');
 var ERROR = require('../error');
+var binarySearchUpperBound = require('./binarySearchUpperBound');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
@@ -45,6 +46,8 @@ function withHTMLSubtitles(Video) {
             lastSyncAt: null
         };
         var rafId = null;
+        var lastTimeIndex = null;
+        var forceRender = false;
         var cuesByTime = null;
         var events = new EventEmitter();
         var destroyed = false;
@@ -95,12 +98,31 @@ function withHTMLSubtitles(Video) {
             }
         }
         function renderSubtitles() {
+            var time = getCurrentTime();
+
+            if (cuesByTime === null || time === null) {
+                if (lastTimeIndex !== null) {
+                    while (subtitlesElement.hasChildNodes()) {
+                        subtitlesElement.removeChild(subtitlesElement.lastChild);
+                    }
+                    lastTimeIndex = null;
+                }
+                forceRender = false;
+                return;
+            }
+
+            var timeIndex = binarySearchUpperBound(cuesByTime.times, time - delay);
+            if (timeIndex === lastTimeIndex && !forceRender) {
+                return;
+            }
+            lastTimeIndex = timeIndex;
+            forceRender = false;
+
             while (subtitlesElement.hasChildNodes()) {
                 subtitlesElement.removeChild(subtitlesElement.lastChild);
             }
 
-            var time = getCurrentTime();
-            if (cuesByTime === null || time === null) {
+            if (timeIndex === -1) {
                 return;
             }
 
@@ -337,6 +359,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesDelay': {
                     if (selectedTrackId !== null && propValue !== null && isFinite(propValue)) {
                         delay = parseInt(propValue, 10);
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesDelay');
                     }
@@ -346,6 +369,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesSize': {
                     if (propValue !== null && isFinite(propValue)) {
                         size = Math.max(0, parseInt(propValue, 10));
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesSize');
                     }
@@ -355,6 +379,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesOffset': {
                     if (propValue !== null && isFinite(propValue)) {
                         offset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesOffset');
                     }
@@ -370,6 +395,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesTextColor');
                     }
@@ -385,6 +411,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesBackgroundColor');
                     }
@@ -400,6 +427,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesOutlineColor');
                     }
@@ -415,6 +443,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesOpacity');
                     }
@@ -489,6 +518,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'unload': {
                     stopRenderLoop();
+                    lastTimeIndex = null;
                     cuesByTime = null;
                     tracks = [];
                     selectedTrackId = null;
