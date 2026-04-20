@@ -26,6 +26,7 @@ var stremioToMPVProps = {
     'subtitlesTextColor': 'sub-color',
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
+    'hdrInfo': null,
 };
 
 function parseVersion(version) {
@@ -191,6 +192,23 @@ function ShellVideo(options) {
                 props[args.name] = embeddedProp(args);
                 break;
             }
+            case 'video-params': {
+                props[args.name] = args.data;
+                var params = args.data || {};
+                var gamma = typeof params.gamma === 'string' ? params.gamma : null;
+                if (gamma === 'pq' || gamma === 'hlg') {
+                    props.hdrInfo = {
+                        gamma: gamma,
+                        primaries: typeof params.primaries === 'string' ? params.primaries : null,
+                        maxCll: typeof params['max-cll'] === 'number' ? params['max-cll'] : null,
+                        maxLuma: typeof params['max-luma'] === 'number' ? params['max-luma'] : null,
+                    };
+                } else {
+                    props.hdrInfo = null;
+                }
+                onPropChanged('hdrInfo');
+                break;
+            }
             // In that case onPropChanged() is manually invoked as track-list contains all
             // the tracks but we have different event for each track type
             case 'track-list': {
@@ -243,6 +261,7 @@ function ShellVideo(options) {
     });
 
     function getProp(propName) {
+        if (propName === 'hdrInfo') return props.hdrInfo || null;
         if(stremioToMPVProps[propName]) return props[stremioToMPVProps[propName]];
         // eslint-disable-next-line no-console
         console.log('Unsupported prop requested', propName);
