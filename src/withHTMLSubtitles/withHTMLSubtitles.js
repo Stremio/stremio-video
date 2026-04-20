@@ -157,7 +157,7 @@ function withHTMLSubtitles(Video) {
                     break;
                 }
                 case 'paused': {
-                    if (propValue && !videoState.paused && videoState.lastSyncAt !== null && videoState.time !== null) {
+                    if (propValue && !videoState.paused && !videoState.buffering && videoState.lastSyncAt !== null && videoState.time !== null) {
                         videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
                         videoState.lastSyncAt = Date.now();
                     } else if (!propValue && videoState.paused) {
@@ -167,7 +167,7 @@ function withHTMLSubtitles(Video) {
                     break;
                 }
                 case 'buffering': {
-                    if (propValue && !videoState.buffering && videoState.lastSyncAt !== null && videoState.time !== null) {
+                    if (propValue && !videoState.buffering && !videoState.paused && videoState.lastSyncAt !== null && videoState.time !== null) {
                         videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
                         videoState.lastSyncAt = Date.now();
                     } else if (!propValue && videoState.buffering) {
@@ -178,7 +178,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'playbackSpeed': {
                     if (propValue !== null && isFinite(propValue)) {
-                        if (!videoState.paused && videoState.lastSyncAt !== null && videoState.time !== null) {
+                        if (!videoState.paused && !videoState.buffering && videoState.lastSyncAt !== null && videoState.time !== null) {
                             videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
                             videoState.lastSyncAt = Date.now();
                         }
