@@ -43,7 +43,8 @@ function withHTMLSubtitles(Video) {
         var videoState = {
             time: null,
             paused: false,
-            lastSyncAt: null
+            lastSyncAt: null,
+            playbackSpeed: 1
         };
         var rafId = null;
         var lastTimeIndex = null;
@@ -80,7 +81,7 @@ function withHTMLSubtitles(Video) {
             if (videoState.paused || videoState.lastSyncAt === null) {
                 return videoState.time;
             }
-            return videoState.time + (Date.now() - videoState.lastSyncAt);
+            return videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
         }
         function startRenderLoop() {
             if (rafId !== null) {
@@ -128,7 +129,7 @@ function withHTMLSubtitles(Video) {
 
             subtitlesElement.style.bottom = offset + '%';
             subtitlesElement.style.opacity = opacity;
-            subtitlesRenderer.render(cuesByTime, time - delay).forEach(function(cueNode) {
+            subtitlesRenderer.render(cuesByTime, timeIndex).forEach(function(cueNode) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
                 cueNode.style.whiteSpace = 'pre-wrap';
@@ -156,12 +157,22 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'paused': {
                     if (propValue && !videoState.paused && videoState.lastSyncAt !== null && videoState.time !== null) {
-                        videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt);
+                        videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
                         videoState.lastSyncAt = Date.now();
                     } else if (!propValue && videoState.paused) {
                         videoState.lastSyncAt = Date.now();
                     }
                     videoState.paused = propValue;
+                    break;
+                }
+                case 'playbackSpeed': {
+                    if (propValue !== null && isFinite(propValue)) {
+                        if (!videoState.paused && videoState.lastSyncAt !== null && videoState.time !== null) {
+                            videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
+                            videoState.lastSyncAt = Date.now();
+                        }
+                        videoState.playbackSpeed = propValue;
+                    }
                     break;
                 }
             }
@@ -284,6 +295,9 @@ function withHTMLSubtitles(Video) {
                     var selectedTrack = tracks.find(function(track) {
                         return track.id === propValue;
                     });
+                    if (!selectedTrack) {
+                        stopRenderLoop();
+                    }
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
