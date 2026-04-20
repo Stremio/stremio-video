@@ -401,8 +401,8 @@ function HTMLVideo(options) {
                         .find(function(track) {
                             return track.id === propValue;
                         });
+                    onPropChanged('selectedSubtitlesTrackId');
                     if (selecterdSubtitlesTrack) {
-                        onPropChanged('selectedSubtitlesTrackId');
                         events.emit('subtitlesTrackLoaded', selecterdSubtitlesTrack);
                     }
                 }
