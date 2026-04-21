@@ -206,6 +206,11 @@ function ShellVideo(options) {
                 } else {
                     props.hdrInfo = null;
                 }
+                var nextCurve = gamma === 'pq' ? 'hable' : 'bt.2390';
+                if (props.toneMappingCurve !== nextCurve) {
+                    props.toneMappingCurve = nextCurve;
+                    ipc.send('mpv-set-prop', ['tone-mapping', nextCurve]);
+                }
                 onPropChanged('hdrInfo');
                 break;
             }
