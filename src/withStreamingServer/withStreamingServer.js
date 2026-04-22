@@ -10,6 +10,12 @@ var isPlayerLoaded = require('./isPlayerLoaded');
 var supportsTranscoding = require('../supportsTranscoding');
 var ERROR = require('../error');
 
+function hasEmbeddedSubtitles(probe) {
+    return Array.isArray(probe && probe.streams) && probe.streams.some(function(stream) {
+        return stream && stream.track === 'subtitle';
+    });
+}
+
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
         options = options || {};
@@ -362,6 +368,10 @@ function withStreamingServer(Video) {
                         return resp.json();
                     })
                     .then(function(probe) {
+                        if (hasEmbeddedSubtitles(probe)) {
+                            return false;
+                        }
+
                         var isFormatSupported = options.formats.some(function(format) {
                             return probe.format.name.indexOf(format) !== -1;
                         });
