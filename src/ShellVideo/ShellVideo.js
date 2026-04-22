@@ -390,9 +390,14 @@ function ShellVideo(options) {
                         var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
-                        // Video mode
-                        var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
-                        ipc.send('mpv-set-prop', ['vo', videoOutput]);
+                        // On macOS the shell manages vo and HDR/EDR configuration
+                        // directly — do not override vo here.
+                        var platformLower = String(commandArgs.platform || '').toLowerCase();
+                        var isMac = platformLower.indexOf('mac') !== -1;
+                        if (!isMac) {
+                            var videoOutput = platformLower === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
+                            ipc.send('mpv-set-prop', ['vo', videoOutput]);
+                        }
 
                         var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
