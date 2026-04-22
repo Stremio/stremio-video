@@ -26,6 +26,7 @@ var stremioToMPVProps = {
     'subtitlesTextColor': 'sub-color',
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
+    'hdrInfo': null,
 };
 
 function parseVersion(version) {
@@ -191,6 +192,23 @@ function ShellVideo(options) {
                 props[args.name] = embeddedProp(args);
                 break;
             }
+            case 'video-params': {
+                props[args.name] = args.data;
+                var params = args.data || {};
+                var gamma = typeof params.gamma === 'string' ? params.gamma : null;
+                if (gamma === 'pq' || gamma === 'hlg') {
+                    props.hdrInfo = {
+                        gamma: gamma,
+                        primaries: typeof params.primaries === 'string' ? params.primaries : null,
+                        maxCll: typeof params['max-cll'] === 'number' ? params['max-cll'] : null,
+                        maxLuma: typeof params['max-luma'] === 'number' ? params['max-luma'] : null,
+                    };
+                } else {
+                    props.hdrInfo = null;
+                }
+                onPropChanged('hdrInfo');
+                break;
+            }
             // In that case onPropChanged() is manually invoked as track-list contains all
             // the tracks but we have different event for each track type
             case 'track-list': {
@@ -243,6 +261,7 @@ function ShellVideo(options) {
     });
 
     function getProp(propName) {
+        if (propName === 'hdrInfo') return props.hdrInfo || null;
         if(stremioToMPVProps[propName]) return props[stremioToMPVProps[propName]];
         // eslint-disable-next-line no-console
         console.log('Unsupported prop requested', propName);
@@ -371,9 +390,14 @@ function ShellVideo(options) {
                         var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
-                        // Video mode
-                        var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
-                        ipc.send('mpv-set-prop', ['vo', videoOutput]);
+                        // On macOS the shell manages vo and HDR/EDR configuration
+                        // directly — do not override vo here.
+                        var platformLower = String(commandArgs.platform || '').toLowerCase();
+                        var isMac = platformLower.indexOf('mac') !== -1;
+                        if (!isMac) {
+                            var videoOutput = platformLower === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
+                            ipc.send('mpv-set-prop', ['vo', videoOutput]);
+                        }
 
                         var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
