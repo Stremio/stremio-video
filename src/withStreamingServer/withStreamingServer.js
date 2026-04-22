@@ -10,12 +10,6 @@ var isPlayerLoaded = require('./isPlayerLoaded');
 var supportsTranscoding = require('../supportsTranscoding');
 var ERROR = require('../error');
 
-function hasEmbeddedSubtitles(probe) {
-    return Array.isArray(probe && probe.streams) && probe.streams.some(function(stream) {
-        return stream && stream.track === 'subtitle';
-    });
-}
-
 function withStreamingServer(Video) {
     function VideoWithStreamingServer(options) {
         options = options || {};
@@ -368,10 +362,6 @@ function withStreamingServer(Video) {
                         return resp.json();
                     })
                     .then(function(probe) {
-                        if (hasEmbeddedSubtitles(probe)) {
-                            return false;
-                        }
-
                         var isFormatSupported = options.formats.some(function(format) {
                             return probe.format.name.indexOf(format) !== -1;
                         });
@@ -385,7 +375,10 @@ function withStreamingServer(Video) {
 
                             return true;
                         });
-                        return isFormatSupported && areStreamsSupported;
+                        var hasEmbeddedSubtitles = probe.streams.some(function(stream) {
+                            return stream.track === 'subtitle';
+                        });
+                        return isFormatSupported && areStreamsSupported && !hasEmbeddedSubtitles;
                     })
                     .catch(function() {
                         // this uses content-type header in HTMLVideo which
