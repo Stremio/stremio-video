@@ -124,7 +124,8 @@ function HTMLVideo(options) {
         selectedAudioTrackId: false,
         volume: false,
         muted: false,
-        playbackSpeed: false
+        playbackSpeed: false,
+        videoScale: false
     };
 
     function getProp(propName) {
