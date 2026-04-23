@@ -27,6 +27,7 @@ var stremioToMPVProps = {
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
     'hdrInfo': null,
+    'videoScale': null,
 };
 
 function parseVersion(version) {
@@ -262,6 +263,7 @@ function ShellVideo(options) {
 
     function getProp(propName) {
         if (propName === 'hdrInfo') return props.hdrInfo || null;
+        if (propName === 'videoScale') return props.videoScale || 'contain';
         if(stremioToMPVProps[propName]) return props[stremioToMPVProps[propName]];
         // eslint-disable-next-line no-console
         console.log('Unsupported prop requested', propName);
@@ -304,6 +306,27 @@ function ShellVideo(options) {
             case 'playbackSpeed': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
                     ipc.send('mpv-set-prop', ['speed', propValue]);
+                }
+                break;
+            }
+            case 'videoScale': {
+                if (stream !== null) {
+                    switch (propValue) {
+                        case 'cover':
+                            ipc.send('mpv-set-prop', ['keepaspect', true]);
+                            ipc.send('mpv-set-prop', ['panscan', 1.0]);
+                            break;
+                        case 'fill':
+                            ipc.send('mpv-set-prop', ['keepaspect', false]);
+                            ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            break;
+                        default:
+                            ipc.send('mpv-set-prop', ['keepaspect', true]);
+                            ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            break;
+                    }
+                    props.videoScale = propValue;
+                    onPropChanged('videoScale');
                 }
                 break;
             }

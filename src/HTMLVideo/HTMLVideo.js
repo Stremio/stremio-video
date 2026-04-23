@@ -22,6 +22,7 @@ function HTMLVideo(options) {
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
     videoElement.style.backgroundColor = 'black';
+    videoElement.style.objectFit = 'contain';
     videoElement.controls = false;
     videoElement.playsInline = true;
     videoElement.onerror = function() {
@@ -123,7 +124,8 @@ function HTMLVideo(options) {
         selectedAudioTrackId: false,
         volume: false,
         muted: false,
-        playbackSpeed: false
+        playbackSpeed: false,
+        videoScale: false
     };
 
     function getProp(propName) {
@@ -307,6 +309,9 @@ function HTMLVideo(options) {
                 }
 
                 return videoElement.playbackRate;
+            }
+            case 'videoScale': {
+                return videoElement.style.objectFit || 'contain';
             }
             default: {
                 return null;
@@ -522,6 +527,15 @@ function HTMLVideo(options) {
 
                 break;
             }
+            case 'videoScale': {
+                var validValues = ['contain', 'cover', 'fill'];
+                if (validValues.indexOf(propValue) !== -1) {
+                    videoElement.style.objectFit = propValue;
+                    onPropChanged('videoScale');
+                }
+
+                break;
+            }
         }
     }
     function command(commandName, commandArgs) {
@@ -696,7 +710,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
