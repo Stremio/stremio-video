@@ -2,11 +2,30 @@ var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var Color = require('color');
+var JASSUB = require('@mrcanelas/jassub-embedded').default;
+var jassubAssets = require('@mrcanelas/jassub-embedded/dist/jassubAssets');
 var ERROR = require('../error');
 var binarySearchUpperBound = require('./binarySearchUpperBound');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
+
+function decodeBase64(base64) {
+    var binary = atob(base64);
+    var bytes = new Uint8Array(binary.length);
+
+    for (var index = 0; index < binary.length; index++) {
+        bytes[index] = binary.charCodeAt(index);
+    }
+
+    return bytes;
+}
+
+function createBlobUrl(parts, mimeType) {
+    return URL.createObjectURL(new Blob(parts, {
+        type: mimeType
+    }));
+}
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
@@ -62,6 +81,9 @@ function withHTMLSubtitles(Video) {
         var backgroundColor = 'rgba(0, 0, 0, 0)';
         var outlineColor = 'rgb(34, 34, 34)';
         var opacity = 1;
+        var assetUrls = null;
+        var assSubtitlesInstance = null;
+        var assSubtitlesDestroyPromise = Promise.resolve();
 
         var observedProps = {
             extraSubtitlesTracks: false,
@@ -207,6 +229,43 @@ function withHTMLSubtitles(Video) {
                 video.dispatch({ type: 'command', commandName: 'unload' });
             }
         }
+        function isASSSubtitlesTrack(track) {
+            if (!track || typeof track !== 'object') {
+                return false;
+            }
+
+            if (typeof track.type === 'string' && /(?:^|\/|\.)(ass|ssa)$/i.test(track.type)) {
+                return true;
+            }
+
+            var sources = [track.url, track.fallbackUrl, track.filename, track.label];
+            for (var index = 0; index < sources.length; index++) {
+                if (typeof sources[index] === 'string' && /\.(ass|ssa)(?:$|[?#])/i.test(sources[index])) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        function getVideoElement() {
+            return containerElement.querySelector('video');
+        }
+        function destroyASSSubtitles() {
+            var instance = assSubtitlesInstance;
+            assSubtitlesInstance = null;
+            subtitlesElement.style.display = '';
+
+            if (!instance) {
+                return assSubtitlesDestroyPromise;
+            }
+
+            assSubtitlesDestroyPromise = instance.destroy()
+                .catch(function(error) {
+                    // eslint-disable-next-line no-console
+                    console.error('withHTMLSubtitles', error);
+                });
+            return assSubtitlesDestroyPromise;
+        }
         function getProp(propName, videoPropValue) {
             switch (propName) {
                 case 'extraSubtitlesTracks': {
@@ -311,6 +370,7 @@ function withHTMLSubtitles(Video) {
                     });
                     if (!selectedTrack) {
                         stopRenderLoop();
+                        destroyASSSubtitles();
                     }
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
@@ -377,7 +437,95 @@ function withHTMLSubtitles(Video) {
                                     }));
                                 });
                         }
-                        loadSubtitles(selectedTrack);
+                        function loadASSSubtitles(track, isFallback) {
+                            getSubtitlesData(track, isFallback)
+                                .then(function(text) {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
+
+                                    var videoElement = getVideoElement();
+                                    if (!(videoElement instanceof HTMLVideoElement)) {
+                                        throw new Error('No HTMLVideoElement available for ASS subtitles');
+                                    }
+
+                                    function ensureAssetUrls() {
+                                        if (assetUrls !== null) {
+                                            return assetUrls;
+                                        }
+                                        assetUrls = {
+                                            workerUrl: createBlobUrl([jassubAssets.workerSource], 'text/javascript'),
+                                            wasmUrl: createBlobUrl([decodeBase64(jassubAssets.wasmBinary)], 'application/wasm'),
+                                            wasmModernBinary: createBlobUrl([decodeBase64(jassubAssets.wasmModernBinary)], 'application/wasm'),
+                                            defaultFontUrl: createBlobUrl([decodeBase64(jassubAssets.defaultFont)], 'font/woff2')
+                                        };
+                                        return assetUrls;
+                                    }
+
+                                    return destroyASSSubtitles()
+                                        .then(function() {
+                                            if (selectedTrackId !== selectedTrack.id) {
+                                                return;
+                                            }
+
+                                            subtitlesElement.style.display = 'none';
+                                            var urls = ensureAssetUrls();
+                                            assSubtitlesInstance = new JASSUB({
+                                                video: videoElement,
+                                                subContent: text,
+                                                workerUrl: urls.workerUrl,
+                                                wasmUrl: urls.wasmUrl,
+                                                modernWasmUrl: urls.wasmModernBinary,
+                                                availableFonts: {
+                                                    'liberation sans': urls.defaultFontUrl
+                                                },
+                                                defaultFont: 'liberation sans',
+                                                queryFonts: 'local'
+                                            });
+
+                                            return assSubtitlesInstance.ready;
+                                        })
+                                        .then(function() {
+                                            if (selectedTrackId !== selectedTrack.id || assSubtitlesInstance === null) {
+                                                return;
+                                            }
+
+                                            events.emit('extraSubtitlesTrackLoaded', selectedTrack);
+                                        });
+                                })
+                                .catch(function(error) {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
+
+                                    destroyASSSubtitles();
+
+                                    if (!isFallback && typeof selectedTrack.fallbackUrl === 'string') {
+                                        loadASSSubtitles(selectedTrack, true);
+                                        return;
+                                    }
+
+                                    onError(Object.assign({}, ERROR.WITH_HTML_SUBTITLES.LOAD_FAILED, {
+                                        error: error,
+                                        track: selectedTrack,
+                                        critical: false
+                                    }));
+                                });
+                        }
+                        if (isASSSubtitlesTrack(selectedTrack)) {
+                            stopRenderLoop();
+                            renderSubtitles();
+                            loadASSSubtitles(selectedTrack);
+                        } else {
+                            destroyASSSubtitles()
+                                .then(function() {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
+
+                                    loadSubtitles(selectedTrack);
+                                });
+                        }
                     }
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
@@ -387,8 +535,12 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesDelay': {
                     if (selectedTrackId !== null && propValue !== null && isFinite(propValue)) {
                         delay = parseInt(propValue, 10);
-                        forceRender = true;
-                        renderSubtitles();
+                        if (assSubtitlesInstance !== null) {
+                            assSubtitlesInstance.timeOffset = -delay / 1000;
+                        } else {
+                            forceRender = true;
+                            renderSubtitles();
+                        }
                         onPropChanged('extraSubtitlesDelay');
                     }
 
@@ -551,6 +703,7 @@ function withHTMLSubtitles(Video) {
                     tracks = [];
                     selectedTrackId = null;
                     delay = null;
+                    destroyASSSubtitles();
                     renderSubtitles();
                     onPropChanged('extraSubtitlesTracks');
                     onPropChanged('selectedExtraSubtitlesTrackId');
