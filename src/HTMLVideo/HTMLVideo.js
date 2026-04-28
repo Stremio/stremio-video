@@ -501,18 +501,18 @@ function HTMLVideo(options) {
             }
             case 'selectedAudioTrackId': {
                 if (hls !== null) {
-                    var selecterdAudioTrack = getProp('audioTracks')
+                    var selectedAudioTrack = getProp('audioTracks')
                         .find(function(track) {
                             return track.id === propValue;
                         });
-                    if (selecterdAudioTrack) {
-                        var trackIndex = parseInt(selecterdAudioTrack.id.split('_').pop(), 10);
+                    if (selectedAudioTrack) {
+                        var trackIndex = parseInt(selectedAudioTrack.id.split('_').pop(), 10);
                         var allTracks = hls.allAudioTracks;
                         if (trackIndex >= 0 && trackIndex < allTracks.length) {
                             hls.setAudioOption(allTracks[trackIndex]);
                         }
                         onPropChanged('selectedAudioTrackId');
-                        events.emit('audioTrackLoaded', selecterdAudioTrack);
+                        events.emit('audioTrackLoaded', selectedAudioTrack);
                     }
                 }
 
