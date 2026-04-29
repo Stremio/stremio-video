@@ -2,32 +2,26 @@ name: Publish
 
 on:
   release:
-    types: [released]
+    types: [published]
 
 permissions:
   id-token: write
   contents: read
   packages: write
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup NodeJS
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          registry-url: https://npm.pkg.github.com
-          scope: "@stremio"
-      - name: Install NPM dependencies
-        run: npm install
-      - name: Publish to GitHub Package Registry
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm publish
+    - name: Setup NodeJS
+      uses: actions/setup-node@v6
+      with:
+        node-version: 24
+        registry-url: https://npm.pkg.github.com
+        scope: "@stremio"
+    - name: Checkout
+      uses: actions/checkout@v6
+    - name: Install NPM Dependencies
+      run: npm install
+    - name: Publish to GitHub Package Registry
+      run: npm publish
