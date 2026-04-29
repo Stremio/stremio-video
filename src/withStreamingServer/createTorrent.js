@@ -28,7 +28,9 @@ function createTorrent(streamingServerURL, infoHash, fileIdx, sources, seriesInf
 
     if (Array.isArray(sources) && sources.length > 0) {
         body.peerSearch = {
-            sources: ['dht:' + infoHash].concat(sources).filter(function(source, index, sources) {
+            sources: ['dht:' + infoHash].concat(sources.map(function(source) {
+                return source.startsWith('tracker:') || source.startsWith('dht:') ? source : 'tracker:' + source;
+            })).filter(function(source, index, sources) {
                 return sources.indexOf(source) === index;
             }),
             min: 40,

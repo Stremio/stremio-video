@@ -12,6 +12,7 @@ var stremioToMPVProps = {
     'time': 'time-pos',
     'duration': 'duration',
     'buffering': 'buffering',
+    'buffered': 'demuxer-cache-time',
     'volume': 'volume',
     'muted': 'mute',
     'playbackSpeed': 'speed',
@@ -25,6 +26,8 @@ var stremioToMPVProps = {
     'subtitlesTextColor': 'sub-color',
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
+    'hdrInfo': null,
+    'videoScale': null,
 };
 
 function parseVersion(version) {
@@ -73,6 +76,7 @@ function ShellVideo(options) {
 
     ipc.send('mpv-observe-prop', 'paused-for-cache');
     ipc.send('mpv-observe-prop', 'cache-buffering-state');
+    ipc.send('mpv-observe-prop', 'demuxer-cache-time');
 
     ipc.send('mpv-observe-prop', 'aid');
     ipc.send('mpv-observe-prop', 'vid');
@@ -110,7 +114,7 @@ function ShellVideo(options) {
         console.log(args.name+': '+args.data);
     }
     function embeddedProp(args) {
-        return args.data ? 'EMBEDDED_' + args.data.toString() : null;
+        return args.data && args.data !== 'no' ? 'EMBEDDED_' + args.data.toString() : null;
     }
 
     var last_time = 0;
@@ -177,10 +181,33 @@ function ShellVideo(options) {
                 }
                 break;
             }
+            case 'demuxer-cache-time': {
+                var cacheTime = args.data || 0;
+                props[args.name] = cacheTime > 0 ? Math.floor(cacheTime * 1000) : null;
+                onPropChanged('buffered');
+                break;
+            }
             case 'aid':
             case 'sid':
             case 'vid': {
                 props[args.name] = embeddedProp(args);
+                break;
+            }
+            case 'video-params': {
+                props[args.name] = args.data;
+                var params = args.data || {};
+                var gamma = typeof params.gamma === 'string' ? params.gamma : null;
+                if (gamma === 'pq' || gamma === 'hlg') {
+                    props.hdrInfo = {
+                        gamma: gamma,
+                        primaries: typeof params.primaries === 'string' ? params.primaries : null,
+                        maxCll: typeof params['max-cll'] === 'number' ? params['max-cll'] : null,
+                        maxLuma: typeof params['max-luma'] === 'number' ? params['max-luma'] : null,
+                    };
+                } else {
+                    props.hdrInfo = null;
+                }
+                onPropChanged('hdrInfo');
                 break;
             }
             // In that case onPropChanged() is manually invoked as track-list contains all
@@ -235,6 +262,8 @@ function ShellVideo(options) {
     });
 
     function getProp(propName) {
+        if (propName === 'hdrInfo') return props.hdrInfo || null;
+        if (propName === 'videoScale') return props.videoScale || 'contain';
         if(stremioToMPVProps[propName]) return props[stremioToMPVProps[propName]];
         // eslint-disable-next-line no-console
         console.log('Unsupported prop requested', propName);
@@ -277,6 +306,27 @@ function ShellVideo(options) {
             case 'playbackSpeed': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
                     ipc.send('mpv-set-prop', ['speed', propValue]);
+                }
+                break;
+            }
+            case 'videoScale': {
+                if (stream !== null) {
+                    switch (propValue) {
+                        case 'cover':
+                            ipc.send('mpv-set-prop', ['keepaspect', true]);
+                            ipc.send('mpv-set-prop', ['panscan', 1.0]);
+                            break;
+                        case 'fill':
+                            ipc.send('mpv-set-prop', ['keepaspect', false]);
+                            ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            break;
+                        default:
+                            ipc.send('mpv-set-prop', ['keepaspect', true]);
+                            ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            break;
+                    }
+                    props.videoScale = propValue;
+                    onPropChanged('videoScale');
                 }
                 break;
             }
@@ -356,19 +406,18 @@ function ShellVideo(options) {
                         stream = commandArgs.stream;
                         onPropChanged('stream');
 
-                        ipc.send('mpv-set-prop', ['no-sub-ass']);
+                        var subAssOverride = commandArgs.assSubtitlesStyling ? 'strip' : 'no';
+                        ipc.send('mpv-set-prop', ['sub-ass-override', subAssOverride]);
 
                         // Hardware decoding
                         var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
-                        // opengl-cb is an alias for the new name "libmpv", as shown in mpv's video/out/vo.c aliases
-                        // opengl is an alias for the new name "gpu"
-                        // When on Windows we use d3d for the rendering in separate window
-                        var windowRenderer = navigator.platform === 'Win32' ? 'direct3d' : 'opengl';
-                        var videoOutput = options.mpvSeparateWindow ? windowRenderer : 'opengl-cb';
-                        var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
+                        // Video output
+                        var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
                         ipc.send('mpv-set-prop', ['vo', videoOutput]);
+
+                        var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-default-bindings', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
@@ -398,6 +447,7 @@ function ShellVideo(options) {
                         onPropChanged('time');
                         onPropChanged('duration');
                         onPropChanged('buffering');
+                        onPropChanged('buffered');
                         onPropChanged('muted');
                         onPropChanged('subtitlesTracks');
                         onPropChanged('selectedSubtitlesTrackId');
@@ -419,6 +469,7 @@ function ShellVideo(options) {
                     subtitlesTracks: [],
                     audioTracks: [],
                     buffering: false,
+                    buffered: null,
                     aid: null,
                     sid: null,
                 };
@@ -430,6 +481,7 @@ function ShellVideo(options) {
                 onPropChanged('time');
                 onPropChanged('duration');
                 onPropChanged('buffering');
+                onPropChanged('buffered');
                 onPropChanged('muted');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');

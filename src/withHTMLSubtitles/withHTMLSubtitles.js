@@ -3,6 +3,7 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var Color = require('color');
 var ERROR = require('../error');
+var binarySearchUpperBound = require('./binarySearchUpperBound');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
@@ -42,8 +43,15 @@ function withHTMLSubtitles(Video) {
         containerElement.appendChild(subtitlesElement);
 
         var videoState = {
-            time: null
+            time: null,
+            paused: false,
+            buffering: false,
+            lastSyncAt: null,
+            playbackSpeed: 1
         };
+        var rafId = null;
+        var lastTimeIndex = null;
+        var forceRender = false;
         var cuesByTime = null;
         var events = new EventEmitter();
         var destroyed = false;
@@ -71,18 +79,62 @@ function withHTMLSubtitles(Video) {
             extraSubtitlesPreview: false,
         };
 
+        function getCurrentTime() {
+            if (videoState.time === null || !isFinite(videoState.time)) {
+                return null;
+            }
+            if (videoState.paused || videoState.buffering || videoState.lastSyncAt === null) {
+                return videoState.time;
+            }
+            return videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
+        }
+        function startRenderLoop() {
+            if (rafId !== null) {
+                return;
+            }
+            (function loop() {
+                renderSubtitles();
+                rafId = requestAnimationFrame(loop);
+            })();
+        }
+        function stopRenderLoop() {
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        }
         function renderSubtitles() {
+            var time = getCurrentTime();
+
+            if (cuesByTime === null || time === null) {
+                if (lastTimeIndex !== null) {
+                    while (subtitlesElement.hasChildNodes()) {
+                        subtitlesElement.removeChild(subtitlesElement.lastChild);
+                    }
+                    lastTimeIndex = null;
+                }
+                forceRender = false;
+                return;
+            }
+
+            var timeIndex = binarySearchUpperBound(cuesByTime.times, time - delay);
+            if (timeIndex === lastTimeIndex && !forceRender) {
+                return;
+            }
+            lastTimeIndex = timeIndex;
+            forceRender = false;
+
             while (subtitlesElement.hasChildNodes()) {
                 subtitlesElement.removeChild(subtitlesElement.lastChild);
             }
 
-            if (cuesByTime === null || videoState.time === null || !isFinite(videoState.time)) {
+            if (timeIndex === -1) {
                 return;
             }
 
             subtitlesElement.style.bottom = offset + '%';
             subtitlesElement.style.opacity = opacity;
-            subtitlesRenderer.render(cuesByTime, videoState.time - delay).forEach(function(cueNode) {
+            subtitlesRenderer.render(cuesByTime, timeIndex).forEach(function(cueNode) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
                 cueNode.style.whiteSpace = 'pre-wrap';
@@ -122,8 +174,38 @@ function withHTMLSubtitles(Video) {
             switch (propName) {
                 case 'time': {
                     videoState.time = propValue;
-                    renderSubtitles();
+                    videoState.lastSyncAt = Date.now();
                     setPreview();
+                    break;
+                }
+                case 'paused': {
+                    if (propValue && !videoState.paused && !videoState.buffering && videoState.lastSyncAt !== null && videoState.time !== null) {
+                        videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
+                        videoState.lastSyncAt = Date.now();
+                    } else if (!propValue && videoState.paused) {
+                        videoState.lastSyncAt = Date.now();
+                    }
+                    videoState.paused = propValue;
+                    break;
+                }
+                case 'buffering': {
+                    if (propValue && !videoState.buffering && !videoState.paused && videoState.lastSyncAt !== null && videoState.time !== null) {
+                        videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
+                        videoState.lastSyncAt = Date.now();
+                    } else if (!propValue && videoState.buffering) {
+                        videoState.lastSyncAt = Date.now();
+                    }
+                    videoState.buffering = propValue;
+                    break;
+                }
+                case 'playbackSpeed': {
+                    if (propValue !== null && isFinite(propValue)) {
+                        if (!videoState.paused && !videoState.buffering && videoState.lastSyncAt !== null && videoState.time !== null) {
+                            videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
+                            videoState.lastSyncAt = Date.now();
+                        }
+                        videoState.playbackSpeed = propValue;
+                    }
                     break;
                 }
             }
@@ -247,12 +329,18 @@ function withHTMLSubtitles(Video) {
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'selectedExtraSubtitlesTrackId': {
+                    if (propValue !== null && selectedTrackId === propValue) {
+                        return true;
+                    }
                     cuesByTime = null;
                     selectedTrackId = null;
                     delay = null;
                     var selectedTrack = tracks.find(function(track) {
                         return track.id === propValue;
                     });
+                    if (!selectedTrack) {
+                        stopRenderLoop();
+                    }
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
@@ -298,7 +386,7 @@ function withHTMLSubtitles(Video) {
                                     }
 
                                     cuesByTime = result;
-                                    renderSubtitles();
+                                    startRenderLoop();
                                     setPreview();
                                     events.emit('extraSubtitlesTrackLoaded', selectedTrack);
                                 })
@@ -329,6 +417,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesDelay': {
                     if (selectedTrackId !== null && propValue !== null && isFinite(propValue)) {
                         delay = parseInt(propValue, 10);
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesDelay');
                     }
@@ -338,6 +427,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesSize': {
                     if (propValue !== null && isFinite(propValue)) {
                         size = Math.max(0, parseInt(propValue, 10));
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesSize');
                     }
@@ -347,6 +437,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesOffset': {
                     if (propValue !== null && isFinite(propValue)) {
                         offset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesOffset');
                     }
@@ -362,6 +453,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesTextColor');
                     }
@@ -377,6 +469,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesBackgroundColor');
                     }
@@ -392,6 +485,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesOutlineColor');
                     }
@@ -407,6 +501,7 @@ function withHTMLSubtitles(Video) {
                             console.error('withHTMLSubtitles', error);
                         }
 
+                        forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesOpacity');
                     }
@@ -480,6 +575,8 @@ function withHTMLSubtitles(Video) {
                     return false;
                 }
                 case 'unload': {
+                    stopRenderLoop();
+                    lastTimeIndex = null;
                     cuesByTime = null;
                     tracks = [];
                     selectedTrackId = null;

@@ -1,9 +1,7 @@
 var VTTJS = require('vtt.js');
-var binarySearchUpperBound = require('./binarySearchUpperBound');
 
-function render(cuesByTime, time) {
+function render(cuesByTime, timeIndex) {
     var nodes = [];
-    var timeIndex = binarySearchUpperBound(cuesByTime.times, time);
     if (timeIndex !== -1) {
         var cuesForTime = cuesByTime[cuesByTime.times[timeIndex]];
         for (var i = 0; i < cuesForTime.length; i++) {

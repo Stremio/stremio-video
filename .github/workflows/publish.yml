@@ -9,6 +9,10 @@ permissions:
   contents: read
   packages: write
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest

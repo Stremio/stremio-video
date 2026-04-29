@@ -3,7 +3,7 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 
-var SSA_DESCRIPTORS_REGEX = /^\{(\\an[1-8])+\}/i;
+var _SSA_DESCRIPTORS_REGEX = /^\{(\\an[1-8])+\}/i;
 
 function VidaaVideo(options) {
     options = options || {};
@@ -329,9 +329,17 @@ function VidaaVideo(options) {
             }
             case 'selectedSubtitlesTrackId': {
                 if (stream !== null) {
+                    // important: disable all first
+                    Array.from(videoElement.textTracks)
+                        .forEach(function(track) {
+                            track.mode = 'disabled';
+                        });
+                    // then enable selected
                     Array.from(videoElement.textTracks)
                         .forEach(function(track, index) {
-                            track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                            if ('EMBEDDED_' + String(index) === propValue) {
+                                track.mode = 'showing';
+                            }
                         });
                     var selecterdSubtitlesTrack = getProp('subtitlesTracks')
                         .find(function(track) {
@@ -405,16 +413,31 @@ function VidaaVideo(options) {
                     onPropChanged('buffering');
                     if (videoElement.textTracks) {
                         videoElement.textTracks.onaddtrack = function() {
-                            videoElement.textTracks.onaddtrack = null;
                             setTimeout(function() {
-                                onPropChanged('subtitlesTracks');
-                                onPropChanged('selectedSubtitlesTrackId');
+                                // starts with embedded track selected
+                                // we'll first select some embedded track
+                                Array.from(videoElement.textTracks)
+                                    .forEach(function(track, index) {
+                                        if (!index) {
+                                            track.mode = 'showing';
+                                        }
+                                    });
+                                setTimeout(function() {
+                                    // then disable all embedded tracks on start
+                                    Array.from(videoElement.textTracks)
+                                        .forEach(function(track) {
+                                            track.mode = 'disabled';
+                                        });
+                                    setTimeout(function() {
+                                        onPropChanged('subtitlesTracks');
+                                        onPropChanged('selectedSubtitlesTrackId');
+                                    });
+                                });
                             });
                         };
                     }
                     if (videoElement.audioTracks) {
                         videoElement.audioTracks.onaddtrack = function() {
-                            videoElement.audioTracks.onaddtrack = null;
                             setTimeout(function() {
                                 onPropChanged('audioTracks');
                                 onPropChanged('selectedAudioTrackId');
@@ -431,6 +454,8 @@ function VidaaVideo(options) {
                 break;
             }
             case 'unload': {
+                videoElement.textTracks.onaddtrack = null;
+                videoElement.audioTracks.onaddtrack = null;
                 stream = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;

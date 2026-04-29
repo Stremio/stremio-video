@@ -375,7 +375,10 @@ function withStreamingServer(Video) {
 
                             return true;
                         });
-                        return isFormatSupported && areStreamsSupported;
+                        var hasEmbeddedSubtitles = probe.streams.some(function(stream) {
+                            return stream.track === 'subtitle';
+                        });
+                        return isFormatSupported && areStreamsSupported && !hasEmbeddedSubtitles;
                     })
                     .catch(function() {
                         // this uses content-type header in HTMLVideo which
