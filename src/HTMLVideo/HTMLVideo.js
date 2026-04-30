@@ -579,6 +579,7 @@ function HTMLVideo(options) {
 
                             if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
                                 hls = new Hls(HLS_CONFIG);
+                                hls.subtitleTrack = -1;
                                 hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
