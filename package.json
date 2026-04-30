@@ -13,6 +13,7 @@
         "lint": "eslint src"
     },
     "dependencies": {
+        "@mrcanelas/jassub-embedded": "^2.5.3",
         "buffer": "6.0.3",
         "color": "4.2.3",
         "deep-freeze": "0.0.1",
