@@ -587,6 +587,9 @@ function HTMLVideo(options) {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
                                 });
+                                hls.on(Hls.Events.MANIFEST_LOADING, function() {
+                                    hls.subtitleTrack = -1;
+                                });
                                 hls.loadSource(stream.url);
                                 hls.attachMedia(videoElement);
                             } else {
