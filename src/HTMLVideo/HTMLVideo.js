@@ -579,6 +579,47 @@ function HTMLVideo(options) {
 
                             if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
                                 hls = new Hls(HLS_CONFIG);
+                                var MEDIA_ERROR_RECOVERY_LIMIT = 3;
+                                var MEDIA_ERROR_BURST_WINDOW_MS = 3000;
+                                var lastMediaErrorAt = 0;
+                                var mediaErrorRecoveryAttempts = 0;
+                                function isStallingNonFatalError(details) {
+                                    return details === Hls.ErrorDetails.BUFFER_STALLED_ERROR
+                                        || details === Hls.ErrorDetails.BUFFER_APPENDING_ERROR
+                                        || details === Hls.ErrorDetails.AUDIO_TRACK_LOAD_ERROR
+                                        || details === Hls.ErrorDetails.AUDIO_TRACK_LOAD_TIMEOUT;
+                                }
+                                function recoverFromHlsError(_, data) {
+                                    if (!data.fatal) {
+                                        if (isStallingNonFatalError(data.details)) {
+                                            hls.startLoad();
+                                        }
+                                        return;
+                                    }
+                                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                                        hls.startLoad();
+                                        return;
+                                    }
+                                    if (data.type !== Hls.ErrorTypes.MEDIA_ERROR) {
+                                        return;
+                                    }
+                                    if (mediaErrorRecoveryAttempts >= MEDIA_ERROR_RECOVERY_LIMIT) {
+                                        return;
+                                    }
+                                    var now = Date.now();
+                                    var withinRecoveryWindow = now - lastMediaErrorAt < MEDIA_ERROR_BURST_WINDOW_MS;
+                                    lastMediaErrorAt = now;
+                                    mediaErrorRecoveryAttempts++;
+                                    if (withinRecoveryWindow) {
+                                        // Second consecutive media error in hls.js usually means the audio codec is the culprit; swap before retrying.
+                                        hls.swapAudioCodec();
+                                    }
+                                    hls.recoverMediaError();
+                                }
+                                hls.on(Hls.Events.ERROR, recoverFromHlsError);
+                                hls.on(Hls.Events.FRAG_BUFFERED, function() {
+                                    mediaErrorRecoveryAttempts = 0;
+                                });
                                 hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
