@@ -579,7 +579,6 @@ function HTMLVideo(options) {
 
                             if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
                                 hls = new Hls(HLS_CONFIG);
-                                hls.subtitleTrack = -1;
                                 hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
@@ -587,6 +586,9 @@ function HTMLVideo(options) {
                                 hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
+                                });
+                                hls.on(Hls.Events.MANIFEST_LOADING, function() {
+                                    hls.subtitleTrack = -1;
                                 });
                                 hls.loadSource(stream.url);
                                 hls.attachMedia(videoElement);

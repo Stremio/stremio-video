@@ -189,6 +189,10 @@ function withHTMLSubtitles(Video) {
             }
 
             events.emit(eventName, propName, getProp(propName, propValue));
+
+            if (propName === 'selectedSubtitlesTrackId' && propValue !== null && selectedTrackId !== null) {
+                setProp('selectedExtraSubtitlesTrackId', null);
+            }
         }
         function onOtherVideoEvent(eventName) {
             return function() {
@@ -300,6 +304,13 @@ function withHTMLSubtitles(Video) {
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'selectedExtraSubtitlesTrackId': {
+                    if (propValue !== null) {
+                        video.dispatch({
+                            type: 'setProp',
+                            propName: 'selectedSubtitlesTrackId',
+                            propValue: null,
+                        });
+                    }
                     if (propValue !== null && selectedTrackId === propValue) {
                         return true;
                     }
