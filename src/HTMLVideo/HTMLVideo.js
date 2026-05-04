@@ -602,6 +602,7 @@ function HTMLVideo(options) {
                     onPropChanged('selectedSubtitlesTrackId');
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
+                    onPropChanged('fullscreen');
                     getContentType(stream)
                         .then(function(contentType) {
                             if (stream !== commandArgs.stream) {
@@ -667,6 +668,7 @@ function HTMLVideo(options) {
                 onPropChanged('selectedSubtitlesTrackId');
                 onPropChanged('audioTracks');
                 onPropChanged('selectedAudioTrackId');
+                onPropChanged('fullscreen');
                 break;
             }
             case 'destroy': {
