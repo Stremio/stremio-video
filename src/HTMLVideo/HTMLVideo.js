@@ -99,6 +99,13 @@ function HTMLVideo(options) {
     };
     containerElement.appendChild(videoElement);
 
+    function onFullscreenChanged() {
+        onPropChanged('fullscreen');
+    }
+    videoElement.addEventListener('webkitbeginfullscreen', onFullscreenChanged);
+    videoElement.addEventListener('webkitendfullscreen', onFullscreenChanged);
+    videoElement.addEventListener('fullscreenchange', onFullscreenChanged);
+
     var hls = null;
     var events = new EventEmitter();
     var destroyed = false;
@@ -125,7 +132,8 @@ function HTMLVideo(options) {
         volume: false,
         muted: false,
         playbackSpeed: false,
-        videoScale: false
+        videoScale: false,
+        fullscreen: false
     };
 
     function getProp(propName) {
@@ -322,6 +330,12 @@ function HTMLVideo(options) {
             }
             case 'videoScale': {
                 return videoElement.style.objectFit || 'contain';
+            }
+            case 'fullscreen': {
+                if (stream === null) {
+                    return null;
+                }
+                return videoElement.webkitDisplayingFullscreen === true || document.fullscreenElement === videoElement;
             }
             default: {
                 return null;
@@ -550,6 +564,23 @@ function HTMLVideo(options) {
 
                 break;
             }
+            case 'fullscreen': {
+                if (stream === null) break;
+                if (propValue) {
+                    if (typeof videoElement.webkitEnterFullscreen === 'function') {
+                        videoElement.webkitEnterFullscreen();
+                    } else if (typeof videoElement.requestFullscreen === 'function') {
+                        videoElement.requestFullscreen();
+                    }
+                } else {
+                    if (typeof videoElement.webkitExitFullscreen === 'function' && videoElement.webkitDisplayingFullscreen) {
+                        videoElement.webkitExitFullscreen();
+                    } else if (document.fullscreenElement === videoElement) {
+                        document.exitFullscreen();
+                    }
+                }
+                break;
+            }
         }
     }
     function command(commandName, commandArgs) {
@@ -668,6 +699,9 @@ function HTMLVideo(options) {
                 videoElement.onvolumechange = null;
                 videoElement.onratechange = null;
                 videoElement.textTracks.onchange = null;
+                videoElement.removeEventListener('webkitbeginfullscreen', onFullscreenChanged);
+                videoElement.removeEventListener('webkitendfullscreen', onFullscreenChanged);
+                videoElement.removeEventListener('fullscreenchange', onFullscreenChanged);
                 containerElement.removeChild(videoElement);
                 containerElement.removeChild(styleElement);
                 break;
@@ -727,7 +761,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
