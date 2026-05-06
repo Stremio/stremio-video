@@ -42,14 +42,16 @@ function withHTMLSubtitles(Video) {
 
         var videoElement = containerElement.querySelector('video');
         var nativeTextTrack = null;
+        var syntheticNativeTextTracks = [];
 
         function createNativeTrack() {
             removeNativeTrack();
-            if (cuesByTime === null || selectedTrackId === null) return;
+            if (cuesByTime === null || selectedTrackId === null) return false;
             var selectedTrack = tracks.find(function(track) { return track.id === selectedTrackId; });
-            if (!selectedTrack) return;
+            if (!selectedTrack) return false;
             var delayMs = delay || 0;
             nativeTextTrack = videoElement.addTextTrack('subtitles', selectedTrack.label || selectedTrack.lang, selectedTrack.lang || '');
+            syntheticNativeTextTracks.push(nativeTextTrack);
             cuesByTime.times.forEach(function(time) {
                 cuesByTime[time].forEach(function(cue) {
                     if (cue.startTime !== time) return;
@@ -61,12 +63,26 @@ function withHTMLSubtitles(Video) {
                 });
             });
             nativeTextTrack.mode = 'showing';
+            return true;
         }
         function removeNativeTrack() {
             if (nativeTextTrack !== null) {
                 nativeTextTrack.mode = 'disabled';
                 nativeTextTrack = null;
             }
+        }
+        function isNativeTextTrack(track) {
+            return syntheticNativeTextTracks.includes(track);
+        }
+        function getEmbeddedTrackIndex(trackId) {
+            if (typeof trackId !== 'string' || !trackId.startsWith('EMBEDDED_')) {
+                return null;
+            }
+            var index = parseInt(trackId.replace('EMBEDDED_', ''), 10);
+            return isNaN(index) ? null : index;
+        }
+        function isWebkitDisplayingFullscreen() {
+            return videoElement && videoElement.webkitDisplayingFullscreen === true;
         }
         function onWebkitBeginFullscreen() {
             createNativeTrack();
@@ -317,6 +333,24 @@ function withHTMLSubtitles(Video) {
 
                     return opacity;
                 }
+                case 'subtitlesTracks': {
+                    if (Array.isArray(videoPropValue) && videoElement && videoElement.textTracks) {
+                        return videoPropValue.filter(function(track) {
+                            var index = getEmbeddedTrackIndex(track.id);
+                            return index === null || !isNativeTextTrack(videoElement.textTracks[index]);
+                        });
+                    }
+
+                    return videoPropValue;
+                }
+                case 'selectedSubtitlesTrackId': {
+                    if (typeof videoPropValue === 'string' && videoElement && videoElement.textTracks) {
+                        var index = getEmbeddedTrackIndex(videoPropValue);
+                        return index !== null && isNativeTextTrack(videoElement.textTracks[index]) ? null : videoPropValue;
+                    }
+
+                    return videoPropValue;
+                }
                 default: {
                     return videoPropValue;
                 }
@@ -410,6 +444,9 @@ function withHTMLSubtitles(Video) {
 
                                     cuesByTime = result;
                                     startRenderLoop();
+                                    if (isWebkitDisplayingFullscreen() && nativeTextTrack === null) {
+                                        createNativeTrack();
+                                    }
                                     events.emit('extraSubtitlesTrackLoaded', selectedTrack);
                                 })
                                 .catch(function(error) {
