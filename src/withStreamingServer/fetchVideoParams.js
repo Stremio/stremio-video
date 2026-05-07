@@ -46,7 +46,30 @@ function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behavior
     }
 
     if (infoHash) {
-        return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx) + '/stats.json'))
+        // fileIdx -1 means auto-pick; /-1/stats.json has no streamName,
+        // so resolve via engine guessedFileIdx instead.
+        var fileIdxNum = typeof fileIdx === 'string' ? parseInt(fileIdx, 10) : fileIdx;
+        var hasSpecificFileIdx = fileIdxNum !== null && fileIdxNum !== -1 && isFinite(fileIdxNum);
+
+        if (hasSpecificFileIdx) {
+            return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx) + '/stats.json'))
+                .then(function(resp) {
+                    if (resp.ok) {
+                        return resp.json();
+                    }
+
+                    throw new Error(resp.status + ' (' + resp.statusText + ')');
+                })
+                .then(function(resp) {
+                    if (!resp || typeof resp.streamName !== 'string') {
+                        throw new Error('Could not retrieve filename from torrent');
+                    }
+
+                    return resp.streamName;
+                });
+        }
+
+        return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/stats.json'))
             .then(function(resp) {
                 if (resp.ok) {
                     return resp.json();
@@ -54,12 +77,31 @@ function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behavior
 
                 throw new Error(resp.status + ' (' + resp.statusText + ')');
             })
-            .then(function(resp) {
-                if (!resp || typeof resp.streamName !== 'string') {
-                    throw new Error('Could not retrieve filename from torrent');
+            .then(function(stats) {
+                if (!stats || !Array.isArray(stats.files)) {
+                    throw new Error('Could not retrieve file list from torrent');
                 }
 
-                return resp.streamName;
+                // Prefer guessedFileIdx — the file the engine is streaming.
+                var guessed = typeof stats.guessedFileIdx === 'number' ? stats.files[stats.guessedFileIdx] : null;
+                if (guessed && typeof guessed.name === 'string') {
+                    return guessed.name;
+                }
+
+                // Fallback: largest video file (mirrors server's GuessFileIdx for movies).
+                var videoExt = /\.(mp4|mkv|avi|mov|wmv|flv|webm|m4v|mpg|mpeg|ts|m2ts)$/i;
+                var pool = stats.files.filter(function(f) { return f && typeof f.name === 'string' && videoExt.test(f.name); });
+                if (pool.length === 0) {
+                    pool = stats.files.filter(function(f) { return f && typeof f.name === 'string'; });
+                }
+                var largest = pool.reduce(function(best, f) {
+                    return (!best || (f.length || 0) > (best.length || 0)) ? f : best;
+                }, null);
+                if (largest && typeof largest.name === 'string') {
+                    return largest.name;
+                }
+
+                throw new Error('Could not retrieve filename from torrent');
             });
     }
 
