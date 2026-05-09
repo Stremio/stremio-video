@@ -376,11 +376,16 @@ function withStreamingServer(Video) {
 
                             return true;
                         });
+                        var hasEmbeddedSubtitles = probe.streams.some(function(stream) {
+                            return stream.track === 'subtitle';
+                        });
 
                         // HTML5 video doesn't support multiple audio tracks, so we can't switch languages
-                        const supportedAudioTracks = probe.streams.filter((stream) => stream.track === 'audio' && options.audioCodecs.includes(stream.codec));
+                        var supportedAudioTracks = probe.streams.filter(function(stream) {
+                            return stream.track === 'audio' && options.audioCodecs.indexOf(stream.codec) !== -1;
+                        });
 
-                        return isFormatSupported && areStreamsSupported && supportedAudioTracks.length < 2;
+                        return isFormatSupported && areStreamsSupported && !hasEmbeddedSubtitles && supportedAudioTracks.length < 2;
                     })
                     .catch(function() {
                         // this uses content-type header in HTMLVideo which
