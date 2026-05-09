@@ -46,13 +46,33 @@ function convertStream(streamingServerURL, stream, seriesInfo, streamingServerSe
             } else {
                 var proxyStreamsEnabled = streamingServerSettings && streamingServerSettings.proxyStreamsEnabled;
                 var proxyHeaders = stream.behaviorHints && stream.behaviorHints.proxyHeaders;
+                var resolved;
                 if (proxyStreamsEnabled || proxyHeaders) {
                     var requestHeaders = proxyHeaders && proxyHeaders.request ? proxyHeaders.request : {};
                     var responseHeaders = proxyHeaders && proxyHeaders.response ? proxyHeaders.response : {};
-                    resolve({ url: buildProxyUrl(streamingServerURL, stream.url, requestHeaders, responseHeaders) });
+                    resolved = { url: buildProxyUrl(streamingServerURL, stream.url, requestHeaders, responseHeaders) };
                 } else {
-                    resolve({ url: stream.url });
+                    resolved = { url: stream.url };
                 }
+                // Propagate infoHash/fileIdx so fetchFilename can hit stats.json
+                // instead of leaking the URL fragment as the filename.
+                if (typeof stream.infoHash === 'string' && stream.infoHash.length > 0) {
+                    resolved.infoHash = stream.infoHash.toLowerCase();
+                    if (stream.fileIdx !== null && stream.fileIdx !== undefined && isFinite(stream.fileIdx)) {
+                        resolved.fileIdx = stream.fileIdx;
+                    }
+                } else {
+                    // Fallback for addons shipping pre-computed streaming-server URLs.
+                    try {
+                        var parsed = new URL(stream.url);
+                        var parts = parsed.pathname.split('/').filter(Boolean);
+                        if (parts.length === 2 && /^[a-f0-9]{40}$/i.test(parts[0]) && /^-?\d+$/.test(parts[1])) {
+                            resolved.infoHash = parts[0].toLowerCase();
+                            resolved.fileIdx = parseInt(parts[1], 10);
+                        }
+                    } catch (_e) { /* unparsable URL */ }
+                }
+                resolve(resolved);
             }
 
             return;
