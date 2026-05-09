@@ -365,6 +365,7 @@ function withStreamingServer(Video) {
                         var isFormatSupported = options.formats.some(function(format) {
                             return probe.format.name.indexOf(format) !== -1;
                         });
+
                         var areStreamsSupported = probe.streams.every(function(stream) {
                             if (stream.track === 'audio') {
                                 return stream.channels <= options.maxAudioChannels &&
@@ -378,7 +379,13 @@ function withStreamingServer(Video) {
                         var hasEmbeddedSubtitles = probe.streams.some(function(stream) {
                             return stream.track === 'subtitle';
                         });
-                        return isFormatSupported && areStreamsSupported && !hasEmbeddedSubtitles;
+
+                        // HTML5 video doesn't support multiple audio tracks, so we can't switch languages
+                        var supportedAudioTracks = probe.streams.filter(function(stream) {
+                            return stream.track === 'audio' && options.audioCodecs.indexOf(stream.codec) !== -1;
+                        });
+
+                        return isFormatSupported && areStreamsSupported && !hasEmbeddedSubtitles && supportedAudioTracks.length < 2;
                     })
                     .catch(function() {
                         // this uses content-type header in HTMLVideo which
