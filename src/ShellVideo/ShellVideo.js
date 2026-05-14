@@ -413,6 +413,13 @@ function ShellVideo(options) {
                         var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
+                        // supported since >= 0.40
+                        if (versionGTE(mpvVersion, '0.40')) {
+                            // Nvidia RTX VSR/HDR
+                            var vfValue = commandArgs.platform === 'windows' && commandArgs.nvidiaVideoProcessing && commandArgs.hardwareDecoding ? 'd3d11vpp=scaling-mode=nvidia:scale=1:format=x2bgr10:nvidia-true-hdr' : '';
+                            ipc.send('mpv-set-prop', ['vf', vfValue]);
+                        }
+
                         // Video output
                         var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
                         ipc.send('mpv-set-prop', ['vo', videoOutput]);
