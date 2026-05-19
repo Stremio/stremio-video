@@ -1,5 +1,6 @@
 var SubtitlesOctopus = require('@jellyfin/libass-wasm');
 var libassAssets = require('@jellyfin/libass-wasm/dist/js/subtitles-octopus-assets');
+var subtitleTypes = require('./subtitleTypes');
 
 function decodeBase64ToUint8Array(base64) {
     var binary = atob(base64);
@@ -94,25 +95,6 @@ function getRendererAvailableFonts(track, options) {
     }
 
     return {};
-}
-
-function isASSSubtitlesTrack(track) {
-    if (!track || typeof track !== 'object') {
-        return false;
-    }
-
-    if (typeof track.type === 'string' && /(?:^|\/|\.)(ass|ssa)$/i.test(track.type)) {
-        return true;
-    }
-
-    var sources = [track.url, track.fallbackUrl, track.filename, track.label];
-    for (var index = 0; index < sources.length; index++) {
-        if (typeof sources[index] === 'string' && /\.(ass|ssa)(?:$|[?#])/i.test(sources[index])) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 function getVideoContentRect(videoElement) {
@@ -427,6 +409,6 @@ function createASSRenderer(options) {
     };
 }
 
-createASSRenderer.isTrack = isASSSubtitlesTrack;
+createASSRenderer.isTrack = subtitleTypes.isASSSubtitleTrack;
 
 module.exports = createASSRenderer;
