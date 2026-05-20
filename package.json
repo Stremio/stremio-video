@@ -13,7 +13,7 @@
         "lint": "eslint src"
     },
     "dependencies": {
-        "@jellyfin/libass-wasm": "^4.2.4",
+        "@stremio/libass-wasm": "https://github.com/Stremio/JavascriptSubtitlesOctopus/releases/download/v4.2.5/stremio-libass-wasm-4.2.5.tgz",
         "buffer": "6.0.3",
         "color": "4.2.3",
         "deep-freeze": "0.0.1",

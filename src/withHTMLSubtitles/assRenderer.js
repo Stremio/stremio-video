@@ -1,5 +1,5 @@
-var SubtitlesOctopus = require('@jellyfin/libass-wasm');
-var libassAssets = require('@jellyfin/libass-wasm/dist/js/subtitles-octopus-assets');
+var SubtitlesOctopus = require('@stremio/libass-wasm');
+var libassAssets = require('@stremio/libass-wasm/dist/js/subtitles-octopus-assets');
 var subtitleTypes = require('./subtitleTypes');
 
 function decodeBase64ToUint8Array(base64) {
