@@ -5,7 +5,25 @@ var Color = require('color');
 var ERROR = require('../error');
 var getTracksData = require('../tracksData');
 
-var SSA_DESCRIPTORS_REGEX = /^\{(\\an[1-8])+\}/i;
+// ASS/SSA override blocks: alignment {\an8}, styling {\i1}, positioning
+// {\pos(..)}, colors {\c&H..}, fades {\fad(..)} etc. The native Tizen player
+// forwards these inline with the cue text, so they must be stripped before
+// rendering instead of only removing a leading {\anN} tag.
+var SSA_BLOCK_REGEX = /\{[^}]*\}/g;
+// ASS line breaks (\N hard, \n soft) and hard space (\h).
+var SSA_NEWLINE_REGEX = /\\N|\\n/g;
+var SSA_HARD_SPACE_REGEX = /\\h/g;
+
+function cleanEmbeddedSubtitle(text) {
+    if (typeof text !== 'string') {
+        return '';
+    }
+
+    return text
+        .replace(SSA_BLOCK_REGEX, '')
+        .replace(SSA_HARD_SPACE_REGEX, ' ')
+        .replace(SSA_NEWLINE_REGEX, '\n');
+}
 
 function TizenVideo(options) {
     options = options || {};
@@ -51,7 +69,7 @@ function TizenVideo(options) {
     function renderSubtitle(duration, text) {
         if (disabledSubs) return;
         var now = getProp('time');
-        var cleanedText = text.replace(SSA_DESCRIPTORS_REGEX, '');
+        var cleanedText = cleanEmbeddedSubtitle(text);
 
         // we ignore custom delay here, it's not needed for embedded subs
         lastSub = {
@@ -72,7 +90,16 @@ function TizenVideo(options) {
         subtitlesElement.style.opacity = subtitlesOpacity;
 
         var cueNode = document.createElement('span');
-        cueNode.innerHTML = cleanedText;
+        // Build the cue from text nodes split on line breaks. This renders
+        // multi-line ASS/SRT cues correctly and avoids injecting the raw
+        // subtitle string as HTML.
+        var cueLines = cleanedText.split('\n');
+        for (var lineIndex = 0; lineIndex < cueLines.length; lineIndex++) {
+            if (lineIndex > 0) {
+                cueNode.appendChild(document.createElement('br'));
+            }
+            cueNode.appendChild(document.createTextNode(cueLines[lineIndex]));
+        }
         cueNode.style.display = 'inline-block';
         cueNode.style.padding = '0.2em';
         cueNode.style.fontSize = Math.floor(size / 25) + 'vmin';
@@ -625,17 +652,14 @@ function TizenVideo(options) {
                     }
                     onPropChanged('buffering');
 
-                    var tizenVersion = false;
-
-                    var TIZEN_MATCHES = navigator.userAgent.match(/Tizen (\d+\.\d+)/i);
-
-                    if (TIZEN_MATCHES && TIZEN_MATCHES[1]) {
-                        tizenVersion = parseFloat(TIZEN_MATCHES[1]);
-                    }
-
-                    if (!tizenVersion || tizenVersion >= 6) {
-                        retrieveExtendedTracks();
-                    }
+                    // Extended track metadata (language / label) comes from the
+                    // local streaming server and is independent of the Tizen
+                    // player version. Always fetch it: the previous version gate
+                    // skipped Tizen < 6 entirely, and since the lazy fallback was
+                    // removed those devices surfaced every embedded track as
+                    // "UNKNOWN". retrieveExtendedTracks() is self-guarded against
+                    // repeat calls and a missing stream.
+                    retrieveExtendedTracks();
 
                     AVPlay.open(stream.url);
                     AVPlay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
