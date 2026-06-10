@@ -471,7 +471,7 @@ function TizenVideo(options) {
                         return;
                     }
 
-                    var subtitlesTracks = getProp('subtitlesTracks');
+                    var subtitlesTracks = await getProp('subtitlesTracks');
                     var selectedSubtitlesTrack = subtitlesTracks
                         .find(function(track) {
                             return track.id === propValue;
