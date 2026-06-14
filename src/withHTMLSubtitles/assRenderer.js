@@ -325,9 +325,11 @@ function createASSRenderer(options) {
     }
 
     function readSubtitleText(track) {
-        return readTrackContent(track)
+        var preferFallbackUrl = typeof track.fallbackUrl === 'string' && subtitleTypes.hasASSExtension(track.fallbackUrl);
+
+        return readTrackContent(track, preferFallbackUrl)
             .catch(function(error) {
-                if (typeof track.fallbackUrl === 'string') {
+                if (!preferFallbackUrl && typeof track.fallbackUrl === 'string') {
                     return readTrackContent(track, true);
                 }
 

@@ -58,5 +58,6 @@ function isASSSubtitleTrack(track) {
 }
 
 module.exports = {
+    hasASSExtension: hasASSExtension,
     isASSSubtitleTrack: isASSSubtitleTrack
 };
