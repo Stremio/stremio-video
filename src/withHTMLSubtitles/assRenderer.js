@@ -307,7 +307,10 @@ function createASSRenderer(options) {
                 },
                 onError: function(error) {
                     if (!resolved) {
-                        reject(error);
+                        destroyInstance()
+                            .then(function() {
+                                reject(error);
+                            });
                         return;
                     }
 
