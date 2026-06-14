@@ -416,7 +416,7 @@ function withHTMLSubtitles(Video) {
                                     }));
                                 });
                         }
-                        if (createASSRenderer.isTrack(selectedTrack)) {
+                        if (createASSRenderer.isTrack(selectedTrack) && assRenderer.canRender()) {
                             stopRenderLoop();
                             renderSubtitles();
                             subtitlesElement.style.display = 'none';

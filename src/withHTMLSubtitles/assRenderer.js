@@ -403,7 +403,12 @@ function createASSRenderer(options) {
         }
     }
 
+    function canRender() {
+        return getVideoElement() instanceof HTMLVideoElement;
+    }
+
     return {
+        canRender: canRender,
         load: load,
         destroy: destroy,
         setDelay: setDelay,
