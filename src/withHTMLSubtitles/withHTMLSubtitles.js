@@ -32,6 +32,7 @@ function withHTMLSubtitles(Video) {
 
         var assRenderer = createASSRenderer({
             containerElement: containerElement,
+            manualTime: Video.manifest.name === 'TizenVideo',
             onError: function(error, track) {
                 onError(Object.assign({}, ERROR.WITH_HTML_SUBTITLES.LOAD_FAILED, {
                     error: error,
@@ -166,6 +167,7 @@ function withHTMLSubtitles(Video) {
                 case 'time': {
                     videoState.time = propValue;
                     videoState.lastSyncAt = Date.now();
+                    assRenderer.setTime(propValue);
                     break;
                 }
                 case 'paused': {
