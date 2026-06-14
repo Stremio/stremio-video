@@ -1,6 +1,23 @@
-var SubtitlesOctopus = require('@stremio/libass-wasm');
-var libassAssets = require('@stremio/libass-wasm/dist/js/subtitles-octopus-assets');
 var subtitleTypes = require('./subtitleTypes');
+
+var SubtitlesOctopus = null;
+var libassAssets = null;
+
+function getSubtitlesOctopus() {
+    if (SubtitlesOctopus === null) {
+        SubtitlesOctopus = require('@stremio/libass-wasm');
+    }
+
+    return SubtitlesOctopus;
+}
+
+function getLibassAssets() {
+    if (libassAssets === null) {
+        libassAssets = require('@stremio/libass-wasm/dist/js/subtitles-octopus-assets');
+    }
+
+    return libassAssets;
+}
 
 function decodeBase64ToUint8Array(base64) {
     var binary = atob(base64);
@@ -14,14 +31,16 @@ function decodeBase64ToUint8Array(base64) {
 }
 
 function createLibassEmbeddedUrls() {
+    var assets = getLibassAssets();
+
     return {
-        workerUrl: URL.createObjectURL(new Blob([libassAssets.workerSource], {
+        workerUrl: URL.createObjectURL(new Blob([assets.workerSource], {
             type: 'text/javascript'
         })),
-        legacyWorkerUrl: URL.createObjectURL(new Blob([libassAssets.legacyWorkerSource], {
+        legacyWorkerUrl: URL.createObjectURL(new Blob([assets.legacyWorkerSource], {
             type: 'text/javascript'
         })),
-        fallbackFont: URL.createObjectURL(new Blob([decodeBase64ToUint8Array(libassAssets.defaultFont)], {
+        fallbackFont: URL.createObjectURL(new Blob([decodeBase64ToUint8Array(assets.defaultFont)], {
             type: 'font/woff2'
         }))
     };
@@ -283,10 +302,11 @@ function createASSRenderer(options) {
 
     function createInstance(videoElement, subtitleText, track, currentRequestId) {
         var libassUrls = getLibassEmbeddedUrls();
+        var SubtitlesOctopusConstructor = getSubtitlesOctopus();
 
         return new Promise(function(resolve, reject) {
             var resolved = false;
-            var createdInstance = new SubtitlesOctopus({
+            var createdInstance = new SubtitlesOctopusConstructor({
                 video: videoElement,
                 subContent: subtitleText,
                 workerUrl: libassUrls.workerUrl,
