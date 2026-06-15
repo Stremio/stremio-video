@@ -96,6 +96,17 @@ function ShellVideo(options) {
     var avgDuration = 0;
     var minClipDuration = 30;
 
+    var lastCommandArgs = null;
+    var lastAppliedVf = null;
+    var hdrMediaQuery = typeof window !== 'undefined' && window.matchMedia ?
+        window.matchMedia('(dynamic-range: high)') : null;
+    function onHdrChange() {
+        applyVideoFilters();
+    }
+    if (hdrMediaQuery) {
+        hdrMediaQuery.addEventListener('change', onHdrChange);
+    }
+
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
         var bg = visible ? '' : 'transparent';
@@ -115,6 +126,33 @@ function ShellVideo(options) {
     }
     function embeddedProp(args) {
         return args.data && args.data !== 'no' ? 'EMBEDDED_' + args.data.toString() : null;
+    }
+    // Builds the mpv 'vf' for RTX GPU processing: null = leave it alone (no load /
+    // mpv too old), '' = clear it (processing off), else the d3d11vpp filter chain.
+    function computeVideoFilter(mpvVersion) {
+        var ca = lastCommandArgs;
+        if (!ca || !versionGTE(mpvVersion, '0.40')) {
+            return null;
+        }
+        var wantProcessing = ca.platform === 'windows' && ca.gpuVideoProcessing && ca.hardwareDecoding;
+        if (!wantProcessing) {
+            return null;
+        }
+        // Only force HDR output when the display is actually in HDR mode, else SDR
+        // displays look washed out / oversaturated if we keep the filter
+        var displayIsHdr = ca.videoMode === null && !!(hdrMediaQuery && hdrMediaQuery.matches);
+        return 'd3d11vpp=scaling-mode=nvidia:scale=1' +
+            (displayIsHdr ? ':format=x2bgr10:nvidia-true-hdr' : '');
+    }
+    function applyVideoFilters() {
+        waitForMPVVersion.then(function (mpvVersion) {
+            var vf = computeVideoFilter(mpvVersion);
+            if (vf === null || vf === lastAppliedVf) {
+                return;
+            }
+            lastAppliedVf = vf;
+            ipc.send('mpv-set-prop', ['vf', vf]);
+        });
     }
 
     var last_time = 0;
@@ -409,16 +447,17 @@ function ShellVideo(options) {
                         var subAssOverride = commandArgs.assSubtitlesStyling ? 'strip' : 'no';
                         ipc.send('mpv-set-prop', ['sub-ass-override', subAssOverride]);
 
+                        var gpuProcessing = versionGTE(mpvVersion, '0.40') &&
+                            commandArgs.platform === 'windows' &&
+                            commandArgs.gpuVideoProcessing &&
+                            commandArgs.hardwareDecoding;
+
                         // Hardware decoding
-                        var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
+                        var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : 'auto-copy') : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
-                        // supported since >= 0.40
-                        if (versionGTE(mpvVersion, '0.40')) {
-                            // Nvidia RTX VSR/HDR
-                            var vfValue = commandArgs.platform === 'windows' && commandArgs.gpuVideoProcessing && commandArgs.hardwareDecoding ? 'd3d11vpp=scaling-mode=nvidia:scale=1:format=x2bgr10:nvidia-true-hdr' : '';
-                            ipc.send('mpv-set-prop', ['vf', vfValue]);
-                        }
+                        lastCommandArgs = commandArgs;
+                        applyVideoFilters();
 
                         // Video output
                         var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
@@ -481,6 +520,8 @@ function ShellVideo(options) {
                     sid: null,
                 };
                 avgDuration = 0;
+                lastCommandArgs = null;
+                lastAppliedVf = null;
                 ipc.send('mpv-command', ['stop']);
                 onPropChanged('loaded');
                 onPropChanged('stream');
@@ -498,6 +539,9 @@ function ShellVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
+                if (hdrMediaQuery) {
+                    hdrMediaQuery.removeEventListener('change', onHdrChange);
+                }
                 events.removeAllListeners();
                 break;
             }
