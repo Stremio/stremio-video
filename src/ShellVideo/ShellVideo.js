@@ -141,7 +141,15 @@ function ShellVideo(options) {
         // Only force HDR output when the display is actually in HDR mode, else SDR
         // displays look washed out / oversaturated if we keep the filter
         var displayIsHdr = ca.videoMode === null && !!(hdrMediaQuery && hdrMediaQuery.matches);
-        return 'd3d11vpp=scaling-mode=nvidia:scale=1' +
+        // VSR only kicks in when d3d11vpp actually upscales, so scale the source up
+        // toward the display height (scale=1 would disable it). Capped at 4x.
+        var videoParams = props['video-params'] || {};
+        var srcHeight = videoParams.h;
+        var displayHeight = typeof window !== 'undefined' && window.screen ?
+            window.screen.height * (window.devicePixelRatio || 1) : 0;
+        var scale = srcHeight > 0 && displayHeight > srcHeight ? Math.min(displayHeight / srcHeight, 4) : 1;
+        scale = Math.round(scale * 100) / 100;
+        return 'd3d11vpp=scaling-mode=nvidia:scale=' + scale +
             (displayIsHdr ? ':format=x2bgr10:nvidia-true-hdr' : '');
     }
     function applyVideoFilters() {
@@ -246,6 +254,7 @@ function ShellVideo(options) {
                     props.hdrInfo = null;
                 }
                 onPropChanged('hdrInfo');
+                applyVideoFilters(); // source height feeds the VSR scale factor
                 break;
             }
             // In that case onPropChanged() is manually invoked as track-list contains all
