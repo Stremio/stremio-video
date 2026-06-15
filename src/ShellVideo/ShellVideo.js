@@ -127,8 +127,6 @@ function ShellVideo(options) {
     function embeddedProp(args) {
         return args.data && args.data !== 'no' ? 'EMBEDDED_' + args.data.toString() : null;
     }
-    // Builds the mpv 'vf' for RTX GPU processing: null = leave it alone (no load /
-    // mpv too old), '' = clear it (processing off), else the d3d11vpp filter chain.
     function computeVideoFilter(mpvVersion) {
         var ca = lastCommandArgs;
         if (!ca || !versionGTE(mpvVersion, '0.40')) {
