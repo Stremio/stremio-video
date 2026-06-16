@@ -257,8 +257,9 @@ function ShellVideo(options) {
         }
     });
     ipc.on('mpv-event-ended', function(args) {
+        // older shells report 'other' for every non-error reason, including eof
         if (args.error) onError(args.error);
-        else onEnded();
+        else if (!args.reason || args.reason === 'eof' || args.reason === 'other') onEnded();
     });
 
     function getProp(propName) {
