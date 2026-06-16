@@ -96,17 +96,6 @@ function ShellVideo(options) {
     var avgDuration = 0;
     var minClipDuration = 30;
 
-    var lastCommandArgs = null;
-    var lastAppliedVf = null;
-    var hdrMediaQuery = typeof window !== 'undefined' && window.matchMedia ?
-        window.matchMedia('(dynamic-range: high)') : null;
-    function onHdrChange() {
-        applyVideoFilters();
-    }
-    if (hdrMediaQuery) {
-        hdrMediaQuery.addEventListener('change', onHdrChange);
-    }
-
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
         var bg = visible ? '' : 'transparent';
@@ -126,39 +115,6 @@ function ShellVideo(options) {
     }
     function embeddedProp(args) {
         return args.data && args.data !== 'no' ? 'EMBEDDED_' + args.data.toString() : null;
-    }
-    function computeVideoFilter(mpvVersion) {
-        var ca = lastCommandArgs;
-        if (!ca || !versionGTE(mpvVersion, '0.40')) {
-            return null;
-        }
-        var wantProcessing = ca.platform === 'windows' && ca.gpuVideoProcessing && ca.hardwareDecoding;
-        if (!wantProcessing) {
-            return null;
-        }
-        // Only force HDR output when the display is actually in HDR mode, else SDR
-        // displays look washed out / oversaturated if we keep the filter
-        var displayIsHdr = ca.videoMode === null && !!(hdrMediaQuery && hdrMediaQuery.matches);
-        // VSR only kicks in when d3d11vpp actually upscales, so scale the source up
-        // toward the display height (scale=1 would disable it). Capped at 4x.
-        var videoParams = props['video-params'] || {};
-        var srcHeight = videoParams.h;
-        var displayHeight = typeof window !== 'undefined' && window.screen ?
-            window.screen.height * (window.devicePixelRatio || 1) : 0;
-        var scale = srcHeight > 0 && displayHeight > srcHeight ? Math.min(displayHeight / srcHeight, 4) : 1;
-        scale = Math.round(scale * 100) / 100;
-        return 'd3d11vpp=scaling-mode=nvidia:scale=' + scale +
-            (displayIsHdr ? ':format=x2bgr10:nvidia-true-hdr' : '');
-    }
-    function applyVideoFilters() {
-        waitForMPVVersion.then(function (mpvVersion) {
-            var vf = computeVideoFilter(mpvVersion);
-            if (vf === null || vf === lastAppliedVf) {
-                return;
-            }
-            lastAppliedVf = vf;
-            ipc.send('mpv-set-prop', ['vf', vf]);
-        });
     }
 
     var last_time = 0;
@@ -252,7 +208,6 @@ function ShellVideo(options) {
                     props.hdrInfo = null;
                 }
                 onPropChanged('hdrInfo');
-                applyVideoFilters(); // source height feeds the VSR scale factor
                 break;
             }
             // In that case onPropChanged() is manually invoked as track-list contains all
@@ -463,8 +418,10 @@ function ShellVideo(options) {
                         var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : 'auto-copy') : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
-                        lastCommandArgs = commandArgs;
-                        applyVideoFilters();
+                        // GPU video processing
+                        if (commandArgs.platform === 'windows') {
+                            ipc.send('set-gpu-video-processing', gpuProcessing);
+                        }
 
                         // Video output
                         var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
@@ -527,8 +484,6 @@ function ShellVideo(options) {
                     sid: null,
                 };
                 avgDuration = 0;
-                lastCommandArgs = null;
-                lastAppliedVf = null;
                 ipc.send('mpv-command', ['stop']);
                 onPropChanged('loaded');
                 onPropChanged('stream');
@@ -546,9 +501,6 @@ function ShellVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
-                if (hdrMediaQuery) {
-                    hdrMediaQuery.removeEventListener('change', onHdrChange);
-                }
                 events.removeAllListeners();
                 break;
             }
