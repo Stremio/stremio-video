@@ -421,7 +421,7 @@ function ShellVideo(options) {
 
                         // GPU video processing
                         if (commandArgs.platform === 'windows') {
-                            ipc.send('set-gpu-video-processing', gpuProcessing);
+                            ipc.send('mpv-set-gpu-video-processing', gpuProcessing);
                         }
 
                         // Video output
