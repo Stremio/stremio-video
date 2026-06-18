@@ -410,17 +410,15 @@ function ShellVideo(options) {
                         var subAssOverride = commandArgs.assSubtitlesStyling ? 'strip' : 'no';
                         ipc.send('mpv-set-prop', ['sub-ass-override', subAssOverride]);
 
-                        var gpuProcessing = versionGTE(mpvVersion, '0.40') &&
-                            commandArgs.platform === 'windows' &&
-                            commandArgs.gpuVideoProcessing &&
-                            commandArgs.hardwareDecoding;
+                        var gpuProcessing = !!commandArgs.gpuVideoProcessing &&
+                            !!commandArgs.hardwareDecoding;
 
                         // Hardware decoding
                         var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : 'auto-copy') : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
                         // GPU video processing
-                        if (commandArgs.platform === 'windows') {
+                        if (typeof commandArgs.gpuVideoProcessing === 'boolean') {
                             ipc.send('mpv-set-gpu-video-processing', gpuProcessing);
                         }
 
