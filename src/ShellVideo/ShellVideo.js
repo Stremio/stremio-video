@@ -410,9 +410,17 @@ function ShellVideo(options) {
                         var subAssOverride = commandArgs.assSubtitlesStyling ? 'strip' : 'no';
                         ipc.send('mpv-set-prop', ['sub-ass-override', subAssOverride]);
 
+                        var gpuProcessing = !!commandArgs.gpuVideoProcessing &&
+                            !!commandArgs.hardwareDecoding;
+
                         // Hardware decoding
-                        var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
+                        var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : 'auto-copy') : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
+
+                        // GPU video processing
+                        if (typeof commandArgs.gpuVideoProcessing === 'boolean') {
+                            ipc.send('mpv-set-gpu-video-processing', gpuProcessing);
+                        }
 
                         // Video output
                         var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
