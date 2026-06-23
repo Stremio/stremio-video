@@ -1,6 +1,6 @@
 {
     "name": "@stremio/stremio-video-premium",
-    "version": "0.0.81",
+    "version": "0.0.82",
     "description": "Abstraction layer on top of different media players",
     "author": "Smart Code OOD",
     "main": "src/index.js",
