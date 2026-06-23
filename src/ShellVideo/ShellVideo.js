@@ -4,6 +4,7 @@ var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 
 var SUBS_SCALE_FACTOR = 0.0066;
+var EOF_END_TOLERANCE = 60000;
 
 var stremioToMPVProps = {
     'loaded': 'loaded',
@@ -259,7 +260,9 @@ function ShellVideo(options) {
     ipc.on('mpv-event-ended', function(args) {
         // older shells report 'other' for every non-error reason, including eof
         if (args.error) onError(args.error);
-        else if (!args.reason || args.reason === 'eof' || args.reason === 'other') onEnded();
+        else if (!args.reason || args.reason === 'eof' || args.reason === 'other') {
+            if (!isKnownEarlyEof()) onEnded();
+        }
     });
 
     function getProp(propName) {
@@ -278,6 +281,15 @@ function ShellVideo(options) {
     }
     function onEnded() {
         events.emit('ended');
+    }
+    function isKnownEarlyEof() {
+        var time = props['time-pos'];
+        var duration = props.duration;
+        return typeof time === 'number' &&
+            isFinite(time) &&
+            typeof duration === 'number' &&
+            isFinite(duration) &&
+            time + EOF_END_TOLERANCE < duration;
     }
     function onPropChanged(propName) {
         if (observedProps[propName]) {
