@@ -453,6 +453,7 @@ function ShellVideo(options) {
                         } else {
                             ipc.send('mpv-command', ['loadfile', stream.url]);
                         }
+                        ipc.send('mpv-set-prop', ['sid', 'no']);
                         ipc.send('mpv-set-prop', ['pause', false]);
                         ipc.send('mpv-set-prop', ['speed', props.speed]);
                         if (props.aid) {
