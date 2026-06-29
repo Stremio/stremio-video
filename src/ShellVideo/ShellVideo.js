@@ -21,6 +21,7 @@ var stremioToMPVProps = {
     'selectedAudioTrackId': 'aid',
     'subtitlesTracks': 'subtitlesTracks',
     'selectedSubtitlesTrackId': 'sid',
+    'selectedSecondarySubtitlesTrackId': 'secondary-sid',
     'subtitlesSize': 'sub-scale',
     'subtitlesOffset': 'sub-pos',
     'subtitlesDelay': 'sub-delay',
@@ -82,6 +83,7 @@ function ShellVideo(options) {
     ipc.send('mpv-observe-prop', 'aid');
     ipc.send('mpv-observe-prop', 'vid');
     ipc.send('mpv-observe-prop', 'sid');
+    ipc.send('mpv-observe-prop', 'secondary-sid');
     ipc.send('mpv-observe-prop', 'sub-scale');
     ipc.send('mpv-observe-prop', 'sub-pos');
     ipc.send('mpv-observe-prop', 'sub-delay');
@@ -190,6 +192,7 @@ function ShellVideo(options) {
             }
             case 'aid':
             case 'sid':
+            case 'secondary-sid':
             case 'vid': {
                 props[args.name] = embeddedProp(args);
                 break;
@@ -383,6 +386,21 @@ function ShellVideo(options) {
                 onPropChanged('selectedSubtitlesTrackId');
                 break;
             }
+            case 'selectedSecondarySubtitlesTrackId': {
+                if (stream !== null) {
+                    if (propValue) {
+                        var actualSecId = propValue.slice('EMBEDDED_'.length);
+                        ipc.send('mpv-set-prop', ['secondary-sid', actualSecId]);
+                        events.emit('secondarySubtitlesTrackLoaded', propValue);
+                    } else {
+                        // turn off secondary subs
+                        ipc.send('mpv-set-prop', ['secondary-sid', 'no']);
+                        props['secondary-sid'] = null;
+                    }
+                }
+                onPropChanged('selectedSecondarySubtitlesTrackId');
+                break;
+            }
             case 'subtitlesSize': {
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue * SUBS_SCALE_FACTOR]);
                 break;
@@ -493,6 +511,7 @@ function ShellVideo(options) {
                     buffered: null,
                     aid: null,
                     sid: null,
+                    'secondary-sid': null,
                 };
                 avgDuration = 0;
                 ipc.send('mpv-command', ['stop']);
@@ -567,6 +586,7 @@ ShellVideo.manifest = {
         'ended',
         'error',
         'subtitlesTrackLoaded',
+        'secondarySubtitlesTrackLoaded',
     ],
 };
 
