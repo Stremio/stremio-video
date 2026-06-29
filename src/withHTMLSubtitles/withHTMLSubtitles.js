@@ -7,6 +7,7 @@ var binarySearchUpperBound = require('./binarySearchUpperBound');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
+var createASSRenderer = require('./assRenderer');
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
@@ -28,6 +29,18 @@ function withHTMLSubtitles(Video) {
         if (!(containerElement instanceof HTMLElement)) {
             throw new Error('Container element required to be instance of HTMLElement');
         }
+
+        var assRenderer = createASSRenderer({
+            containerElement: containerElement,
+            manualTime: Video.manifest.name === 'TizenVideo',
+            onError: function(error, track) {
+                onError(Object.assign({}, ERROR.WITH_HTML_SUBTITLES.LOAD_FAILED, {
+                    error: error,
+                    track: track,
+                    critical: false
+                }));
+            }
+        });
 
         var subtitlesElement = document.createElement('div');
         subtitlesElement.style.position = 'absolute';
@@ -211,6 +224,7 @@ function withHTMLSubtitles(Video) {
                 case 'time': {
                     videoState.time = propValue;
                     videoState.lastSyncAt = Date.now();
+                    assRenderer.setTime(propValue);
                     break;
                 }
                 case 'paused': {
@@ -397,6 +411,8 @@ function withHTMLSubtitles(Video) {
                     });
                     if (!selectedTrack) {
                         stopRenderLoop();
+                        assRenderer.destroy();
+                        subtitlesElement.style.display = '';
                     }
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
@@ -466,7 +482,49 @@ function withHTMLSubtitles(Video) {
                                     }));
                                 });
                         }
-                        loadSubtitles(selectedTrack);
+                        function loadASSSubtitles(track) {
+                            assRenderer.load(track)
+                                .then(function(loadedTrack) {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
+
+                                    if (loadedTrack !== null) {
+                                        events.emit('extraSubtitlesTrackLoaded', selectedTrack);
+                                    }
+                                })
+                                .catch(function(error) {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
+
+                                    subtitlesElement.style.display = '';
+
+                                    onError(Object.assign({}, ERROR.WITH_HTML_SUBTITLES.LOAD_FAILED, {
+                                        error: error,
+                                        track: selectedTrack,
+                                        critical: false
+                                    }));
+                                });
+                        }
+                        if (createASSRenderer.isTrack(selectedTrack) && assRenderer.canRender()) {
+                            stopRenderLoop();
+                            renderSubtitles();
+                            subtitlesElement.style.display = 'none';
+                            assRenderer.setDelay(delay);
+                            assRenderer.setOpacity(opacity);
+                            loadASSSubtitles(selectedTrack);
+                        } else {
+                            assRenderer.destroy()
+                                .then(function() {
+                                    if (selectedTrackId !== selectedTrack.id) {
+                                        return;
+                                    }
+
+                                    subtitlesElement.style.display = '';
+                                    loadSubtitles(selectedTrack);
+                                });
+                        }
                     }
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
@@ -476,6 +534,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesDelay': {
                     if (selectedTrackId !== null && propValue !== null && isFinite(propValue)) {
                         delay = parseInt(propValue, 10);
+                        assRenderer.setDelay(delay);
                         forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesDelay');
@@ -562,6 +621,7 @@ function withHTMLSubtitles(Video) {
 
                         forceRender = true;
                         renderSubtitles();
+                        assRenderer.setOpacity(opacity);
                         onPropChanged('extraSubtitlesOpacity');
                     }
 
@@ -641,6 +701,8 @@ function withHTMLSubtitles(Video) {
                     tracks = [];
                     selectedTrackId = null;
                     delay = null;
+                    assRenderer.destroy();
+                    subtitlesElement.style.display = '';
                     renderSubtitles();
                     onPropChanged('extraSubtitlesTracks');
                     onPropChanged('selectedExtraSubtitlesTrackId');
