@@ -6,6 +6,7 @@ var Color = require('color');
 var ERROR = require('../error');
 var getContentType = require('./getContentType');
 var HLS_CONFIG = require('./hlsConfig');
+var pictureInPicture = require('./pictureInPicture');
 
 function HTMLVideo(options) {
     options = options || {};
@@ -82,6 +83,12 @@ function HTMLVideo(options) {
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
+    videoElement.onenterpictureinpicture = function() {
+        onPropChanged('pictureInPictureActive');
+    };
+    videoElement.onleavepictureinpicture = function() {
+        onPropChanged('pictureInPictureActive');
+    };
     videoElement.onvolumechange = function() {
         onPropChanged('volume');
         onPropChanged('muted');
@@ -133,7 +140,9 @@ function HTMLVideo(options) {
         muted: false,
         playbackSpeed: false,
         videoScale: false,
-        fullscreen: false
+        fullscreen: false,
+        pictureInPicturePossible: false,
+        pictureInPictureActive: false
     };
 
     function getProp(propName) {
@@ -336,6 +345,12 @@ function HTMLVideo(options) {
                     return null;
                 }
                 return videoElement.webkitDisplayingFullscreen === true || document.fullscreenElement === videoElement;
+            }
+            case 'pictureInPicturePossible': {
+                return stream !== null && pictureInPicture.isPictureInPicturePossible(videoElement, document);
+            }
+            case 'pictureInPictureActive': {
+                return pictureInPicture.isPictureInPictureActive(videoElement, document);
             }
             default: {
                 return null;
@@ -581,7 +596,21 @@ function HTMLVideo(options) {
                 }
                 break;
             }
+            case 'pictureInPictureActive': {
+                if (propValue) {
+                    command('enterPictureInPicture');
+                } else {
+                    command('exitPictureInPicture');
+                }
+                break;
+            }
         }
+    }
+    function pictureInPictureError(error) {
+        events.emit('error', Object.assign({}, ERROR.HTML_VIDEO.PICTURE_IN_PICTURE_FAILED, {
+            critical: false,
+            error: error
+        }));
     }
     function command(commandName, commandArgs) {
         switch (commandName) {
@@ -603,6 +632,8 @@ function HTMLVideo(options) {
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
                     onPropChanged('fullscreen');
+                    onPropChanged('pictureInPicturePossible');
+                    onPropChanged('pictureInPictureActive');
                     getContentType(stream)
                         .then(function(contentType) {
                             if (stream !== commandArgs.stream) {
@@ -669,6 +700,31 @@ function HTMLVideo(options) {
                 onPropChanged('audioTracks');
                 onPropChanged('selectedAudioTrackId');
                 onPropChanged('fullscreen');
+                onPropChanged('pictureInPicturePossible');
+                onPropChanged('pictureInPictureActive');
+                break;
+            }
+            case 'enterPictureInPicture': {
+                if (stream === null || !pictureInPicture.isPictureInPicturePossible(videoElement, document)) {
+                    return;
+                }
+
+                videoElement.requestPictureInPicture().catch(pictureInPictureError);
+                break;
+            }
+            case 'exitPictureInPicture': {
+                if (pictureInPicture.isPictureInPictureActive(videoElement, document) &&
+                    typeof document.exitPictureInPicture === 'function') {
+                    document.exitPictureInPicture().catch(pictureInPictureError);
+                }
+                break;
+            }
+            case 'togglePictureInPicture': {
+                if (pictureInPicture.isPictureInPictureActive(videoElement, document)) {
+                    command('exitPictureInPicture');
+                } else {
+                    command('enterPictureInPicture');
+                }
                 break;
             }
             case 'destroy': {
@@ -698,6 +754,8 @@ function HTMLVideo(options) {
                 videoElement.oncanplay = null;
                 videoElement.canplaythrough = null;
                 videoElement.onloadeddata = null;
+                videoElement.onenterpictureinpicture = null;
+                videoElement.onleavepictureinpicture = null;
                 videoElement.onvolumechange = null;
                 videoElement.onratechange = null;
                 videoElement.textTracks.onchange = null;
@@ -763,8 +821,8 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen'],
-    commands: ['load', 'unload', 'destroy'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen', 'pictureInPicturePossible', 'pictureInPictureActive'],
+    commands: ['load', 'unload', 'destroy', 'enterPictureInPicture', 'exitPictureInPicture', 'togglePictureInPicture'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
 
