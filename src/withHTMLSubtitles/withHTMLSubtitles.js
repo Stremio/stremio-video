@@ -8,6 +8,8 @@ var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
 
+const PREVIEW_INTERVAL = 300000;
+
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
         options = options || {};
@@ -119,6 +121,7 @@ function withHTMLSubtitles(Video) {
         var backgroundColor = 'rgba(0, 0, 0, 0)';
         var outlineColor = 'rgb(34, 34, 34)';
         var opacity = 1;
+        var preview = [];
 
         var observedProps = {
             extraSubtitlesTracks: false,
@@ -129,7 +132,8 @@ function withHTMLSubtitles(Video) {
             extraSubtitlesTextColor: false,
             extraSubtitlesBackgroundColor: false,
             extraSubtitlesOutlineColor: false,
-            extraSubtitlesOpacity: false
+            extraSubtitlesOpacity: false,
+            extraSubtitlesPreview: false,
         };
 
         function getCurrentTime() {
@@ -200,6 +204,23 @@ function withHTMLSubtitles(Video) {
                 subtitlesElement.appendChild(document.createElement('br'));
             });
         }
+        function setPreview() {
+            if (cuesByTime === null || videoState.time === null || !isFinite(videoState.time)) {
+                return;
+            }
+
+            const currentTime = videoState.time - delay;
+            const startInterval = currentTime - PREVIEW_INTERVAL;
+            const endInterval = currentTime + PREVIEW_INTERVAL;
+
+            preview = Object.values(cuesByTime).flat().filter((cue) => cue.startTime >= startInterval && cue.endTime <= endInterval).map(({ startTime, endTime, text }) => ({
+                startTime,
+                endTime,
+                text,
+                isCurrent: startTime <= currentTime && endTime >= currentTime
+            }));
+            onPropChanged('extraSubtitlesPreview');
+        }
         function onVideoError(error) {
             events.emit('error', error);
             if (error.critical) {
@@ -211,6 +232,7 @@ function withHTMLSubtitles(Video) {
                 case 'time': {
                     videoState.time = propValue;
                     videoState.lastSyncAt = Date.now();
+                    setPreview();
                     break;
                 }
                 case 'paused': {
@@ -333,6 +355,12 @@ function withHTMLSubtitles(Video) {
 
                     return opacity;
                 }
+                case 'extraSubtitlesPreview': {
+                    if (destroyed) {
+                        return [];
+                    }
+                    return preview;
+                }
                 case 'subtitlesTracks': {
                     if (Array.isArray(videoPropValue) && videoElement && videoElement.textTracks) {
                         return videoPropValue.filter(function(track) {
@@ -366,7 +394,8 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesTextColor':
                 case 'extraSubtitlesBackgroundColor':
                 case 'extraSubtitlesOutlineColor':
-                case 'extraSubtitlesOpacity': {
+                case 'extraSubtitlesOpacity':
+                case 'extraSubtitlesPreview': {
                     events.emit('propValue', propName, getProp(propName, null));
                     observedProps[propName] = true;
                     return true;
@@ -444,6 +473,7 @@ function withHTMLSubtitles(Video) {
 
                                     cuesByTime = result;
                                     startRenderLoop();
+                                    setPreview();
                                     if (isWebkitDisplayingFullscreen() && nativeTextTrack === null) {
                                         createNativeTrack();
                                     }
@@ -660,6 +690,7 @@ function withHTMLSubtitles(Video) {
                     onPropChanged('extraSubtitlesBackgroundColor');
                     onPropChanged('extraSubtitlesOutlineColor');
                     onPropChanged('extraSubtitlesOpacity');
+                    onPropChanged('extraSubtitlesPreview');
                     video.dispatch({ type: 'command', commandName: 'destroy' });
                     events.removeAllListeners();
                     containerElement.removeChild(subtitlesElement);
@@ -721,7 +752,7 @@ function withHTMLSubtitles(Video) {
     VideoWithHTMLSubtitles.manifest = {
         name: Video.manifest.name + 'WithHTMLSubtitles',
         external: Video.manifest.external,
-        props: Video.manifest.props.concat(['extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity'])
+        props: Video.manifest.props.concat(['extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
