@@ -95,6 +95,7 @@ function ShellVideo(options) {
     var stream = null;
 
     var avgDuration = 0;
+    var durationReady = false;
     var minClipDuration = 30;
 
     function setBackground(visible) {
@@ -108,6 +109,13 @@ function ShellVideo(options) {
             if ((body || [])[0]) {
                 body[0].style.background = bg;
             }
+        }
+    }
+    function updateLoaded() {
+        if (!props.loaded && durationReady && props['video-params'] && props['paused-for-cache'] === false) {
+            props.loaded = true;
+            setBackground(false);
+            onPropChanged('loaded');
         }
     }
     function logProp(args) {
@@ -143,11 +151,8 @@ function ShellVideo(options) {
                 // for bitwise maths so the maximum supported video duration is 1073741823 (2 ^ 30 - 1)
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
-                props.loaded = intDuration > 0;
-                if(props.loaded) {
-                    setBackground(false);
-                    onPropChanged('loaded');
-                }
+                durationReady = intDuration > 0;
+                updateLoaded();
                 break;
             }
             case 'time-pos': {
@@ -176,6 +181,10 @@ function ShellVideo(options) {
             case 'paused-for-cache':
             case 'seeking':
             {
+                if (args.name === 'paused-for-cache') {
+                    props[args.name] = args.data;
+                    updateLoaded();
+                }
                 if(props.buffering !== args.data) {
                     props.buffering = args.data;
                     onPropChanged('buffering');
@@ -196,6 +205,7 @@ function ShellVideo(options) {
             }
             case 'video-params': {
                 props[args.name] = args.data;
+                updateLoaded();
                 var params = args.data || {};
                 var gamma = typeof params.gamma === 'string' ? params.gamma : null;
                 if (gamma === 'pq' || gamma === 'hlg') {
@@ -453,6 +463,7 @@ function ShellVideo(options) {
                         } else {
                             ipc.send('mpv-command', ['loadfile', stream.url]);
                         }
+                        ipc.send('mpv-set-prop', ['sid', 'no']);
                         ipc.send('mpv-set-prop', ['pause', false]);
                         ipc.send('mpv-set-prop', ['speed', props.speed]);
                         if (props.aid) {
@@ -495,6 +506,7 @@ function ShellVideo(options) {
                     sid: null,
                 };
                 avgDuration = 0;
+                durationReady = false;
                 ipc.send('mpv-command', ['stop']);
                 onPropChanged('loaded');
                 onPropChanged('stream');
