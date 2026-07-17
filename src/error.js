@@ -47,6 +47,10 @@ var ERROR = {
         MEDIA_ERR_SRC_NOT_SUPPORTED: {
             code: 83,
             message: 'Video is not supported'
+        },
+        PICTURE_IN_PICTURE_FAILED: {
+            code: 84,
+            message: 'Failed to start or stop Picture in Picture'
         }
     },
     WITH_HTML_SUBTITLES: {
