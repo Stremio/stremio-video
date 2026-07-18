@@ -46,18 +46,29 @@ function isASSSubtitleTrack(track) {
         track.mimeType,
         track.contentType,
         track.subtitlesType,
-        track.format
+        track.format,
+        track.codec
     ].some(isASSFormat) || [
         track.url,
         track.fallbackUrl,
         track.filename,
-        track.fileName,
-        track.name,
-        track.label
+        track.fileName
     ].some(hasASSExtension);
+}
+
+function isASSContent(text) {
+    return typeof text === 'string' &&
+        /^\s*\[(?:Script Info|V4\+? Styles|Events)\]/im.test(text) &&
+        /^\s*(?:Format|Dialogue)\s*:/im.test(text);
+}
+
+function isASSSubtitle(track, text) {
+    return isASSSubtitleTrack(track) || isASSContent(text);
 }
 
 module.exports = {
     hasASSExtension: hasASSExtension,
+    isASSContent: isASSContent,
+    isASSSubtitle: isASSSubtitle,
     isASSSubtitleTrack: isASSSubtitleTrack
 };
