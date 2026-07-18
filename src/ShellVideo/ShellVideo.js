@@ -289,6 +289,7 @@ function ShellVideo(options) {
                 props.subtitlesTracks = args.data
                     .filter(function(x) { return x.type === 'sub'; })
                     .map(function(x, index) {
+                        var codec = typeof x.codec === 'string' ? x.codec.toLowerCase() : null;
                         return {
                             id: 'EMBEDDED_' + x.id,
                             lang: x.lang === undefined ? 'Track ' + (index + 1) : x.lang,
@@ -296,6 +297,10 @@ function ShellVideo(options) {
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: x.id === props.sid ? 'showing' : 'disabled',
+                            ass: codec === 'ass' || codec === 'ssa',
+                            nativeExternal: x.external === true,
+                            nativeExternalFilename: x['external-filename'],
+                            nativeExternalTitle: x.title,
                         };
                     });
                 onPropChanged('subtitlesTracks');
