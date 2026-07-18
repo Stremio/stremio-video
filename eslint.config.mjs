@@ -25,7 +25,7 @@ export default defineConfig([globalIgnores(["*", "!src"]), {
             cast: "readonly",
         },
 
-        ecmaVersion: 8,
+        ecmaVersion: 2020,
         sourceType: "script",
     },
 
