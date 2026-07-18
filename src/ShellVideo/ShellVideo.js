@@ -4,6 +4,7 @@ var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 
 var SUBS_SCALE_FACTOR = 0.0066;
+var EOF_END_TOLERANCE = 60000;
 
 var stremioToMPVProps = {
     'loaded': 'loaded',
@@ -94,6 +95,7 @@ function ShellVideo(options) {
     var stream = null;
 
     var avgDuration = 0;
+    var durationReady = false;
     var minClipDuration = 30;
 
     function setBackground(visible) {
@@ -107,6 +109,13 @@ function ShellVideo(options) {
             if ((body || [])[0]) {
                 body[0].style.background = bg;
             }
+        }
+    }
+    function updateLoaded() {
+        if (!props.loaded && durationReady && props['video-params'] && props['paused-for-cache'] === false) {
+            props.loaded = true;
+            setBackground(false);
+            onPropChanged('loaded');
         }
     }
     function logProp(args) {
@@ -142,11 +151,8 @@ function ShellVideo(options) {
                 // for bitwise maths so the maximum supported video duration is 1073741823 (2 ^ 30 - 1)
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
-                props.loaded = intDuration > 0;
-                if(props.loaded) {
-                    setBackground(false);
-                    onPropChanged('loaded');
-                }
+                durationReady = intDuration > 0;
+                updateLoaded();
                 break;
             }
             case 'time-pos': {
@@ -175,6 +181,10 @@ function ShellVideo(options) {
             case 'paused-for-cache':
             case 'seeking':
             {
+                if (args.name === 'paused-for-cache') {
+                    props[args.name] = args.data;
+                    updateLoaded();
+                }
                 if(props.buffering !== args.data) {
                     props.buffering = args.data;
                     onPropChanged('buffering');
@@ -195,6 +205,7 @@ function ShellVideo(options) {
             }
             case 'video-params': {
                 props[args.name] = args.data;
+                updateLoaded();
                 var params = args.data || {};
                 var gamma = typeof params.gamma === 'string' ? params.gamma : null;
                 if (gamma === 'pq' || gamma === 'hlg') {
@@ -257,8 +268,11 @@ function ShellVideo(options) {
         }
     });
     ipc.on('mpv-event-ended', function(args) {
+        // older shells report 'other' for every non-error reason, including eof
         if (args.error) onError(args.error);
-        else onEnded();
+        else if (!args.reason || args.reason === 'eof' || args.reason === 'other') {
+            if (!isKnownEarlyEof()) onEnded();
+        }
     });
 
     function getProp(propName) {
@@ -277,6 +291,15 @@ function ShellVideo(options) {
     }
     function onEnded() {
         events.emit('ended');
+    }
+    function isKnownEarlyEof() {
+        var time = props['time-pos'];
+        var duration = props.duration;
+        return typeof time === 'number' &&
+            isFinite(time) &&
+            typeof duration === 'number' &&
+            isFinite(duration) &&
+            time + EOF_END_TOLERANCE < duration;
     }
     function onPropChanged(propName) {
         if (observedProps[propName]) {
@@ -409,18 +432,21 @@ function ShellVideo(options) {
                         var subAssOverride = commandArgs.assSubtitlesStyling ? 'strip' : 'no';
                         ipc.send('mpv-set-prop', ['sub-ass-override', subAssOverride]);
 
+                        var gpuProcessing = !!commandArgs.gpuVideoProcessing &&
+                            !!commandArgs.hardwareDecoding;
+
                         // Hardware decoding
-                        var hwdecValue = commandArgs.hardwareDecoding ? 'auto-copy' : 'no';
+                        var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : 'auto-copy') : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
-                        // On macOS the shell manages vo and HDR/EDR configuration
-                        // directly — do not override vo here.
-                        var platformLower = String(commandArgs.platform || '').toLowerCase();
-                        var isMac = platformLower.indexOf('mac') !== -1;
-                        if (!isMac) {
-                            var videoOutput = platformLower === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
-                            ipc.send('mpv-set-prop', ['vo', videoOutput]);
+                        // GPU video processing
+                        if (typeof commandArgs.gpuVideoProcessing === 'boolean') {
+                            ipc.send('mpv-set-gpu-video-processing', gpuProcessing);
                         }
+
+                        // Video output
+                        var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
+                        ipc.send('mpv-set-prop', ['vo', videoOutput]);
 
                         var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
@@ -437,6 +463,7 @@ function ShellVideo(options) {
                         } else {
                             ipc.send('mpv-command', ['loadfile', stream.url]);
                         }
+                        ipc.send('mpv-set-prop', ['sid', 'no']);
                         ipc.send('mpv-set-prop', ['pause', false]);
                         ipc.send('mpv-set-prop', ['speed', props.speed]);
                         if (props.aid) {
@@ -479,6 +506,7 @@ function ShellVideo(options) {
                     sid: null,
                 };
                 avgDuration = 0;
+                durationReady = false;
                 ipc.send('mpv-command', ['stop']);
                 onPropChanged('loaded');
                 onPropChanged('stream');
