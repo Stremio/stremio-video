@@ -11,6 +11,7 @@ var subtitleTypes = require('./subtitleTypes');
 var createASSRenderer = require('./assRenderer');
 
 const PREVIEW_INTERVAL = 300000;
+const NATIVE_ASS_TIMEOUT = 10000;
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
@@ -140,6 +141,13 @@ function withHTMLSubtitles(Video) {
         var usingASSRenderer = false;
         var selectedSubtitleText = null;
         var selectionRequestId = 0;
+        var nativeAssSubtitlesSupported = options.shellTransport &&
+            options.shellTransport.capabilities &&
+            options.shellTransport.capabilities.nativeAssSubtitles === true;
+        var nativeAssTrackId = null;
+        var pendingNativeAss = null;
+        var abandonedNativeAssTitles = [];
+        var removingNativeAssTrackIds = [];
 
         var observedProps = {
             extraSubtitlesTracks: false,
@@ -268,6 +276,10 @@ function withHTMLSubtitles(Video) {
                     videoAssSubtitlesStylingActive = propValue === true;
                     break;
                 }
+                case 'subtitlesTracks': {
+                    updateNativeASSTrack(propValue);
+                    break;
+                }
                 case 'paused': {
                     if (propValue && !videoState.paused && !videoState.buffering && videoState.lastSyncAt !== null && videoState.time !== null) {
                         videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
@@ -302,7 +314,7 @@ function withHTMLSubtitles(Video) {
 
             events.emit(eventName, propName, getProp(propName, propValue));
 
-            if (propName === 'selectedSubtitlesTrackId' && propValue !== null && selectedTrackId !== null && nativeTextTrack === null) {
+            if (propName === 'selectedSubtitlesTrackId' && propValue !== null && selectedTrackId !== null && nativeTextTrack === null && !isNativeASSSelection(propValue)) {
                 setProp('selectedExtraSubtitlesTrackId', null);
             }
         }
@@ -328,6 +340,95 @@ function withHTMLSubtitles(Video) {
             if (assSubtitlesStylingActive !== value) {
                 assSubtitlesStylingActive = value;
                 onPropChanged('assSubtitlesStylingActive');
+            }
+        }
+        function getNativeASSRawTrackId(trackId) {
+            return typeof trackId === 'string' && trackId.startsWith('EMBEDDED_') ?
+                trackId.slice('EMBEDDED_'.length) :
+                null;
+        }
+        function removeNativeASSTrack(trackId) {
+            var rawTrackId = getNativeASSRawTrackId(trackId);
+            if (rawTrackId !== null) {
+                options.shellTransport.send('mpv-command', ['sub-remove', rawTrackId]);
+            }
+        }
+        function clearNativeASS() {
+            if (pendingNativeAss !== null) {
+                clearTimeout(pendingNativeAss.timeout);
+                if (!abandonedNativeAssTitles.includes(pendingNativeAss.title)) {
+                    abandonedNativeAssTitles.push(pendingNativeAss.title);
+                }
+                pendingNativeAss = null;
+            }
+            if (nativeAssTrackId !== null) {
+                removeNativeASSTrack(nativeAssTrackId);
+                nativeAssTrackId = null;
+            }
+        }
+        function isNativeASSSelection(trackId) {
+            return nativeAssTrackId === trackId || pendingNativeAss !== null;
+        }
+        function getPublicSubtitleTrack(track) {
+            var publicTrack = Object.assign({}, track);
+            delete publicTrack.nativeExternal;
+            delete publicTrack.nativeExternalFilename;
+            delete publicTrack.nativeExternalTitle;
+            return publicTrack;
+        }
+        function isManagedNativeASSTrack(track) {
+            return track.id === nativeAssTrackId ||
+                removingNativeAssTrackIds.includes(track.id) ||
+                (pendingNativeAss !== null && track.nativeExternalTitle === pendingNativeAss.title) ||
+                abandonedNativeAssTitles.includes(track.nativeExternalTitle);
+        }
+        function updateNativeASSTrack(subtitleTracks) {
+            if (!Array.isArray(subtitleTracks)) {
+                return;
+            }
+
+            removingNativeAssTrackIds = removingNativeAssTrackIds.filter(function(trackId) {
+                return subtitleTracks.some(function(track) { return track.id === trackId; });
+            });
+            abandonedNativeAssTitles = abandonedNativeAssTitles.filter(function(title) {
+                var abandonedTracks = subtitleTracks.filter(function(track) {
+                    return track.nativeExternalTitle === title;
+                });
+                abandonedTracks.forEach(function(track) {
+                    removingNativeAssTrackIds.push(track.id);
+                    removeNativeASSTrack(track.id);
+                });
+                return abandonedTracks.length === 0;
+            });
+
+            if (pendingNativeAss === null) {
+                return;
+            }
+            var matchingTrack = subtitleTracks.slice().reverse().find(function(track) {
+                return track.nativeExternalTitle === pendingNativeAss.title;
+            });
+            if (!matchingTrack) {
+                return;
+            }
+
+            var loadedTrack = pendingNativeAss.track;
+            clearTimeout(pendingNativeAss.timeout);
+            pendingNativeAss = null;
+            nativeAssTrackId = matchingTrack.id;
+            video.dispatch({
+                type: 'setProp',
+                propName: 'subtitlesDelay',
+                propValue: (delay || 0) / 1000,
+            });
+            events.emit('extraSubtitlesTrackLoaded', loadedTrack);
+        }
+        function updateTrackASS(track, isASS) {
+            var trackIndex = tracks.findIndex(function(candidate) {
+                return candidate.id === track.id;
+            });
+            if (trackIndex !== -1 && tracks[trackIndex].ass !== isASS) {
+                tracks[trackIndex] = Object.assign({}, tracks[trackIndex], { ass: isASS });
+                onPropChanged('extraSubtitlesTracks');
             }
         }
         function reportSubtitleError(error, track) {
@@ -429,7 +530,43 @@ function withHTMLSubtitles(Video) {
                     return fallbackFromASS(error, track, text, currentRequestId);
                 });
         }
-        function loadSelectedTrack(track, isFallback, currentRequestId) {
+        function loadWebSubtitles(track, text, isASS, currentRequestId) {
+            return isASS && assSubtitlesStylingEnabled ?
+                loadASSSubtitles(track, text, currentRequestId) :
+                loadPlainSubtitles(track, text, isASS, currentRequestId);
+        }
+        function delegateNativeASS(track, url, text, currentRequestId) {
+            var title = '__stremio_external_ass_' + currentRequestId;
+            var pending = {
+                track: track,
+                title: title,
+                timeout: null,
+            };
+            pending.timeout = setTimeout(function() {
+                if (pendingNativeAss !== pending ||
+                    currentRequestId !== selectionRequestId ||
+                    selectedTrackId !== track.id) {
+                    return;
+                }
+
+                pendingNativeAss = null;
+                abandonedNativeAssTitles.push(title);
+                if (typeof text === 'string') {
+                    loadWebSubtitles(track, text, true, currentRequestId);
+                } else {
+                    loadSelectedTrack(track, false, currentRequestId, true);
+                }
+            }, NATIVE_ASS_TIMEOUT);
+            pendingNativeAss = pending;
+            options.shellTransport.send('mpv-command', [
+                'sub-add',
+                url,
+                'select',
+                title,
+                track.lang,
+            ]);
+        }
+        function loadSelectedTrack(track, isFallback, currentRequestId, forceWeb) {
             return getSubtitlesData(track, isFallback)
                 .then(function(text) {
                     if (currentRequestId !== selectionRequestId || selectedTrackId !== track.id) {
@@ -442,16 +579,19 @@ function withHTMLSubtitles(Video) {
                         fallbackUrl: null
                     });
                     var isASS = subtitleTypes.isASSSubtitle(sourceTrack, text);
-                    return isASS && assSubtitlesStylingEnabled ?
-                        loadASSSubtitles(track, text, currentRequestId) :
-                        loadPlainSubtitles(track, text, isASS, currentRequestId);
+                    updateTrackASS(track, isASS);
+                    if (!forceWeb && nativeAssSubtitlesSupported && isASS && typeof sourceTrack.url === 'string') {
+                        delegateNativeASS(track, sourceTrack.url, text, currentRequestId);
+                        return null;
+                    }
+                    return loadWebSubtitles(track, text, isASS, currentRequestId);
                 })
                 .catch(function(error) {
                     if (currentRequestId !== selectionRequestId || selectedTrackId !== track.id) {
                         return null;
                     }
                     if (!isFallback && typeof track.fallbackUrl === 'string') {
-                        return loadSelectedTrack(track, true, currentRequestId);
+                        return loadSelectedTrack(track, true, currentRequestId, forceWeb);
                     }
 
                     reportSubtitleError(error, track);
@@ -536,16 +676,25 @@ function withHTMLSubtitles(Video) {
                     return assSubtitlesStylingActive || videoAssSubtitlesStylingActive;
                 }
                 case 'subtitlesTracks': {
-                    if (Array.isArray(videoPropValue) && videoElement && videoElement.textTracks) {
+                    if (Array.isArray(videoPropValue)) {
                         return videoPropValue.filter(function(track) {
+                            if (isManagedNativeASSTrack(track)) {
+                                return false;
+                            }
+                            if (!videoElement || !videoElement.textTracks) {
+                                return true;
+                            }
                             var index = getEmbeddedTrackIndex(track.id);
                             return index === null || !isNativeTextTrack(videoElement.textTracks[index]);
-                        });
+                        }).map(getPublicSubtitleTrack);
                     }
 
                     return videoPropValue;
                 }
                 case 'selectedSubtitlesTrackId': {
+                    if (isNativeASSSelection(videoPropValue)) {
+                        return null;
+                    }
                     if (typeof videoPropValue === 'string' && videoElement && videoElement.textTracks) {
                         var index = getEmbeddedTrackIndex(videoPropValue);
                         return index !== null && isNativeTextTrack(videoElement.textTracks[index]) ? null : videoPropValue;
@@ -591,15 +740,16 @@ function withHTMLSubtitles(Video) {
         function setProp(propName, propValue) {
             switch (propName) {
                 case 'selectedExtraSubtitlesTrackId': {
+                    if (propValue !== null && selectedTrackId === propValue) {
+                        return true;
+                    }
+                    clearNativeASS();
                     if (propValue !== null) {
                         video.dispatch({
                             type: 'setProp',
                             propName: 'selectedSubtitlesTrackId',
                             propValue: null,
                         });
-                    }
-                    if (propValue !== null && selectedTrackId === propValue) {
-                        return true;
                     }
                     var currentRequestId = ++selectionRequestId;
                     cuesByTime = null;
@@ -621,7 +771,14 @@ function withHTMLSubtitles(Video) {
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
-                        loadSelectedTrack(selectedTrack, false, currentRequestId);
+                        var selectedSourceIsASS = subtitleTypes.isASSSubtitleTrack(Object.assign({}, selectedTrack, {
+                            fallbackUrl: null,
+                        }));
+                        if (nativeAssSubtitlesSupported && selectedSourceIsASS && typeof selectedTrack.url === 'string') {
+                            delegateNativeASS(selectedTrack, selectedTrack.url, null, currentRequestId);
+                        } else {
+                            loadSelectedTrack(selectedTrack, false, currentRequestId, false);
+                        }
                     }
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
@@ -632,6 +789,13 @@ function withHTMLSubtitles(Video) {
                     if (selectedTrackId !== null && propValue !== null && isFinite(propValue)) {
                         delay = parseInt(propValue, 10);
                         assRenderer.setDelay(delay);
+                        if (nativeAssTrackId !== null || pendingNativeAss !== null) {
+                            video.dispatch({
+                                type: 'setProp',
+                                propName: 'subtitlesDelay',
+                                propValue: delay / 1000,
+                            });
+                        }
                         forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesDelay');
@@ -734,7 +898,11 @@ function withHTMLSubtitles(Video) {
                 case 'addExtraSubtitlesTracks': {
                     if (commandArgs && Array.isArray(commandArgs.tracks)) {
                         tracks = tracks
-                            .concat(commandArgs.tracks)
+                            .concat(commandArgs.tracks.map(function(track) {
+                                return Object.assign({}, track, {
+                                    ass: subtitleTypes.isASSSubtitleTrack(track),
+                                });
+                            }))
                             .filter(function(track, index, tracks) {
                                 return track &&
                                     typeof track.id === 'string' &&
@@ -765,6 +933,7 @@ function withHTMLSubtitles(Video) {
                             origin: 'LOCAL',
                             local: true,
                             embedded: false,
+                            ass: subtitleTypes.isASSSubtitleTrack({ filename: commandArgs.filename }),
                         };
 
                         tracks.push(track);
@@ -794,6 +963,9 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'unload': {
                     selectionRequestId = selectionRequestId + 1;
+                    clearNativeASS();
+                    abandonedNativeAssTitles = [];
+                    removingNativeAssTrackIds = [];
                     removeNativeTrack();
                     stopRenderLoop();
                     lastTimeIndex = null;
