@@ -1,25 +1,18 @@
-var subtitleTypes = require('./subtitleTypes');
+var TARGET_FPS = 24;
 
-var SubtitlesOctopus = null;
-var libassAssets = null;
-
-function getSubtitlesOctopus() {
-    if (SubtitlesOctopus === null) {
-        SubtitlesOctopus = require('@stremio/libass-wasm');
-    }
-
-    return SubtitlesOctopus;
+function loadLibass() {
+    return Promise.all([
+        import('@stremio/libass-wasm'),
+        import('@stremio/libass-wasm/dist/js/subtitles-octopus-assets')
+    ]).then(function(modules) {
+        return {
+            SubtitlesOctopus: modules[0].default || modules[0],
+            assets: modules[1].default || modules[1]
+        };
+    });
 }
 
-function getLibassAssets() {
-    if (libassAssets === null) {
-        libassAssets = require('@stremio/libass-wasm/dist/js/subtitles-octopus-assets');
-    }
-
-    return libassAssets;
-}
-
-function decodeBase64ToUint8Array(base64) {
+function decodeBase64(base64) {
     var binary = atob(base64);
     var bytes = new Uint8Array(binary.length);
 
@@ -30,278 +23,56 @@ function decodeBase64ToUint8Array(base64) {
     return bytes;
 }
 
-function createLibassEmbeddedUrls() {
-    var assets = getLibassAssets();
-
+function createEmbeddedUrls(assets) {
     return {
-        workerUrl: URL.createObjectURL(new Blob([assets.workerSource], {
-            type: 'text/javascript'
-        })),
-        legacyWorkerUrl: URL.createObjectURL(new Blob([assets.legacyWorkerSource], {
-            type: 'text/javascript'
-        })),
-        fallbackFont: URL.createObjectURL(new Blob([decodeBase64ToUint8Array(assets.defaultFont)], {
-            type: 'font/woff2'
-        }))
+        workerUrl: URL.createObjectURL(new Blob([assets.workerSource], { type: 'text/javascript' })),
+        legacyWorkerUrl: URL.createObjectURL(new Blob([assets.legacyWorkerSource], { type: 'text/javascript' })),
+        fallbackFont: URL.createObjectURL(new Blob([decodeBase64(assets.defaultFont)], { type: 'font/woff2' }))
     };
 }
 
-function revokeLibassEmbeddedUrls(urls) {
-    if (!urls) return;
-
-    try {
-        URL.revokeObjectURL(urls.workerUrl);
-        URL.revokeObjectURL(urls.legacyWorkerUrl);
-        URL.revokeObjectURL(urls.fallbackFont);
-    } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('assRenderer revoke libass urls failed', error);
+function revokeEmbeddedUrls(urls) {
+    if (urls === null) {
+        return;
     }
+
+    URL.revokeObjectURL(urls.workerUrl);
+    URL.revokeObjectURL(urls.legacyWorkerUrl);
+    URL.revokeObjectURL(urls.fallbackFont);
 }
 
-function getTrackUrl(track, isFallback) {
-    return isFallback ? track.fallbackUrl : track.url;
-}
-
-function readTrackContent(track, isFallback) {
-    var url = getTrackUrl(track, isFallback);
-
-    if (!isFallback && typeof track.content === 'string') {
-        return Promise.resolve(track.content);
+function getContentRect(containerElement) {
+    var containerRect = containerElement.getBoundingClientRect();
+    var videoElement = containerElement.querySelector('video');
+    if (!(videoElement instanceof HTMLVideoElement) || !videoElement.videoWidth || !videoElement.videoHeight) {
+        return { left: 0, top: 0, width: containerRect.width, height: containerRect.height };
     }
 
-    if (typeof url === 'string') {
-        return fetch(url)
-            .then(function(resp) {
-                if (resp.ok) {
-                    return resp.text();
-                }
-
-                throw new Error(resp.status + ' (' + resp.statusText + ')');
-            });
+    var videoRect = videoElement.getBoundingClientRect();
+    var objectFit = window.getComputedStyle(videoElement).objectFit || 'contain';
+    var left = videoRect.left - containerRect.left;
+    var top = videoRect.top - containerRect.top;
+    if (objectFit === 'fill') {
+        return { left: left, top: top, width: videoRect.width, height: videoRect.height };
     }
 
-    if (!isFallback && track.buffer instanceof ArrayBuffer) {
-        try {
-            return Promise.resolve(new TextDecoder().decode(new Uint8Array(track.buffer)));
-        } catch (error) {
-            return Promise.reject(error);
-        }
+    var containScale = Math.min(videoRect.width / videoElement.videoWidth, videoRect.height / videoElement.videoHeight);
+    var scale = objectFit === 'cover' ?
+        Math.max(videoRect.width / videoElement.videoWidth, videoRect.height / videoElement.videoHeight) :
+        containScale;
+    if (objectFit === 'none') {
+        scale = 1;
+    } else if (objectFit === 'scale-down') {
+        scale = Math.min(1, containScale);
     }
 
-    return Promise.reject(new Error('No `url`, `content` or `buffer` field available for this track'));
-}
-
-function getRendererFonts(track, options) {
-    if (Array.isArray(track.fonts)) {
-        return track.fonts;
-    }
-
-    if (Array.isArray(options.fonts)) {
-        return options.fonts;
-    }
-
-    return [];
-}
-
-function getRendererAvailableFonts(track, options) {
-    if (track.availableFonts && typeof track.availableFonts === 'object') {
-        return track.availableFonts;
-    }
-
-    if (options.availableFonts && typeof options.availableFonts === 'object') {
-        return options.availableFonts;
-    }
-
-    return {};
-}
-
-function getVideoContentRect(videoElement) {
-    var rect = videoElement.getBoundingClientRect();
-    if (!rect.width || !rect.height || !videoElement.videoWidth || !videoElement.videoHeight) {
-        return rect;
-    }
-
-    var videoRatio = videoElement.videoWidth / videoElement.videoHeight;
-    var elementRatio = rect.width / rect.height;
-    var width = rect.width;
-    var height = rect.height;
-    var left = rect.left;
-    var top = rect.top;
-
-    if (elementRatio > videoRatio) {
-        width = rect.height * videoRatio;
-        left = rect.left + (rect.width - width) / 2;
-    } else {
-        height = rect.width / videoRatio;
-        top = rect.top + (rect.height - height) / 2;
-    }
-
+    var width = videoElement.videoWidth * scale;
+    var height = videoElement.videoHeight * scale;
     return {
-        left: left,
-        top: top,
+        left: left + (videoRect.width - width) / 2,
+        top: top + (videoRect.height - height) / 2,
         width: width,
         height: height
-    };
-}
-
-function installOverlaySync(instance, videoElement, containerElement, getOpacity) {
-    var originalResize = instance.resize.bind(instance);
-    var rafId = null;
-    var resizeObserver = null;
-    var disposed = false;
-
-    function syncOverlay() {
-        if (disposed) {
-            return;
-        }
-
-        var canvasParent = instance.canvasParent;
-        var canvas = instance.canvas;
-        if (!(canvasParent instanceof HTMLElement) || !(canvas instanceof HTMLCanvasElement)) {
-            return;
-        }
-
-        var rect = getVideoContentRect(videoElement);
-        if (!rect.width || !rect.height) {
-            return;
-        }
-
-        var pixelRatio = window.devicePixelRatio || 1;
-        var width = Math.max(1, Math.floor(rect.width * pixelRatio));
-        var height = Math.max(1, Math.floor(rect.height * pixelRatio));
-        if (canvas.width !== width || canvas.height !== height) {
-            originalResize(width, height, 0, 0);
-        }
-
-        var offsetParent = canvasParent.offsetParent || canvasParent.parentElement;
-        var offsetRect = offsetParent instanceof HTMLElement ?
-            offsetParent.getBoundingClientRect() :
-            { left: 0, top: 0 };
-
-        canvasParent.style.position = 'absolute';
-        canvasParent.style.left = (rect.left - offsetRect.left) + 'px';
-        canvasParent.style.top = (rect.top - offsetRect.top) + 'px';
-        canvasParent.style.width = rect.width + 'px';
-        canvasParent.style.height = rect.height + 'px';
-        canvasParent.style.zIndex = '2';
-        canvasParent.style.pointerEvents = 'none';
-        canvasParent.style.opacity = String(getOpacity());
-
-        canvas.style.display = 'block';
-        canvas.style.position = 'absolute';
-        canvas.style.left = '0';
-        canvas.style.top = '0';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        canvas.style.zIndex = '2';
-        canvas.style.pointerEvents = 'none';
-    }
-
-    function scheduleSync() {
-        if (rafId !== null) {
-            return;
-        }
-
-        rafId = requestAnimationFrame(function() {
-            rafId = null;
-            syncOverlay();
-        });
-    }
-
-    instance.resize = function() {
-        var result = originalResize.apply(instance, arguments);
-        scheduleSync();
-        return result;
-    };
-
-    if (typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver(scheduleSync);
-        resizeObserver.observe(videoElement);
-        resizeObserver.observe(containerElement);
-    }
-
-    syncOverlay();
-    scheduleSync();
-    setTimeout(scheduleSync, 100);
-
-    return function() {
-        disposed = true;
-        instance.resize = originalResize;
-        if (rafId !== null) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
-        if (resizeObserver !== null) {
-            resizeObserver.disconnect();
-            resizeObserver = null;
-        }
-    };
-}
-
-function installCanvasOverlaySync(instance, canvas, containerElement, getOpacity) {
-    var rafId = null;
-    var resizeObserver = null;
-    var disposed = false;
-
-    function syncOverlay() {
-        if (disposed) {
-            return;
-        }
-
-        var rect = containerElement.getBoundingClientRect();
-        if (!rect.width || !rect.height) {
-            return;
-        }
-
-        var pixelRatio = window.devicePixelRatio || 1;
-        var width = Math.max(1, Math.floor(rect.width * pixelRatio));
-        var height = Math.max(1, Math.floor(rect.height * pixelRatio));
-        if ((canvas.width !== width || canvas.height !== height) && typeof instance.resize === 'function') {
-            instance.resize(width, height, 0, 0);
-        }
-
-        canvas.style.display = 'block';
-        canvas.style.position = 'absolute';
-        canvas.style.left = '0';
-        canvas.style.top = '0';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        canvas.style.zIndex = '2';
-        canvas.style.pointerEvents = 'none';
-        canvas.style.opacity = String(getOpacity());
-    }
-
-    function scheduleSync() {
-        if (rafId !== null) {
-            return;
-        }
-
-        rafId = requestAnimationFrame(function() {
-            rafId = null;
-            syncOverlay();
-        });
-    }
-
-    if (typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver(scheduleSync);
-        resizeObserver.observe(containerElement);
-    }
-
-    syncOverlay();
-    scheduleSync();
-    setTimeout(scheduleSync, 100);
-
-    return function() {
-        disposed = true;
-        if (rafId !== null) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
-        if (resizeObserver !== null) {
-            resizeObserver.disconnect();
-            resizeObserver = null;
-        }
     };
 }
 
@@ -314,229 +85,237 @@ function createASSRenderer(options) {
     }
 
     var instance = null;
-    var overlayCleanup = null;
-    var canvasElement = null;
-    var libassEmbeddedUrls = null;
+    var instanceReady = false;
+    var canvas = null;
+    var embeddedUrls = null;
+    var resizeObserver = null;
+    var resizeRafId = null;
+    var pendingReady = null;
     var requestId = 0;
+    var activeTrack = null;
     var delay = 0;
     var opacity = 1;
     var lastTime = null;
+    var lastSentTime = null;
+    var lastSentAt = 0;
 
-    function getVideoElement() {
-        if (options.videoElement instanceof HTMLVideoElement) {
-            return options.videoElement;
+    function finishPending(value, error) {
+        var pending = pendingReady;
+        pendingReady = null;
+        if (pending === null) {
+            return;
         }
 
-        var videoElement = containerElement.querySelector('video');
-        if (videoElement instanceof HTMLVideoElement) {
-            return videoElement;
+        if (error) {
+            pending.reject(error);
+        } else {
+            pending.resolve(value);
         }
-
-        return null;
     }
 
-    function getLibassEmbeddedUrls() {
-        if (libassEmbeddedUrls === null) {
-            libassEmbeddedUrls = createLibassEmbeddedUrls();
+    function cleanupOverlay() {
+        if (resizeRafId !== null) {
+            cancelAnimationFrame(resizeRafId);
+            resizeRafId = null;
         }
-
-        return libassEmbeddedUrls;
+        if (resizeObserver !== null) {
+            resizeObserver.disconnect();
+            resizeObserver = null;
+        }
+        if (canvas !== null && canvas.parentElement === containerElement) {
+            containerElement.removeChild(canvas);
+        }
+        canvas = null;
+        revokeEmbeddedUrls(embeddedUrls);
+        embeddedUrls = null;
+        activeTrack = null;
+        instanceReady = false;
+        lastSentTime = null;
+        lastSentAt = 0;
     }
 
-    function destroyInstance() {
+    function disposeCurrent() {
+        finishPending(null);
         var currentInstance = instance;
-        var currentOverlayCleanup = overlayCleanup;
-        var currentCanvasElement = canvasElement;
-
         instance = null;
-        overlayCleanup = null;
-        canvasElement = null;
-
-        if (currentOverlayCleanup !== null) {
-            currentOverlayCleanup();
+        if (currentInstance !== null) {
+            try {
+                currentInstance.dispose();
+            } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error('assRenderer', error);
+            }
         }
-
-        if (currentCanvasElement !== null && currentCanvasElement.parentElement === containerElement) {
-            containerElement.removeChild(currentCanvasElement);
-        }
-
-        if (!currentInstance) {
-            return Promise.resolve();
-        }
-
-        try {
-            currentInstance.dispose();
-        } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error('assRenderer', error);
-        }
-
-        return Promise.resolve();
+        cleanupOverlay();
     }
 
-    function createInstance(videoElement, subtitleText, track, currentRequestId) {
-        var libassUrls = getLibassEmbeddedUrls();
-        var SubtitlesOctopusConstructor = getSubtitlesOctopus();
-        var canvas = videoElement === null ? document.createElement('canvas') : null;
-        if (canvas !== null) {
-            containerElement.appendChild(canvas);
+    function releaseFailedInstance() {
+        instance = null;
+        cleanupOverlay();
+    }
+
+    function syncLayout() {
+        resizeRafId = null;
+        if (instance === null || canvas === null) {
+            return;
         }
+
+        var rect = getContentRect(containerElement);
+        if (!rect.width || !rect.height) {
+            return;
+        }
+
+        canvas.style.left = rect.left + 'px';
+        canvas.style.top = rect.top + 'px';
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+        canvas.style.opacity = String(opacity);
+
+        var pixelRatio = window.devicePixelRatio || 1;
+        var width = Math.max(1, Math.floor(rect.width * pixelRatio));
+        var height = Math.max(1, Math.floor(rect.height * pixelRatio));
+        if (canvas.width !== width || canvas.height !== height) {
+            instance.resize(width, height, 0, 0);
+        }
+    }
+
+    function scheduleLayout() {
+        if (resizeRafId === null) {
+            resizeRafId = requestAnimationFrame(syncLayout);
+        }
+    }
+
+    function sendTime(force) {
+        if (instance === null || !instanceReady || lastTime === null) {
+            return;
+        }
+
+        var currentTime = Math.max(0, (lastTime - delay) / 1000);
+        var now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        if (!force && (currentTime === lastSentTime || now - lastSentAt < 1000 / TARGET_FPS)) {
+            return;
+        }
+
+        lastSentTime = currentTime;
+        lastSentAt = now;
+        instance.setCurrentTime(currentTime);
+    }
+
+    function createInstance(libass, subtitleText, track, currentRequestId) {
+        embeddedUrls = createEmbeddedUrls(libass.assets);
+        canvas = document.createElement('canvas');
+        canvas.style.position = 'absolute';
+        canvas.style.display = 'block';
+        canvas.style.zIndex = '2';
+        canvas.style.pointerEvents = 'none';
+        containerElement.appendChild(canvas);
 
         return new Promise(function(resolve, reject) {
-            var resolved = false;
-            var instanceOptions = {
-                subContent: subtitleText,
-                workerUrl: libassUrls.workerUrl,
-                legacyWorkerUrl: libassUrls.legacyWorkerUrl,
-                fonts: getRendererFonts(track, options),
-                availableFonts: getRendererAvailableFonts(track, options),
-                fallbackFont: libassUrls.fallbackFont,
-                renderMode: 'wasm-blend',
-                timeOffset: -delay / 1000,
-                onReady: function() {
-                    if (currentRequestId !== requestId || instance !== createdInstance) {
-                        resolve(null);
-                        return;
-                    }
-
-                    resolved = true;
-                    resolve(track);
-                },
-                onError: function(error) {
-                    if (!resolved) {
-                        destroyInstance()
-                            .then(function() {
-                                reject(error);
-                            });
-                        return;
-                    }
-
-                    if (typeof options.onError === 'function') {
-                        options.onError(error, track);
-                    }
-                }
-            };
             var createdInstance;
+            pendingReady = { resolve: resolve, reject: reject };
 
-            if (videoElement !== null) {
-                instanceOptions.video = videoElement;
-            } else {
-                instanceOptions.canvas = canvas;
-            }
+            try {
+                createdInstance = new libass.SubtitlesOctopus({
+                    canvas: canvas,
+                    subContent: subtitleText,
+                    workerUrl: embeddedUrls.workerUrl,
+                    legacyWorkerUrl: embeddedUrls.legacyWorkerUrl,
+                    fallbackFont: embeddedUrls.fallbackFont,
+                    fonts: Array.isArray(track.fonts) ? track.fonts : options.fonts || [],
+                    availableFonts: track.availableFonts || options.availableFonts || {},
+                    renderMode: 'wasm-blend',
+                    targetFps: TARGET_FPS,
+                    onReady: function() {
+                        if (currentRequestId !== requestId || createdInstance !== instance) {
+                            return;
+                        }
 
-            createdInstance = new SubtitlesOctopusConstructor(instanceOptions);
+                        instanceReady = true;
+                        syncLayout();
+                        sendTime(true);
+                        finishPending(track);
+                    },
+                    onError: function(error) {
+                        if (currentRequestId !== requestId || createdInstance !== instance) {
+                            return;
+                        }
 
-            instance = createdInstance;
-            if (videoElement !== null) {
-                overlayCleanup = installOverlaySync(createdInstance, videoElement, containerElement, function() {
-                    return opacity;
+                        if (pendingReady !== null) {
+                            pendingReady = null;
+                            releaseFailedInstance();
+                            reject(error);
+                        } else if (typeof options.onError === 'function') {
+                            var failedTrack = activeTrack;
+                            releaseFailedInstance();
+                            options.onError(error, failedTrack);
+                        }
+                    }
                 });
-            } else {
-                canvasElement = canvas;
-                overlayCleanup = installCanvasOverlaySync(createdInstance, canvas, containerElement, function() {
-                    return opacity;
-                });
-                if (lastTime !== null) {
-                    createdInstance.setCurrentTime(Math.max(0, (lastTime - delay) / 1000));
+                if (currentRequestId !== requestId) {
+                    createdInstance.dispose();
+                    finishPending(null);
+                    return;
                 }
+
+                instance = createdInstance;
+                activeTrack = track;
+                resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(scheduleLayout);
+                if (resizeObserver !== null) {
+                    resizeObserver.observe(containerElement);
+                    var videoElement = containerElement.querySelector('video');
+                    if (videoElement instanceof HTMLVideoElement) {
+                        resizeObserver.observe(videoElement);
+                    }
+                }
+                syncLayout();
+            } catch (error) {
+                pendingReady = null;
+                disposeCurrent();
+                reject(error);
             }
         });
     }
 
-    function readSubtitleText(track) {
-        var preferFallbackUrl = typeof track.fallbackUrl === 'string' && subtitleTypes.hasASSExtension(track.fallbackUrl);
-
-        return readTrackContent(track, preferFallbackUrl)
-            .catch(function(error) {
-                if (!preferFallbackUrl && typeof track.fallbackUrl === 'string') {
-                    return readTrackContent(track, true);
-                }
-
-                throw error;
-            });
-    }
-
-    function load(track) {
-        if (!track) {
-            return Promise.reject(new Error('Subtitle track is required'));
-        }
-
+    function load(track, subtitleText) {
         var currentRequestId = ++requestId;
+        disposeCurrent();
 
-        return readSubtitleText(track)
-            .then(function(subtitleText) {
+        return loadLibass()
+            .then(function(libass) {
                 if (currentRequestId !== requestId) {
                     return null;
                 }
 
-                if (typeof subtitleText !== 'string' || subtitleText.length === 0) {
-                    throw new Error('Missing ASS subtitle content');
-                }
-
-                var videoElement = getVideoElement();
-
-                return destroyInstance()
-                    .then(function() {
-                        if (currentRequestId !== requestId) {
-                            return null;
-                        }
-
-                        return createInstance(videoElement, subtitleText, track, currentRequestId);
-                    });
+                return createInstance(libass, subtitleText, track, currentRequestId);
             });
     }
 
     function destroy() {
         requestId = requestId + 1;
-
-        return destroyInstance()
-            .then(function() {
-                revokeLibassEmbeddedUrls(libassEmbeddedUrls);
-                libassEmbeddedUrls = null;
-            });
+        disposeCurrent();
+        return Promise.resolve();
     }
 
     function setDelay(value) {
-        delay = isFinite(value) ? parseInt(value, 10) : 0;
-        if (!isFinite(delay)) {
-            delay = 0;
-        }
+        delay = value !== null && isFinite(value) ? parseInt(value, 10) : 0;
+        sendTime(true);
+    }
 
-        if (instance !== null) {
-            instance.timeOffset = -delay / 1000;
-            if (!(getVideoElement() instanceof HTMLVideoElement) && lastTime !== null && typeof instance.setCurrentTime === 'function') {
-                instance.setCurrentTime(Math.max(0, (lastTime - delay) / 1000));
-            }
+    function setTime(value, force) {
+        if (value !== null && isFinite(value)) {
+            lastTime = Number(value);
+            sendTime(force === true);
         }
     }
 
     function setOpacity(value) {
-        if (typeof value === 'number' && isFinite(value)) {
-            opacity = Math.min(Math.max(value, 0), 1);
-        } else {
-            opacity = 1;
-        }
-
-        if (instance !== null && instance.canvasParent instanceof HTMLElement) {
-            instance.canvasParent.style.opacity = String(opacity);
-        }
-    }
-
-    function canRender() {
-        return getVideoElement() instanceof HTMLVideoElement || options.manualTime === true;
-    }
-
-    function setTime(value) {
-        if (value !== null && isFinite(value)) {
-            lastTime = parseInt(value, 10);
-            if (instance !== null && !(getVideoElement() instanceof HTMLVideoElement) && typeof instance.setCurrentTime === 'function') {
-                instance.setCurrentTime(Math.max(0, (lastTime - delay) / 1000));
-            }
+        opacity = typeof value === 'number' && isFinite(value) ? Math.min(Math.max(value, 0), 1) : 1;
+        if (canvas !== null) {
+            canvas.style.opacity = String(opacity);
         }
     }
 
     return {
-        canRender: canRender,
         load: load,
         destroy: destroy,
         setDelay: setDelay,
@@ -544,7 +323,5 @@ function createASSRenderer(options) {
         setOpacity: setOpacity
     };
 }
-
-createASSRenderer.isTrack = subtitleTypes.isASSSubtitleTrack;
 
 module.exports = createASSRenderer;
