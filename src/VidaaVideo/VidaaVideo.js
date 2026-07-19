@@ -58,7 +58,7 @@ function VidaaVideo(options) {
     videoElement.oncanplay = function() {
         onPropChanged('buffering');
     };
-    videoElement.canplaythrough = function() {
+    videoElement.oncanplaythrough = function() {
         onPropChanged('buffering');
     };
     videoElement.onloadedmetadata = function() {
@@ -98,6 +98,7 @@ function VidaaVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
+    var lastPropValues = Object.create(null);
     var observedProps = {
         stream: false,
         loaded: false,
@@ -152,7 +153,10 @@ function VidaaVideo(options) {
                     return null;
                 }
 
-                return videoElement.readyState < videoElement.HAVE_FUTURE_DATA;
+                // Avoid false-positive buffering for HTTP streaming sources (e.g. debrid),
+                // where readyState often oscillates between HAVE_CURRENT_DATA (2) and HAVE_FUTURE_DATA (3).
+                // Consider buffering only when playback is active and we don't have data for the current frame.
+                return !videoElement.paused && videoElement.readyState < videoElement.HAVE_CURRENT_DATA;
             }
             case 'subtitlesTracks': {
                 if (stream === null) {
@@ -300,7 +304,12 @@ function VidaaVideo(options) {
     }
     function onPropChanged(propName) {
         if (observedProps[propName]) {
-            events.emit('propChanged', propName, getProp(propName));
+            var value = getProp(propName);
+            // Emit only when the value actually changes to avoid spamming listeners (notably buffering).
+            if (lastPropValues[propName] !== value) {
+                lastPropValues[propName] = value;
+                events.emit('propChanged', propName, value);
+            }
         }
     }
     function observeProp(propName) {
@@ -457,6 +466,7 @@ function VidaaVideo(options) {
                 videoElement.textTracks.onaddtrack = null;
                 videoElement.audioTracks.onaddtrack = null;
                 stream = null;
+                lastPropValues = Object.create(null);
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;
                 });
@@ -494,7 +504,7 @@ function VidaaVideo(options) {
                 videoElement.onstalled = null;
                 videoElement.onplaying = null;
                 videoElement.oncanplay = null;
-                videoElement.canplaythrough = null;
+                videoElement.oncanplaythrough = null;
                 videoElement.onloadeddata = null;
                 videoElement.onvolumechange = null;
                 videoElement.onratechange = null;
