@@ -615,6 +615,11 @@ function withHTMLSubtitles(Video) {
                         return null;
                     }
                     if (loadedTrack !== null) {
+                        video.dispatch({
+                            type: 'setProp',
+                            propName: 'selectedSubtitlesTrackId',
+                            propValue: null,
+                        });
                         setASSSubtitlesStylingActive(true);
                         events.emit('subtitlesTrackLoaded', getPublicSubtitleTrack(track));
                     }
@@ -916,7 +921,7 @@ function withHTMLSubtitles(Video) {
                         video.dispatch({
                             type: 'setProp',
                             propName: 'selectedSubtitlesTrackId',
-                            propValue: null,
+                            propValue: propValue,
                         });
                         loadEmbeddedASS(selectedVideoTrack, embeddedASSSource, embeddedRequestId);
                         return true;
