@@ -37,6 +37,10 @@ function withHTMLSubtitles(Video) {
         var assRenderer = createASSRenderer({
             containerElement: containerElement,
             onError: function(error, track) {
+                if (track && track.id === selectedEmbeddedASSTrackId) {
+                    fallbackFromEmbeddedASS(error, track);
+                    return;
+                }
                 fallbackFromASS(error, track, selectedSubtitleText)
                     .catch(function(fallbackError) {
                         reportSubtitleError(fallbackError, track);
@@ -141,6 +145,10 @@ function withHTMLSubtitles(Video) {
         var usingASSRenderer = false;
         var selectedSubtitleText = null;
         var selectionRequestId = 0;
+        var embeddedASSSources = [];
+        var videoSubtitleTracks = [];
+        var selectedEmbeddedASSTrackId = null;
+        var embeddedSubtitlesOpacity = 1;
         var nativeAssSubtitlesSupported = options.shellTransport &&
             options.shellTransport.capabilities &&
             options.shellTransport.capabilities.nativeAssSubtitles === true;
@@ -277,6 +285,7 @@ function withHTMLSubtitles(Video) {
                     break;
                 }
                 case 'subtitlesTracks': {
+                    videoSubtitleTracks = Array.isArray(propValue) ? propValue : [];
                     updateNativeASSTrack(propValue);
                     break;
                 }
@@ -371,10 +380,32 @@ function withHTMLSubtitles(Video) {
         }
         function getPublicSubtitleTrack(track) {
             var publicTrack = Object.assign({}, track);
+            if (getEmbeddedASSSource(track) !== null) {
+                publicTrack.ass = true;
+            }
             delete publicTrack.nativeExternal;
             delete publicTrack.nativeExternalFilename;
             delete publicTrack.nativeExternalTitle;
+            delete publicTrack._hlsSubtitlePlaylistURL;
             return publicTrack;
+        }
+        function getEmbeddedSubtitleId(track) {
+            if (!track || typeof track._hlsSubtitlePlaylistURL !== 'string') {
+                return null;
+            }
+
+            var match = track._hlsSubtitlePlaylistURL.match(/(?:^|\/)subtitle(\d+)\.m3u8(?:$|[?#])/i);
+            return match === null ? null : match[1];
+        }
+        function getEmbeddedASSSource(track) {
+            var subtitleId = getEmbeddedSubtitleId(track);
+            if (subtitleId === null) {
+                return null;
+            }
+
+            return embeddedASSSources.find(function(source) {
+                return String(source.id) === subtitleId;
+            }) || null;
         }
         function isManagedNativeASSTrack(track) {
             return track.id === nativeAssTrackId ||
@@ -502,6 +533,78 @@ function withHTMLSubtitles(Video) {
             return typeof text === 'string' ?
                 loadPlainSubtitles(track, text, true, currentRequestId) :
                 Promise.resolve(null);
+        }
+        function clearEmbeddedASS() {
+            if (selectedEmbeddedASSTrackId === null) {
+                return;
+            }
+
+            selectedEmbeddedASSTrackId = null;
+            usingASSRenderer = false;
+            setASSSubtitlesStylingActive(false);
+            assRenderer.destroy();
+            subtitlesElement.style.display = '';
+            if (selectedTrackId === null) {
+                stopRenderLoop();
+            }
+        }
+        function fallbackFromEmbeddedASS(error, track, currentRequestId) {
+            currentRequestId = currentRequestId || selectionRequestId;
+            if (!track || currentRequestId !== selectionRequestId || selectedEmbeddedASSTrackId !== track.id) {
+                return;
+            }
+
+            var trackId = selectedEmbeddedASSTrackId;
+            reportSubtitleError(error, getPublicSubtitleTrack(track));
+            clearEmbeddedASS();
+            video.dispatch({
+                type: 'setProp',
+                propName: 'selectedSubtitlesTrackId',
+                propValue: trackId,
+            });
+        }
+        function loadEmbeddedASS(track, source, currentRequestId) {
+            var assTrack = Object.assign({}, getPublicSubtitleTrack(track), {
+                ass: true,
+                codec: source.codec,
+                fonts: Array.isArray(source.fonts) ? source.fonts : [],
+                url: source.url,
+            });
+
+            cuesByTime = null;
+            usingASSRenderer = true;
+            setASSSubtitlesStylingActive(false);
+            subtitlesElement.style.display = 'none';
+            while (subtitlesElement.hasChildNodes()) {
+                subtitlesElement.removeChild(subtitlesElement.lastChild);
+            }
+            lastTimeIndex = null;
+            assRenderer.setDelay(0);
+            assRenderer.setOpacity(embeddedSubtitlesOpacity);
+            startRenderLoop();
+
+            return getSubtitlesData(assTrack, false)
+                .then(function(text) {
+                    if (currentRequestId !== selectionRequestId || selectedEmbeddedASSTrackId !== track.id) {
+                        return null;
+                    }
+
+                    return assRenderer.load(assTrack, text);
+                })
+                .then(function(loadedTrack) {
+                    if (currentRequestId !== selectionRequestId || selectedEmbeddedASSTrackId !== track.id) {
+                        return null;
+                    }
+                    if (loadedTrack !== null) {
+                        setASSSubtitlesStylingActive(true);
+                        events.emit('subtitlesTrackLoaded', getPublicSubtitleTrack(track));
+                    }
+                    return loadedTrack;
+                })
+                .catch(function(error) {
+                    fallbackFromEmbeddedASS(error, assTrack, currentRequestId);
+                    return null;
+                });
         }
         function loadASSSubtitles(track, text, currentRequestId) {
             cuesByTime = null;
@@ -692,6 +795,9 @@ function withHTMLSubtitles(Video) {
                     return videoPropValue;
                 }
                 case 'selectedSubtitlesTrackId': {
+                    if (selectedEmbeddedASSTrackId !== null) {
+                        return selectedEmbeddedASSTrackId;
+                    }
                     if (isNativeASSSelection(videoPropValue)) {
                         return null;
                     }
@@ -739,9 +845,43 @@ function withHTMLSubtitles(Video) {
         }
         function setProp(propName, propValue) {
             switch (propName) {
+                case 'selectedSubtitlesTrackId': {
+                    var selectedVideoTrack = videoSubtitleTracks.find(function(track) {
+                        return track.id === propValue;
+                    });
+                    var embeddedASSSource = getEmbeddedASSSource(selectedVideoTrack);
+                    if (assSubtitlesStylingEnabled && selectedVideoTrack && embeddedASSSource !== null) {
+                        if (selectedEmbeddedASSTrackId === propValue) {
+                            return true;
+                        }
+                        if (selectedTrackId !== null) {
+                            setProp('selectedExtraSubtitlesTrackId', null);
+                        }
+                        var embeddedRequestId = ++selectionRequestId;
+                        clearEmbeddedASS();
+                        selectedEmbeddedASSTrackId = propValue;
+                        video.dispatch({
+                            type: 'setProp',
+                            propName: 'selectedSubtitlesTrackId',
+                            propValue: null,
+                        });
+                        loadEmbeddedASS(selectedVideoTrack, embeddedASSSource, embeddedRequestId);
+                        return true;
+                    }
+                    if (selectedEmbeddedASSTrackId !== null) {
+                        selectionRequestId = selectionRequestId + 1;
+                        clearEmbeddedASS();
+                    }
+
+                    return false;
+                }
                 case 'selectedExtraSubtitlesTrackId': {
                     if (propValue !== null && selectedTrackId === propValue) {
                         return true;
+                    }
+                    if (propValue !== null && selectedEmbeddedASSTrackId !== null) {
+                        selectionRequestId = selectionRequestId + 1;
+                        clearEmbeddedASS();
                     }
                     clearNativeASS();
                     if (propValue !== null) {
@@ -888,6 +1028,16 @@ function withHTMLSubtitles(Video) {
 
                     return true;
                 }
+                case 'subtitlesOpacity': {
+                    if (typeof propValue === 'number') {
+                        embeddedSubtitlesOpacity = Math.min(Math.max(propValue / 100, 0), 1);
+                        if (selectedEmbeddedASSTrackId !== null) {
+                            assRenderer.setOpacity(embeddedSubtitlesOpacity);
+                        }
+                    }
+
+                    return false;
+                }
                 default: {
                     return false;
                 }
@@ -947,6 +1097,10 @@ function withHTMLSubtitles(Video) {
                 case 'load': {
                     command('unload');
                     assSubtitlesStylingEnabled = commandArgs.assSubtitlesStyling === true;
+                    embeddedASSSources = commandArgs.stream && Array.isArray(commandArgs.stream._embeddedASSSources) ?
+                        commandArgs.stream._embeddedASSSources
+                        :
+                        [];
                     if (commandArgs.stream && Array.isArray(commandArgs.stream.subtitles)) {
                         command('addExtraSubtitlesTracks', {
                             tracks: commandArgs.stream.subtitles.map(function(track) {
@@ -973,6 +1127,10 @@ function withHTMLSubtitles(Video) {
                     tracks = [];
                     selectedTrackId = null;
                     selectedSubtitleText = null;
+                    embeddedASSSources = [];
+                    videoSubtitleTracks = [];
+                    selectedEmbeddedASSTrackId = null;
+                    embeddedSubtitlesOpacity = 1;
                     delay = null;
                     usingASSRenderer = false;
                     setASSSubtitlesStylingActive(false);

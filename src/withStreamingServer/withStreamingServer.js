@@ -10,7 +10,119 @@ var isPlayerLoaded = require('./isPlayerLoaded');
 var supportsTranscoding = require('../supportsTranscoding');
 var ERROR = require('../error');
 
+var FONT_EXTENSION_PATTERN = /\.(?:otc|otf|ttc|ttf|woff2?)(?:$|[?#])/i;
+var FONT_MIME_TYPES = [
+    'application/font-sfnt',
+    'application/font-woff',
+    'application/vnd.ms-fontobject',
+    'application/x-font-opentype',
+    'application/x-font-ttf',
+    'application/x-truetype-font',
+    'font/collection',
+    'font/otf',
+    'font/sfnt',
+    'font/ttf',
+    'font/woff',
+    'font/woff2'
+];
+
 function withStreamingServer(Video) {
+    function fetchStreamProbe(stream, options) {
+        var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
+
+        return fetch(url.resolve(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
+            .then(function(resp) {
+                if (!resp.ok) {
+                    throw new Error(resp.status + ' (' + resp.statusText + ')');
+                }
+
+                return resp.json();
+            });
+    }
+    function canPlayProbe(probe, options) {
+        var isFormatSupported = options.formats.some(function(format) {
+            return probe.format.name.indexOf(format) !== -1;
+        });
+
+        var areStreamsSupported = probe.streams.every(function(stream) {
+            if (stream.track === 'audio') {
+                return stream.channels <= options.maxAudioChannels &&
+                    options.audioCodecs.indexOf(stream.codec) !== -1;
+            } else if (stream.track === 'video') {
+                return options.videoCodecs.indexOf(stream.codec) !== -1;
+            }
+
+            return true;
+        });
+        var hasEmbeddedSubtitles = probe.streams.some(function(stream) {
+            return stream.track === 'subtitle';
+        });
+
+        // HTML5 video doesn't support multiple audio tracks, so we can't switch languages
+        var supportedAudioTracks = probe.streams.filter(function(stream) {
+            return stream.track === 'audio' && options.audioCodecs.indexOf(stream.codec) !== -1;
+        });
+
+        return isFormatSupported && areStreamsSupported && !hasEmbeddedSubtitles && supportedAudioTracks.length < 2;
+    }
+    function getPlayability(stream, options) {
+        return supportsTranscoding()
+            .then(function(supported) {
+                if (!supported) {
+                    return Promise.resolve(Video.canPlayStream(stream))
+                        .then(function(canPlay) {
+                            return { canPlay: canPlay, probe: null };
+                        });
+                }
+
+                return fetchStreamProbe(stream, options)
+                    .then(function(probe) {
+                        return { canPlay: canPlayProbe(probe, options), probe: probe };
+                    })
+                    .catch(function() {
+                        // This uses content-type header in HTMLVideo which is unreliable.
+                        // Probe can also fail due to CORS.
+                        return Promise.resolve(Video.canPlayStream(stream))
+                            .then(function(canPlay) {
+                                return { canPlay: canPlay, probe: null };
+                            });
+                    });
+            });
+    }
+    function isFontAttachment(stream) {
+        var mimeType = typeof stream.mimeType === 'string' ? stream.mimeType.split(';')[0].trim().toLowerCase() : null;
+
+        return stream.track === 'attachment' && (
+            FONT_MIME_TYPES.includes(mimeType) ||
+            (typeof stream.filename === 'string' && FONT_EXTENSION_PATTERN.test(stream.filename))
+        );
+    }
+    function getEmbeddedASSSources(probe, streamingServerURL, id, queryParams) {
+        if (!probe || !Array.isArray(probe.streams)) {
+            return [];
+        }
+
+        var query = queryParams.toString();
+        var fonts = probe.streams
+            .filter(isFontAttachment)
+            .map(function(stream) {
+                return url.resolve(streamingServerURL, '/hlsv2/' + id + '/source/attachment/' + stream.id + '?' + query);
+            });
+
+        return probe.streams
+            .filter(function(stream) {
+                return stream.track === 'subtitle' && ['ass', 'ssa'].includes(String(stream.codec).toLowerCase());
+            })
+            .map(function(stream) {
+                return {
+                    id: stream.id,
+                    codec: stream.codec,
+                    url: url.resolve(streamingServerURL, '/hlsv2/' + id + '/source/subtitle/' + stream.id + '.ass?' + query),
+                    fonts: fonts
+                };
+            });
+    }
+
     function VideoWithStreamingServer(options) {
         options = options || {};
 
@@ -131,13 +243,13 @@ function withStreamingServer(Video) {
                                     audioCodecs: audioCodecs,
                                     maxAudioChannels: maxAudioChannels
                                 });
-                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : VideoWithStreamingServer.canPlayStream({ url: mediaURL }, canPlayStreamOptions))
+                                return (commandArgs.forceTranscoding ? Promise.resolve({ canPlay: false, probe: null }) : getPlayability({ url: mediaURL }, canPlayStreamOptions))
                                     .catch(function(error) {
                                         console.warn('Media probe error', error);
-                                        return false;
+                                        return { canPlay: false, probe: null };
                                     })
-                                    .then(function(canPlay) {
-                                        if (canPlay) {
+                                    .then(function(playability) {
+                                        if (playability.canPlay) {
                                             return {
                                                 mediaURL: mediaURL,
                                                 infoHash: infoHash,
@@ -164,30 +276,38 @@ function withStreamingServer(Video) {
 
                                         queryParams.set('maxAudioChannels', maxAudioChannels);
 
-                                        return {
-                                            mediaURL: mediaURL,
-                                            infoHash: infoHash,
-                                            fileIdx: fileIdx,
-                                            stream: {
-                                                url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
-                                                subtitles: Array.isArray(commandArgs.stream.subtitles) ?
-                                                    commandArgs.stream.subtitles.map(function(track) {
-                                                        return Object.assign({}, track, {
-                                                            url: typeof track.url === 'string' ?
-                                                                url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
-                                                                :
-                                                                track.url
-                                                        });
-                                                    })
-                                                    :
-                                                    [],
-                                                behaviorHints: {
-                                                    headers: {
-                                                        'content-type': 'application/vnd.apple.mpegurl'
+                                        var probePromise = playability.probe !== null ?
+                                            Promise.resolve(playability.probe)
+                                            :
+                                            fetchStreamProbe({ url: mediaURL }, canPlayStreamOptions).catch(function() { return null; });
+
+                                        return probePromise.then(function(probe) {
+                                            return {
+                                                mediaURL: mediaURL,
+                                                infoHash: infoHash,
+                                                fileIdx: fileIdx,
+                                                stream: {
+                                                    url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
+                                                    subtitles: Array.isArray(commandArgs.stream.subtitles) ?
+                                                        commandArgs.stream.subtitles.map(function(track) {
+                                                            return Object.assign({}, track, {
+                                                                url: typeof track.url === 'string' ?
+                                                                    url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
+                                                                    :
+                                                                    track.url
+                                                            });
+                                                        })
+                                                        :
+                                                        [],
+                                                    _embeddedASSSources: getEmbeddedASSSources(probe, commandArgs.streamingServerURL, id, queryParams),
+                                                    behaviorHints: {
+                                                        headers: {
+                                                            'content-type': 'application/vnd.apple.mpegurl'
+                                                        }
                                                     }
                                                 }
-                                            }
-                                        };
+                                            };
+                                        });
                                     });
                             })
                             .then(function(result) {
@@ -349,50 +469,8 @@ function withStreamingServer(Video) {
     }
 
     VideoWithStreamingServer.canPlayStream = function(stream, options) {
-        return supportsTranscoding()
-            .then(function(supported) {
-                if (!supported) {
-                    // we cannot probe the video in this case
-                    return Video.canPlayStream(stream);
-                }
-                // probing normally gives more accurate results
-                var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
-                return fetch(url.resolve(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
-                    .then(function(resp) {
-                        return resp.json();
-                    })
-                    .then(function(probe) {
-                        var isFormatSupported = options.formats.some(function(format) {
-                            return probe.format.name.indexOf(format) !== -1;
-                        });
-
-                        var areStreamsSupported = probe.streams.every(function(stream) {
-                            if (stream.track === 'audio') {
-                                return stream.channels <= options.maxAudioChannels &&
-                                    options.audioCodecs.indexOf(stream.codec) !== -1;
-                            } else if (stream.track === 'video') {
-                                return options.videoCodecs.indexOf(stream.codec) !== -1;
-                            }
-
-                            return true;
-                        });
-                        var hasEmbeddedSubtitles = probe.streams.some(function(stream) {
-                            return stream.track === 'subtitle';
-                        });
-
-                        // HTML5 video doesn't support multiple audio tracks, so we can't switch languages
-                        var supportedAudioTracks = probe.streams.filter(function(stream) {
-                            return stream.track === 'audio' && options.audioCodecs.indexOf(stream.codec) !== -1;
-                        });
-
-                        return isFormatSupported && areStreamsSupported && !hasEmbeddedSubtitles && supportedAudioTracks.length < 2;
-                    })
-                    .catch(function() {
-                        // this uses content-type header in HTMLVideo which
-                        // is unreliable, check can also fail due to CORS
-                        return Video.canPlayStream(stream);
-                    });
-            });
+        return getPlayability(stream, options)
+            .then(function(result) { return result.canPlay; });
     };
 
     VideoWithStreamingServer.manifest = {
