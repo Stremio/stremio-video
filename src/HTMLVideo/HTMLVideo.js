@@ -195,6 +195,19 @@ function HTMLVideo(options) {
                     return [];
                 }
 
+                if (hls !== null && Array.isArray(hls.subtitleTracks)) {
+                    return hls.subtitleTracks.map(function(track, index) {
+                        return Object.freeze({
+                            id: 'EMBEDDED_' + String(index),
+                            lang: typeof track.lang === 'string' && track.lang.length > 0 ? track.lang : '',
+                            label: typeof track.name === 'string' && track.name.length > 0 ? track.name : null,
+                            origin: 'EMBEDDED',
+                            embedded: true,
+                            _hlsSubtitlePlaylistURL: typeof track.url === 'string' ? track.url : null
+                        });
+                    });
+                }
+
                 return Array.from(videoElement.textTracks)
                     .map(function(track, index) {
                         return Object.freeze({
@@ -209,6 +222,10 @@ function HTMLVideo(options) {
             case 'selectedSubtitlesTrackId': {
                 if (stream === null) {
                     return null;
+                }
+
+                if (hls !== null) {
+                    return hls.subtitleTrack >= 0 ? 'EMBEDDED_' + String(hls.subtitleTrack) : null;
                 }
 
                 return Array.from(videoElement.textTracks)
@@ -422,10 +439,17 @@ function HTMLVideo(options) {
             }
             case 'selectedSubtitlesTrackId': {
                 if (stream !== null) {
-                    Array.from(videoElement.textTracks)
-                        .forEach(function(track, index) {
-                            track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                    if (hls !== null) {
+                        var selectedIndex = getProp('subtitlesTracks').findIndex(function(track) {
+                            return track.id === propValue;
                         });
+                        hls.subtitleTrack = selectedIndex;
+                    } else {
+                        Array.from(videoElement.textTracks)
+                            .forEach(function(track, index) {
+                                track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                            });
+                    }
                     var selecterdSubtitlesTrack = getProp('subtitlesTracks')
                         .find(function(track) {
                             return track.id === propValue;
@@ -618,6 +642,17 @@ function HTMLVideo(options) {
                                 hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
+                                });
+                                hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, function() {
+                                    onPropChanged('subtitlesTracks');
+                                    onPropChanged('selectedSubtitlesTrackId');
+                                });
+                                hls.on(Hls.Events.SUBTITLE_TRACKS_CLEARED, function() {
+                                    onPropChanged('subtitlesTracks');
+                                    onPropChanged('selectedSubtitlesTrackId');
+                                });
+                                hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, function() {
+                                    onPropChanged('selectedSubtitlesTrackId');
                                 });
                                 hls.on(Hls.Events.MANIFEST_LOADING, function() {
                                     hls.subtitleTrack = -1;
