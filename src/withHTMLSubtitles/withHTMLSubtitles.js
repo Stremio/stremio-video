@@ -7,6 +7,7 @@ var binarySearchUpperBound = require('./binarySearchUpperBound');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
+var charsetDetector = require('./charsetDetector');
 
 const PREVIEW_INTERVAL = 300000;
 
@@ -448,7 +449,12 @@ function withHTMLSubtitles(Video) {
                             if (track.buffer instanceof ArrayBuffer) {
                                 try {
                                     const uInt8Array = new Uint8Array(track.buffer);
-                                    const text = new TextDecoder().decode(uInt8Array);
+                                    // Local subtitle files are not guaranteed to be UTF-8
+                                    // (older .srt files are frequently saved in a legacy
+                                    // single-byte code page, e.g. windows-1254 for Turkish).
+                                    // Auto-detect instead of assuming UTF-8, to avoid
+                                    // garbled text for non-UTF-8 files.
+                                    const text = charsetDetector.decode(uInt8Array);
                                     return Promise.resolve(text);
                                 } catch(e) {
                                     return Promise.reject(e);
