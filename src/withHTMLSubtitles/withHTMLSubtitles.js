@@ -116,7 +116,9 @@ function withHTMLSubtitles(Video) {
         var selectedTrackId = null;
         var delay = null;
         var size = 100;
+        var subtitlesOffset = 0;
         var offset = 0;
+        var offsetAdjustment = 0;
         var textColor = 'rgb(255, 255, 255)';
         var backgroundColor = 'rgba(0, 0, 0, 0)';
         var outlineColor = 'rgb(34, 34, 34)';
@@ -124,6 +126,8 @@ function withHTMLSubtitles(Video) {
         var preview = [];
 
         var observedProps = {
+            subtitlesOffset: false,
+            subtitlesOffsetAdjustment: false,
             extraSubtitlesTracks: false,
             selectedExtraSubtitlesTrackId: false,
             extraSubtitlesDelay: false,
@@ -135,6 +139,21 @@ function withHTMLSubtitles(Video) {
             extraSubtitlesOpacity: false,
             extraSubtitlesPreview: false,
         };
+
+        function getEffectiveSubtitlesOffset(baseOffset) {
+            return Math.max(0, Math.min(100, baseOffset + offsetAdjustment));
+        }
+        function applySubtitlesOffsetAdjustment() {
+            if (Video.manifest.props.includes('subtitlesOffset')) {
+                video.dispatch({
+                    type: 'setProp',
+                    propName: 'subtitlesOffset',
+                    propValue: getEffectiveSubtitlesOffset(subtitlesOffset),
+                });
+            }
+            forceRender = true;
+            renderSubtitles();
+        }
 
         function getCurrentTime() {
             if (videoState.time === null || !isFinite(videoState.time)) {
@@ -189,7 +208,7 @@ function withHTMLSubtitles(Video) {
                 return;
             }
 
-            subtitlesElement.style.bottom = offset + '%';
+            subtitlesElement.style.bottom = getEffectiveSubtitlesOffset(offset) + '%';
             subtitlesElement.style.opacity = opacity;
             subtitlesRenderer.render(cuesByTime, timeIndex).forEach(function(cueNode) {
                 cueNode.style.display = 'inline-block';
@@ -292,6 +311,20 @@ function withHTMLSubtitles(Video) {
         }
         function getProp(propName, videoPropValue) {
             switch (propName) {
+                case 'subtitlesOffset': {
+                    if (destroyed) {
+                        return null;
+                    }
+
+                    return subtitlesOffset;
+                }
+                case 'subtitlesOffsetAdjustment': {
+                    if (destroyed) {
+                        return null;
+                    }
+
+                    return offsetAdjustment;
+                }
                 case 'extraSubtitlesTracks': {
                     if (destroyed) {
                         return [];
@@ -386,6 +419,8 @@ function withHTMLSubtitles(Video) {
         }
         function observeProp(propName) {
             switch (propName) {
+                case 'subtitlesOffset':
+                case 'subtitlesOffsetAdjustment':
                 case 'extraSubtitlesTracks':
                 case 'selectedExtraSubtitlesTrackId':
                 case 'extraSubtitlesDelay':
@@ -407,6 +442,27 @@ function withHTMLSubtitles(Video) {
         }
         function setProp(propName, propValue) {
             switch (propName) {
+                case 'subtitlesOffset': {
+                    if (propValue !== null && isFinite(propValue)) {
+                        subtitlesOffset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
+                        applySubtitlesOffsetAdjustment();
+                        onPropChanged('subtitlesOffset');
+                    }
+
+                    return true;
+                }
+                case 'subtitlesOffsetAdjustment': {
+                    if (propValue !== null && isFinite(propValue)) {
+                        var nextOffsetAdjustment = Math.max(0, Math.min(100, parseInt(propValue, 10)));
+                        if (nextOffsetAdjustment !== offsetAdjustment) {
+                            offsetAdjustment = nextOffsetAdjustment;
+                            applySubtitlesOffsetAdjustment();
+                            onPropChanged('subtitlesOffsetAdjustment');
+                        }
+                    }
+
+                    return true;
+                }
                 case 'selectedExtraSubtitlesTrackId': {
                     if (propValue !== null) {
                         video.dispatch({
@@ -684,6 +740,8 @@ function withHTMLSubtitles(Video) {
                         videoElement.removeEventListener('webkitbeginfullscreen', onWebkitBeginFullscreen);
                         videoElement.removeEventListener('webkitendfullscreen', onWebkitEndFullscreen);
                     }
+                    onPropChanged('subtitlesOffset');
+                    onPropChanged('subtitlesOffsetAdjustment');
                     onPropChanged('extraSubtitlesSize');
                     onPropChanged('extraSubtitlesOffset');
                     onPropChanged('extraSubtitlesTextColor');
@@ -752,7 +810,7 @@ function withHTMLSubtitles(Video) {
     VideoWithHTMLSubtitles.manifest = {
         name: Video.manifest.name + 'WithHTMLSubtitles',
         external: Video.manifest.external,
-        props: Video.manifest.props.concat(['extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview'])
+        props: Video.manifest.props.concat(['subtitlesOffsetAdjustment', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
