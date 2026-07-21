@@ -602,7 +602,6 @@ function withHTMLSubtitles(Video) {
                             propValue: null,
                         });
                         setASSSubtitlesStylingActive(true);
-                        events.emit('subtitlesTrackLoaded', getPublicSubtitleTrack(track));
                     }
                     return loadedTrack;
                 })
