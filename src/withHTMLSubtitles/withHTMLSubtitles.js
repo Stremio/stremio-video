@@ -118,7 +118,7 @@ function withHTMLSubtitles(Video) {
         var size = 100;
         var subtitlesOffset = 0;
         var offset = 0;
-        var offsetAdjustment = 0;
+        var offsetMinimum = 0;
         var textColor = 'rgb(255, 255, 255)';
         var backgroundColor = 'rgba(0, 0, 0, 0)';
         var outlineColor = 'rgb(34, 34, 34)';
@@ -127,7 +127,7 @@ function withHTMLSubtitles(Video) {
 
         var observedProps = {
             subtitlesOffset: false,
-            subtitlesOffsetAdjustment: false,
+            subtitlesOffsetMinimum: false,
             extraSubtitlesTracks: false,
             selectedExtraSubtitlesTrackId: false,
             extraSubtitlesDelay: false,
@@ -141,9 +141,9 @@ function withHTMLSubtitles(Video) {
         };
 
         function getEffectiveSubtitlesOffset(baseOffset) {
-            return Math.max(0, Math.min(100, baseOffset + offsetAdjustment));
+            return Math.max(baseOffset, offsetMinimum);
         }
-        function applySubtitlesOffsetAdjustment() {
+        function applySubtitlesOffsetMinimum() {
             if (Video.manifest.props.includes('subtitlesOffset')) {
                 video.dispatch({
                     type: 'setProp',
@@ -318,12 +318,12 @@ function withHTMLSubtitles(Video) {
 
                     return subtitlesOffset;
                 }
-                case 'subtitlesOffsetAdjustment': {
+                case 'subtitlesOffsetMinimum': {
                     if (destroyed) {
                         return null;
                     }
 
-                    return offsetAdjustment;
+                    return offsetMinimum;
                 }
                 case 'extraSubtitlesTracks': {
                     if (destroyed) {
@@ -420,7 +420,7 @@ function withHTMLSubtitles(Video) {
         function observeProp(propName) {
             switch (propName) {
                 case 'subtitlesOffset':
-                case 'subtitlesOffsetAdjustment':
+                case 'subtitlesOffsetMinimum':
                 case 'extraSubtitlesTracks':
                 case 'selectedExtraSubtitlesTrackId':
                 case 'extraSubtitlesDelay':
@@ -445,19 +445,19 @@ function withHTMLSubtitles(Video) {
                 case 'subtitlesOffset': {
                     if (propValue !== null && isFinite(propValue)) {
                         subtitlesOffset = Math.max(0, Math.min(100, parseInt(propValue, 10)));
-                        applySubtitlesOffsetAdjustment();
+                        applySubtitlesOffsetMinimum();
                         onPropChanged('subtitlesOffset');
                     }
 
                     return true;
                 }
-                case 'subtitlesOffsetAdjustment': {
+                case 'subtitlesOffsetMinimum': {
                     if (propValue !== null && isFinite(propValue)) {
-                        var nextOffsetAdjustment = Math.max(0, Math.min(100, parseInt(propValue, 10)));
-                        if (nextOffsetAdjustment !== offsetAdjustment) {
-                            offsetAdjustment = nextOffsetAdjustment;
-                            applySubtitlesOffsetAdjustment();
-                            onPropChanged('subtitlesOffsetAdjustment');
+                        var nextOffsetMinimum = Math.max(0, Math.min(100, parseInt(propValue, 10)));
+                        if (nextOffsetMinimum !== offsetMinimum) {
+                            offsetMinimum = nextOffsetMinimum;
+                            applySubtitlesOffsetMinimum();
+                            onPropChanged('subtitlesOffsetMinimum');
                         }
                     }
 
@@ -741,7 +741,7 @@ function withHTMLSubtitles(Video) {
                         videoElement.removeEventListener('webkitendfullscreen', onWebkitEndFullscreen);
                     }
                     onPropChanged('subtitlesOffset');
-                    onPropChanged('subtitlesOffsetAdjustment');
+                    onPropChanged('subtitlesOffsetMinimum');
                     onPropChanged('extraSubtitlesSize');
                     onPropChanged('extraSubtitlesOffset');
                     onPropChanged('extraSubtitlesTextColor');
@@ -810,7 +810,7 @@ function withHTMLSubtitles(Video) {
     VideoWithHTMLSubtitles.manifest = {
         name: Video.manifest.name + 'WithHTMLSubtitles',
         external: Video.manifest.external,
-        props: Video.manifest.props.concat(['subtitlesOffsetAdjustment', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview'])
+        props: Video.manifest.props.concat(['subtitlesOffsetMinimum', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
