@@ -108,12 +108,24 @@ function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behavior
     return Promise.resolve(decodeURIComponent(mediaURL.split('/').pop()));
 }
 
-function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
+function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints, probe) {
     return Promise.allSettled([
         fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints),
         fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints)
     ]).then(function(results) {
-        var result = { hash: null, size: null, filename: null };
+        var videoStream = probe && Array.isArray(probe.streams) ?
+            probe.streams.find(function(stream) { return stream.track === 'video'; })
+            :
+            null;
+        var frameRate = videoStream && typeof videoStream.frameRate === 'number' && isFinite(videoStream.frameRate) && videoStream.frameRate > 0 ? videoStream.frameRate : null;
+        var duration = probe && probe.format && typeof probe.format.duration === 'number' && isFinite(probe.format.duration) && probe.format.duration > 0 ? probe.format.duration : null;
+        var result = {
+            hash: null,
+            size: null,
+            filename: null,
+            fpsMilli: frameRate !== null ? Math.round(frameRate * 1000) : null,
+            durationMs: duration !== null ? Math.round(duration * 1000) : null
+        };
 
         if (results[0].status === 'fulfilled') {
             result.hash = results[0].value.hash;
