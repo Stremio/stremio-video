@@ -5,7 +5,6 @@ var TizenVideo = require('../TizenVideo');
 var TitanVideo = require('../TitanVideo');
 var VidaaVideo = require('../VidaaVideo');
 var WebOsVideo = require('../WebOsVideo');
-var IFrameVideo = require('../IFrameVideo');
 var YouTubeVideo = require('../YouTubeVideo');
 var withStreamingServer = require('../withStreamingServer');
 var withHTMLSubtitles = require('../withHTMLSubtitles');
@@ -22,10 +21,6 @@ function selectVideoImplementation(commandArgs, options) {
 
     if (typeof commandArgs.stream.ytId === 'string') {
         return withVideoParams(withHTMLSubtitles(YouTubeVideo));
-    }
-
-    if (typeof commandArgs.stream.playerFrameUrl === 'string') {
-        return withVideoParams(IFrameVideo);
     }
 
     if (options.shellTransport) {
