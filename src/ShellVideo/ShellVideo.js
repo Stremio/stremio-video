@@ -113,6 +113,7 @@ function ShellVideo(options) {
             }
         }
     }
+    // Preserve loading for legacy shells that do not emit mpv-event-video-ready.
     function updateLoaded() {
         if (!videoReadyEventsSupported && !props.loaded && durationReady && props['video-params'] && props['paused-for-cache'] === false) {
             props.loaded = true;
