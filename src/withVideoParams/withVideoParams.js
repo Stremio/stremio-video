@@ -53,7 +53,7 @@ function withVideoParams(Video) {
                     var hash = stream.behaviorHints && typeof stream.behaviorHints.videoHash === 'string' ? stream.behaviorHints.videoHash : null;
                     var size = stream.behaviorHints && stream.behaviorHints.videoSize !== null && isFinite(stream.behaviorHints.videoSize) ? stream.behaviorHints.videoSize : null;
                     var filename = stream.behaviorHints && typeof stream.behaviorHints.filename === 'string' ? stream.behaviorHints.filename : null;
-                    return { hash: hash, size: size, filename: filename };
+                    return { hash: hash, size: size, filename: filename, fpsMilli: null, durationMs: null };
                 }
                 default: {
                     return videoPropValue;
