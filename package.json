@@ -10,8 +10,7 @@
         "url": "https://github.com/Stremio/stremio-video"
     },
     "scripts": {
-        "lint": "eslint src",
-        "test": "node --test"
+        "lint": "eslint src"
     },
     "dependencies": {
         "buffer": "6.0.3",
