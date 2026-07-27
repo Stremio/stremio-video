@@ -95,8 +95,10 @@ function ShellVideo(options) {
     var stream = null;
 
     var avgDuration = 0;
+    var durationReady = false;
     var minClipDuration = 30;
     var activeVideoReadyLoadId = null;
+    var videoReadyEventsSupported = false;
 
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
@@ -109,6 +111,14 @@ function ShellVideo(options) {
             if ((body || [])[0]) {
                 body[0].style.background = bg;
             }
+        }
+    }
+    // Preserve loading for legacy shells that do not emit mpv-event-video-ready.
+    function updateLoaded() {
+        if (!videoReadyEventsSupported && !props.loaded && durationReady && props['video-params'] && props['paused-for-cache'] === false) {
+            props.loaded = true;
+            setBackground(false);
+            onPropChanged('loaded');
         }
     }
     function logProp(args) {
@@ -144,6 +154,8 @@ function ShellVideo(options) {
                 // for bitwise maths so the maximum supported video duration is 1073741823 (2 ^ 30 - 1)
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
+                durationReady = intDuration > 0;
+                updateLoaded();
                 break;
             }
             case 'time-pos': {
@@ -172,6 +184,10 @@ function ShellVideo(options) {
             case 'paused-for-cache':
             case 'seeking':
             {
+                if (args.name === 'paused-for-cache') {
+                    props[args.name] = args.data;
+                    updateLoaded();
+                }
                 if(props.buffering !== args.data) {
                     props.buffering = args.data;
                     onPropChanged('buffering');
@@ -192,6 +208,7 @@ function ShellVideo(options) {
             }
             case 'video-params': {
                 props[args.name] = args.data;
+                updateLoaded();
                 var params = args.data || {};
                 var gamma = typeof params.gamma === 'string' ? params.gamma : null;
                 if (gamma === 'pq' || gamma === 'hlg') {
@@ -264,6 +281,7 @@ function ShellVideo(options) {
         if (!args || !Number.isSafeInteger(args.loadId) || typeof args.ready !== 'boolean') {
             return;
         }
+        videoReadyEventsSupported = true;
         if (!args.ready) {
             if (activeVideoReadyLoadId === null || args.loadId > activeVideoReadyLoadId) {
                 activeVideoReadyLoadId = args.loadId;
@@ -507,6 +525,7 @@ function ShellVideo(options) {
                     sid: null,
                 };
                 avgDuration = 0;
+                durationReady = false;
                 ipc.send('mpv-command', ['stop']);
                 onPropChanged('loaded');
                 onPropChanged('stream');
