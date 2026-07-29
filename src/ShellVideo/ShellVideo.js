@@ -99,6 +99,8 @@ function ShellVideo(options) {
     var avgDuration = 0;
     var durationReady = false;
     var minClipDuration = 30;
+    var activeVideoReadyLoadId = null;
+    var videoReadyEventsSupported = false;
 
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
@@ -113,8 +115,9 @@ function ShellVideo(options) {
             }
         }
     }
+    // Preserve loading for legacy shells that do not emit mpv-event-video-ready.
     function updateLoaded() {
-        if (!props.loaded && durationReady && props['video-params'] && props['paused-for-cache'] === false) {
+        if (!videoReadyEventsSupported && !props.loaded && durationReady && props['video-params'] && props['paused-for-cache'] === false) {
             props.loaded = true;
             setBackground(false);
             onPropChanged('loaded');
@@ -322,6 +325,21 @@ function ShellVideo(options) {
         if (args.error) onError(args.error);
         else if (!args.reason || args.reason === 'eof' || args.reason === 'other') {
             if (!isKnownEarlyEof()) onEnded();
+        }
+    });
+    ipc.on('mpv-event-video-ready', function(args) {
+        if (!args || !Number.isSafeInteger(args.loadId) || typeof args.ready !== 'boolean') {
+            return;
+        }
+        videoReadyEventsSupported = true;
+        if (!args.ready) {
+            if (activeVideoReadyLoadId === null || args.loadId > activeVideoReadyLoadId) {
+                activeVideoReadyLoadId = args.loadId;
+            }
+        } else if (args.loadId === activeVideoReadyLoadId && !props.loaded) {
+            props.loaded = true;
+            setBackground(false);
+            onPropChanged('loaded');
         }
     });
 
@@ -551,6 +569,7 @@ function ShellVideo(options) {
             }
             case 'unload': {
                 var wasASSSubtitlesStylingActive = props.assSubtitlesStylingActive === true;
+                activeVideoReadyLoadId = null;
                 props = {
                     loaded: false,
                     pause: false,
