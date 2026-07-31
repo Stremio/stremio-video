@@ -43,7 +43,7 @@ export default defineConfig([globalIgnores(["*", "!src"]), {
         }],
 
         "no-console": ["error", {
-            allow: ["warn"],
+            allow: ["warn", "error"],
         }],
 
         "no-extra-semi": "error",
