@@ -146,6 +146,10 @@ function WebOsVideo(options) {
 
     var disabledSubs = true;
 
+    var pendingSubtitlesEnabled = null;
+
+    var subtitlesToggleTimer = null;
+
     var currentSubTrack = false;
 
     var currentAudioTrack = false;
@@ -165,18 +169,31 @@ function WebOsVideo(options) {
         char_opacity: 255
     };
 
-    var toggleSubtitles = function (status) {
-        if (!videoElement.mediaId) return;
+    var applyPendingSubtitlesToggle = function () {
+        if (pendingSubtitlesEnabled === null || !videoElement.mediaId) return;
 
-        disabledSubs = !status;
-
+        var enabled = pendingSubtitlesEnabled;
+        pendingSubtitlesEnabled = null;
+        if (subtitlesToggleTimer !== null) {
+            clearInterval(subtitlesToggleTimer);
+            subtitlesToggleTimer = null;
+        }
         luna({
             method: 'setSubtitleEnable',
             parameters: {
                 'mediaId': videoElement.mediaId,
-                'enable': status
+                'enable': enabled
             }
         });
+    };
+
+    var toggleSubtitles = function (status) {
+        disabledSubs = !status;
+        pendingSubtitlesEnabled = status;
+        applyPendingSubtitlesToggle();
+        if (pendingSubtitlesEnabled !== null && subtitlesToggleTimer === null) {
+            subtitlesToggleTimer = setInterval(applyPendingSubtitlesToggle, 300);
+        }
     };
 
     var styleElement = document.createElement('style');
@@ -927,6 +944,11 @@ function WebOsVideo(options) {
                 break;
             }
             case 'unload': {
+                pendingSubtitlesEnabled = null;
+                if (subtitlesToggleTimer !== null) {
+                    clearInterval(subtitlesToggleTimer);
+                    subtitlesToggleTimer = null;
+                }
                 stream = null;
                 startTime = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
