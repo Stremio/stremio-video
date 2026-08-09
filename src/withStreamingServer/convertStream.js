@@ -1,4 +1,4 @@
-var url = require('url');
+var resolveStreamingServerEndpoint = require('./resolveStreamingServerEndpoint');
 var magnet = require('magnet-uri');
 var createTorrent = require('./createTorrent');
 
@@ -12,7 +12,7 @@ function buildProxyUrl(streamingServerURL, streamURL, requestHeaders, responseHe
     Object.entries(responseHeaders).forEach(function(entry) {
         proxyOptions.append('r', entry[0] + ':' + entry[1]);
     });
-    return url.resolve(streamingServerURL, '/proxy/' + proxyOptions.toString() + parsedStreamURL.pathname) + parsedStreamURL.search;
+    return resolveStreamingServerEndpoint(streamingServerURL, '/proxy/' + proxyOptions.toString() + parsedStreamURL.pathname) + parsedStreamURL.search;
 }
 
 function convertStream(streamingServerURL, stream, seriesInfo, streamingServerSettings) {

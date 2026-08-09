@@ -1,5 +1,5 @@
 var EventEmitter = require('eventemitter3');
-var url = require('url');
+var resolveStreamingServerEndpoint = require('./resolveStreamingServerEndpoint');
 var hat = require('hat');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
@@ -171,12 +171,12 @@ function withStreamingServer(Video) {
                                             fileIdx: fileIdx,
                                             probe: checkResult.probe,
                                             stream: {
-                                                url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
+                                                url: resolveStreamingServerEndpoint(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
                                                 subtitles: Array.isArray(commandArgs.stream.subtitles) ?
                                                     commandArgs.stream.subtitles.map(function(track) {
                                                         return Object.assign({}, track, {
                                                             url: typeof track.url === 'string' ?
-                                                                url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
+                                                                resolveStreamingServerEndpoint(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
                                                                 :
                                                                 track.url
                                                         });
@@ -264,7 +264,7 @@ function withStreamingServer(Video) {
                                             // fallback is used in case server conversion fails (if server is offline)
                                             fallbackUrl: track.url,
                                             url: typeof track.url === 'string' ?
-                                                url.resolve(loadArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
+                                                resolveStreamingServerEndpoint(loadArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
                                                 :
                                                 track.url
                                         });
@@ -362,7 +362,7 @@ function withStreamingServer(Video) {
                 }
                 // probing normally gives more accurate results
                 var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
-                return fetch(url.resolve(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
+                return fetch(resolveStreamingServerEndpoint(options.streamingServerURL, '/hlsv2/probe?' + queryParams.toString()))
                     .then(function(resp) {
                         return resp.json();
                     })

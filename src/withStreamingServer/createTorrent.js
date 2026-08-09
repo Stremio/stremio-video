@@ -1,4 +1,4 @@
-var url = require('url');
+var resolveStreamingServerEndpoint = require('./resolveStreamingServerEndpoint');
 
 function buildTorrent(streamingServerURL, infoHash, fileIdx, sources) {
     var query = Array.isArray(sources) && sources.length > 0 ?
@@ -8,7 +8,7 @@ function buildTorrent(streamingServerURL, infoHash, fileIdx, sources) {
         :
         '';
     return {
-        url: url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx)) + query,
+        url: resolveStreamingServerEndpoint(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx)) + query,
         infoHash: infoHash,
         fileIdx: fileIdx,
         sources: sources
@@ -52,7 +52,7 @@ function createTorrent(streamingServerURL, infoHash, fileIdx, sources, seriesInf
         body.guessFileIdx = false;
     }
 
-    return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/create'), {
+    return fetch(resolveStreamingServerEndpoint(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/create'), {
         method: 'POST',
         headers: {
             'content-type': 'application/json'

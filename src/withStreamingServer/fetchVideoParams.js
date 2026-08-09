@@ -1,4 +1,4 @@
-var url = require('url');
+var resolveStreamingServerEndpoint = require('./resolveStreamingServerEndpoint');
 
 function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
     var hash = behaviorHints && typeof behaviorHints.videoHash === 'string' ? behaviorHints.videoHash : null;
@@ -8,7 +8,7 @@ function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
     }
 
     var queryParams = new URLSearchParams([['videoUrl', mediaURL]]);
-    return fetch(url.resolve(streamingServerURL, '/opensubHash?' + queryParams.toString()))
+    return fetch(resolveStreamingServerEndpoint(streamingServerURL, '/opensubHash?' + queryParams.toString()))
         .then(function(resp) {
             if (resp.ok) {
                 return resp.json();
@@ -52,7 +52,7 @@ function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behavior
         var hasSpecificFileIdx = fileIdxNum !== null && fileIdxNum !== -1 && isFinite(fileIdxNum);
 
         if (hasSpecificFileIdx) {
-            return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx) + '/stats.json'))
+            return fetch(resolveStreamingServerEndpoint(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/' + encodeURIComponent(fileIdx) + '/stats.json'))
                 .then(function(resp) {
                     if (resp.ok) {
                         return resp.json();
@@ -69,7 +69,7 @@ function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behavior
                 });
         }
 
-        return fetch(url.resolve(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/stats.json'))
+        return fetch(resolveStreamingServerEndpoint(streamingServerURL, '/' + encodeURIComponent(infoHash) + '/stats.json'))
             .then(function(resp) {
                 if (resp.ok) {
                     return resp.json();
