@@ -831,47 +831,46 @@ function WebOsVideo(options) {
                         onPropChanged('selectedAudioTrackId');
                         events.emit('audioTrackLoaded', selectedAudioTrack);
                     }
-                    return;
-                }
+                } else {
+                    if ((propValue || '').indexOf('EMBEDDED_') === 0) {
+                        currentAudioTrack = propValue;
+                        var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
+                        if (videoElement.mediaId) {
+                            luna({
+                                method: 'selectTrack',
+                                parameters: {
+                                    'type': 'audio',
+                                    'mediaId': videoElement.mediaId,
+                                    'index': trackIndex
+                                }
+                            }, function() {
+                                var selectedAudioTrack = getProp('audioTracks')
+                                    .find(function(track) {
+                                        return track.id === propValue;
+                                    });
 
-                if ((propValue || '').indexOf('EMBEDDED_') === 0) {
-                    currentAudioTrack = propValue;
-                    var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
-                    if (videoElement.mediaId) {
-                        luna({
-                            method: 'selectTrack',
-                            parameters: {
-                                'type': 'audio',
-                                'mediaId': videoElement.mediaId,
-                                'index': trackIndex
-                            }
-                        }, function() {
-                            var selectedAudioTrack = getProp('audioTracks')
-                                .find(function(track) {
-                                    return track.id === propValue;
+                                audioTracks = audioTracks.map(function(track) {
+                                    track.mode = track.id === currentAudioTrack ? 'showing' : 'disabled';
+                                    return track;
                                 });
 
-                            audioTracks = audioTracks.map(function(track) {
-                                track.mode = track.id === currentAudioTrack ? 'showing' : 'disabled';
-                                return track;
+                                if (selectedAudioTrack) {
+                                    events.emit('audioTrackLoaded', selectedAudioTrack);
+                                    onPropChanged('selectedAudioTrackId');
+                                }
                             });
-
-                            if (selectedAudioTrack) {
-                                events.emit('audioTrackLoaded', selectedAudioTrack);
-                                onPropChanged('selectedAudioTrackId');
+                        }
+                        if (videoElement && videoElement.audioTracks) {
+                            for (var i = 0; i < videoElement.audioTracks.length; i++) {
+                                videoElement.audioTracks[i].enabled = false;
                             }
-                        });
-                    }
-                    if (videoElement && videoElement.audioTracks) {
-                        for (var i = 0; i < videoElement.audioTracks.length; i++) {
-                            videoElement.audioTracks[i].enabled = false;
+
+                            if(videoElement.audioTracks[trackIndex]) {
+                                videoElement.audioTracks[trackIndex].enabled = true;
+                            }
                         }
 
-                        if(videoElement.audioTracks[trackIndex]) {
-                            videoElement.audioTracks[trackIndex].enabled = true;
-                        }
                     }
-
                 }
 
                 break;
@@ -946,56 +945,56 @@ function WebOsVideo(options) {
                         });
                         hls.loadSource(stream.url);
                         hls.attachMedia(videoElement);
-                        return;
+                    } else {
+
+                        var count = 0;
+
+                        var initMediaId = function (cb) {
+                            function retrieveMediaId() {
+                                if (videoElement.mediaId) {
+                                    clearInterval(timer);
+                                    retrieveExtendedTracks();
+                                    retrieveDeviceInfo();
+                                    cb();
+                                    return;
+                                }
+                                count++;
+                                if (count > 4) {
+                                    // console.log('failed to get media id');
+                                    clearInterval(timer);
+                                    retrieveExtendedTracks();
+                                    retrieveDeviceInfo();
+                                    cb();
+                                }
+                            }
+                            var timer = setInterval(retrieveMediaId, 300);
+                        };
+
+                        var startVideo = function () {
+                            // console.log('startVideo');
+                            // not needed?
+                            // videoElement.src = stream.url;
+
+                            try {
+                                videoElement.load();
+                            } catch(_e) {
+                                // console.log('can\'t load video');
+                                // console.error(e);
+                            }
+
+                            try {
+                                // console.log('try play');
+                                videoElement.play();
+                            } catch(_e) {
+                                // console.log('can\'t start video');
+                                // console.error(e);
+                            }
+                        };
+
+                        videoElement.src = stream.url;
+
+                        initMediaId(startVideo);
                     }
-
-                    var count = 0;
-
-                    var initMediaId = function (cb) {
-                        function retrieveMediaId() {
-                            if (videoElement.mediaId) {
-                                clearInterval(timer);
-                                retrieveExtendedTracks();
-                                retrieveDeviceInfo();
-                                cb();
-                                return;
-                            }
-                            count++;
-                            if (count > 4) {
-                                // console.log('failed to get media id');
-                                clearInterval(timer);
-                                retrieveExtendedTracks();
-                                retrieveDeviceInfo();
-                                cb();
-                            }
-                        }
-                        var timer = setInterval(retrieveMediaId, 300);
-                    };
-
-                    var startVideo = function () {
-                        // console.log('startVideo');
-                        // not needed?
-                        // videoElement.src = stream.url;
-
-                        try {
-                            videoElement.load();
-                        } catch(_e) {
-                            // console.log('can\'t load video');
-                            // console.error(e);
-                        }
-
-                        try {
-                            // console.log('try play');
-                            videoElement.play();
-                        } catch(_e) {
-                            // console.log('can\'t start video');
-                            // console.error(e);
-                        }
-                    };
-
-                    videoElement.src = stream.url;
-
-                    initMediaId(startVideo);
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
