@@ -66,9 +66,33 @@ function isASSSubtitle(track, text) {
     return isASSSubtitleTrack(track) || isASSContent(text);
 }
 
+function shouldUseASSFallback(track, preferASS) {
+    return preferASS === true &&
+        track !== null &&
+        typeof track === 'object' &&
+        hasASSExtension(track.fallbackUrl);
+}
+
+function isASSSubtitleSource(track, text, isFallback) {
+    if (!track || typeof track !== 'object') {
+        return isASSContent(text);
+    }
+
+    if (!isFallback && hasASSExtension(track.fallbackUrl)) {
+        return isASSContent(text);
+    }
+
+    return isASSSubtitle(Object.assign({}, track, {
+        url: isFallback ? track.fallbackUrl : track.url,
+        fallbackUrl: null
+    }), text);
+}
+
 module.exports = {
     hasASSExtension: hasASSExtension,
     isASSContent: isASSContent,
     isASSSubtitle: isASSSubtitle,
-    isASSSubtitleTrack: isASSSubtitleTrack
+    isASSSubtitleSource: isASSSubtitleSource,
+    isASSSubtitleTrack: isASSSubtitleTrack,
+    shouldUseASSFallback: shouldUseASSFallback
 };

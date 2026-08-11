@@ -456,11 +456,7 @@ function withHTMLSubtitles(Video) {
                     }
 
                     selectedSubtitleText = text;
-                    var sourceTrack = Object.assign({}, track, {
-                        url: isFallback ? track.fallbackUrl : track.url,
-                        fallbackUrl: null
-                    });
-                    var isASS = subtitleTypes.isASSSubtitle(sourceTrack, text);
+                    var isASS = subtitleTypes.isASSSubtitleSource(track, text, isFallback);
                     return isASS && assSubtitlesStylingEnabled ?
                         loadASSSubtitles(track, text, currentRequestId) :
                         loadPlainSubtitles(track, text, isASS, currentRequestId);
@@ -677,7 +673,11 @@ function withHTMLSubtitles(Video) {
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
-                        loadSelectedTrack(selectedTrack, false, currentRequestId);
+                        loadSelectedTrack(
+                            selectedTrack,
+                            subtitleTypes.shouldUseASSFallback(selectedTrack, assSubtitlesStylingEnabled),
+                            currentRequestId
+                        );
                     }
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
