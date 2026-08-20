@@ -31,6 +31,7 @@ function withStreamingServer(Video) {
         var loaded = false;
         var actionsQueue = [];
         var videoParams = null;
+        var preparedEmbeddedSubtitleSignature = null;
         var events = new EventEmitter();
         var destroyed = false;
         var observedProps = {
@@ -131,17 +132,18 @@ function withStreamingServer(Video) {
                                     audioCodecs: audioCodecs,
                                     maxAudioChannels: maxAudioChannels
                                 });
-                                return (commandArgs.forceTranscoding ? Promise.resolve(false) : VideoWithStreamingServer.canPlayStream({ url: mediaURL }, canPlayStreamOptions))
+                                return (commandArgs.forceTranscoding ? Promise.resolve({ canPlay: false, probe: null }) : checkCanPlayStream({ url: mediaURL }, canPlayStreamOptions))
                                     .catch(function(error) {
                                         console.warn('Media probe error', error);
-                                        return false;
+                                        return { canPlay: false, probe: null };
                                     })
-                                    .then(function(canPlay) {
-                                        if (canPlay) {
+                                    .then(function(checkResult) {
+                                        if (checkResult.canPlay) {
                                             return {
                                                 mediaURL: mediaURL,
                                                 infoHash: infoHash,
                                                 fileIdx: fileIdx,
+                                                probe: checkResult.probe,
                                                 stream: {
                                                     url: mediaURL
                                                 }
@@ -168,6 +170,7 @@ function withStreamingServer(Video) {
                                             mediaURL: mediaURL,
                                             infoHash: infoHash,
                                             fileIdx: fileIdx,
+                                            probe: checkResult.probe,
                                             stream: {
                                                 url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
                                                 subtitles: Array.isArray(commandArgs.stream.subtitles) ?
@@ -205,16 +208,35 @@ function withStreamingServer(Video) {
                                 loaded = true;
                                 flushActionsQueue();
 
+                                fetchVideoParams.fetchEmbeddedSubtitleSignature(
+                                    commandArgs.streamingServerURL,
+                                    result.mediaURL,
+                                    result.probe
+                                ).then(function(signature) {
+                                    if (commandArgs !== loadArgs || typeof signature !== 'string') {
+                                        return;
+                                    }
+                                    preparedEmbeddedSubtitleSignature = signature;
+                                    if (videoParams !== null && videoParams.embeddedSubtitleSignature !== signature) {
+                                        videoParams = Object.assign({}, videoParams, {
+                                            embeddedSubtitleSignature: signature
+                                        });
+                                        onPropChanged('videoParams');
+                                    }
+                                }).catch(function() {});
+
                                 isPlayerLoaded(video, Video.manifest.props)
                                     .then(function() {
-                                        return fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints);
+                                        return fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints, result.probe);
                                     })
                                     .then(function(result) {
                                         if (commandArgs !== loadArgs) {
                                             return;
                                         }
 
-                                        videoParams = result;
+                                        videoParams = Object.assign({}, result, {
+                                            embeddedSubtitleSignature: preparedEmbeddedSubtitleSignature
+                                        });
                                         onPropChanged('videoParams');
                                     })
                                     .catch(function(error) {
@@ -224,7 +246,7 @@ function withStreamingServer(Video) {
 
                                         // eslint-disable-next-line no-console
                                         console.error(error);
-                                        videoParams = { hash: null, size: null, filename: null };
+                                        videoParams = { hash: null, size: null, filename: null, fpsMilli: null, durationMs: null, embeddedSubtitleSignature: null };
                                         onPropChanged('videoParams');
                                     });
                             })
@@ -285,6 +307,7 @@ function withStreamingServer(Video) {
                     loaded = false;
                     actionsQueue = [];
                     videoParams = null;
+                    preparedEmbeddedSubtitleSignature = null;
                     onPropChanged('stream');
                     onPropChanged('videoParams');
                     return false;
@@ -348,12 +371,15 @@ function withStreamingServer(Video) {
         };
     }
 
-    VideoWithStreamingServer.canPlayStream = function(stream, options) {
+    function checkCanPlayStream(stream, options) {
         return supportsTranscoding()
             .then(function(supported) {
                 if (!supported) {
                     // we cannot probe the video in this case
-                    return Video.canPlayStream(stream);
+                    return Video.canPlayStream(stream)
+                        .then(function(canPlay) {
+                            return { canPlay: canPlay, probe: null };
+                        });
                 }
                 // probing normally gives more accurate results
                 var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
@@ -385,13 +411,26 @@ function withStreamingServer(Video) {
                             return stream.track === 'audio' && options.audioCodecs.indexOf(stream.codec) !== -1;
                         });
 
-                        return isFormatSupported && areStreamsSupported && !hasEmbeddedSubtitles && supportedAudioTracks.length < 2;
+                        return {
+                            canPlay: isFormatSupported && areStreamsSupported && !hasEmbeddedSubtitles && supportedAudioTracks.length < 2,
+                            probe: probe
+                        };
                     })
                     .catch(function() {
                         // this uses content-type header in HTMLVideo which
                         // is unreliable, check can also fail due to CORS
-                        return Video.canPlayStream(stream);
+                        return Video.canPlayStream(stream)
+                            .then(function(canPlay) {
+                                return { canPlay: canPlay, probe: null };
+                            });
                     });
+            });
+    }
+
+    VideoWithStreamingServer.canPlayStream = function(stream, options) {
+        return checkCanPlayStream(stream, options)
+            .then(function(result) {
+                return result.canPlay;
             });
     };
 

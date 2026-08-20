@@ -40,6 +40,37 @@ function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
         });
 }
 
+function fetchEmbeddedSubtitleSignature(streamingServerURL, mediaURL, probe) {
+    if (
+        probe &&
+        Array.isArray(probe.streams) &&
+        !probe.streams.some(function(stream) { return stream.track === 'subtitle'; })
+    ) {
+        return Promise.resolve(null);
+    }
+    var queryParams = new URLSearchParams([['videoUrl', mediaURL]]);
+    if (probe && probe.format && typeof probe.format.name === 'string') {
+        queryParams.set('container', probe.format.name);
+    }
+    return fetch(url.resolve(streamingServerURL, '/subtitleSignature?' + queryParams.toString()))
+        .then(function(resp) {
+            if (resp.ok) {
+                return resp.json();
+            }
+
+            throw new Error(resp.status + ' (' + resp.statusText + ')');
+        })
+        .then(function(resp) {
+            if (resp.error) {
+                throw new Error(resp.error);
+            }
+            return resp.result && typeof resp.result.signature === 'string' ?
+                resp.result.signature
+                :
+                null;
+        });
+}
+
 function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
     if (behaviorHints && typeof behaviorHints.filename === 'string') {
         return Promise.resolve(behaviorHints.filename);
@@ -108,12 +139,25 @@ function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behavior
     return Promise.resolve(decodeURIComponent(mediaURL.split('/').pop()));
 }
 
-function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
+function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints, probe) {
     return Promise.allSettled([
         fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints),
         fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints)
     ]).then(function(results) {
-        var result = { hash: null, size: null, filename: null };
+        var videoStream = probe && Array.isArray(probe.streams) ?
+            probe.streams.find(function(stream) { return stream.track === 'video'; })
+            :
+            null;
+        var frameRate = videoStream && typeof videoStream.frameRate === 'number' && isFinite(videoStream.frameRate) && videoStream.frameRate > 0 ? videoStream.frameRate : null;
+        var duration = probe && probe.format && typeof probe.format.duration === 'number' && isFinite(probe.format.duration) && probe.format.duration > 0 ? probe.format.duration : null;
+        var result = {
+            hash: null,
+            size: null,
+            filename: null,
+            fpsMilli: frameRate !== null ? Math.round(frameRate * 1000) : null,
+            durationMs: duration !== null ? Math.round(duration * 1000) : null,
+            embeddedSubtitleSignature: null
+        };
 
         if (results[0].status === 'fulfilled') {
             result.hash = results[0].value.hash;
@@ -135,3 +179,4 @@ function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behav
 }
 
 module.exports = fetchVideoParams;
+module.exports.fetchEmbeddedSubtitleSignature = fetchEmbeddedSubtitleSignature;

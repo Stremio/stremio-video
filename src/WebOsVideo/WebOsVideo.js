@@ -4,6 +4,9 @@ var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 var getTracksData = require('../tracksData');
 
+var Hls = require('hls.js');
+var HLS_CONFIG = require('./hlsConfig');
+
 function luna(params, call, fail, method) {
     if (call) params.onSuccess = call || function() {};
 
@@ -146,6 +149,10 @@ function WebOsVideo(options) {
 
     var disabledSubs = true;
 
+    var pendingSubtitlesEnabled = null;
+
+    var subtitlesToggleTimer = null;
+
     var currentSubTrack = false;
 
     var currentAudioTrack = false;
@@ -165,18 +172,38 @@ function WebOsVideo(options) {
         char_opacity: 255
     };
 
-    var toggleSubtitles = function (status) {
-        if (!videoElement.mediaId) return;
+    var clearPendingSubtitlesToggle = function () {
+        pendingSubtitlesEnabled = null;
+        if (subtitlesToggleTimer !== null) {
+            clearInterval(subtitlesToggleTimer);
+            subtitlesToggleTimer = null;
+        }
+    };
 
-        disabledSubs = !status;
+    var applyPendingSubtitlesToggle = function () {
+        if (pendingSubtitlesEnabled === null) return;
 
+        var mediaId = videoElement.mediaId;
+        if (!mediaId || mediaId === '<invalid mediaId>') return;
+
+        var enabled = pendingSubtitlesEnabled;
+        clearPendingSubtitlesToggle();
         luna({
             method: 'setSubtitleEnable',
             parameters: {
-                'mediaId': videoElement.mediaId,
-                'enable': status
+                'mediaId': mediaId,
+                'enable': enabled
             }
         });
+    };
+
+    var toggleSubtitles = function (status) {
+        disabledSubs = !status;
+        pendingSubtitlesEnabled = status;
+        applyPendingSubtitlesToggle();
+        if (pendingSubtitlesEnabled !== null && subtitlesToggleTimer === null) {
+            subtitlesToggleTimer = setInterval(applyPendingSubtitlesToggle, 300);
+        }
     };
 
     var styleElement = document.createElement('style');
@@ -269,6 +296,7 @@ function WebOsVideo(options) {
     var lastSubBgColor = null;
     var lastPlaybackSpeed = 1;
 
+    var hls = null;
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
@@ -462,9 +490,48 @@ function WebOsVideo(options) {
                 return subtitlesOpacity || 100;
             }
             case 'audioTracks': {
+                if (hls !== null && Array.isArray(hls.allAudioTracks)) {
+                    return hls.allAudioTracks
+                        .map(function(track, index) {
+                            return Object.freeze({
+                                id: 'EMBEDDED_' + String(index),
+                                lang: typeof track.lang === 'string' && track.lang.length > 0 ?
+                                    track.lang
+                                    :
+                                    typeof track.name === 'string' && track.name.length > 0 ?
+                                        track.name
+                                        :
+                                        String(index),
+                                label: typeof track.name === 'string' && track.name.length > 0 ?
+                                    track.name
+                                    :
+                                    typeof track.lang === 'string' && track.lang.length > 0 ?
+                                        track.lang
+                                        :
+                                        String(index),
+                                origin: 'EMBEDDED',
+                                embedded: true
+                            });
+                        });
+                }
+
                 return audioTracks;
             }
             case 'selectedAudioTrackId': {
+                if (hls !== null && hls.audioTrack !== -1) {
+                    var currentGroupTrack = hls.audioTracks[hls.audioTrack];
+                    if (!currentGroupTrack) {
+                        return null;
+                    }
+
+                    var allTracksIndex = hls.allAudioTracks.indexOf(currentGroupTrack);
+                    if (allTracksIndex === -1) {
+                        return null;
+                    }
+
+                    return 'EMBEDDED_' + String(allTracksIndex);
+                }
+
                 return currentAudioTrack;
             }
             case 'volume': {
@@ -774,44 +841,60 @@ function WebOsVideo(options) {
                 break;
             }
             case 'selectedAudioTrackId': {
-                if ((propValue || '').indexOf('EMBEDDED_') === 0) {
-                    currentAudioTrack = propValue;
-                    var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
-                    if (videoElement.mediaId) {
-                        luna({
-                            method: 'selectTrack',
-                            parameters: {
-                                'type': 'audio',
-                                'mediaId': videoElement.mediaId,
-                                'index': trackIndex
-                            }
-                        }, function() {
-                            var selectedAudioTrack = getProp('audioTracks')
-                                .find(function(track) {
-                                    return track.id === propValue;
+                if (hls !== null) {
+                    var selectedAudioTrack = getProp('audioTracks')
+                        .find(function(track) {
+                            return track.id === propValue;
+                        });
+                    if (selectedAudioTrack) {
+                        var trackIndex = parseInt(selectedAudioTrack.id.split('_').pop(), 10);
+                        var allTracks = hls.allAudioTracks;
+                        if (trackIndex >= 0 && trackIndex < allTracks.length) {
+                            hls.setAudioOption(allTracks[trackIndex]);
+                        }
+                        onPropChanged('selectedAudioTrackId');
+                        events.emit('audioTrackLoaded', selectedAudioTrack);
+                    }
+                } else {
+                    if ((propValue || '').indexOf('EMBEDDED_') === 0) {
+                        currentAudioTrack = propValue;
+                        var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
+                        if (videoElement.mediaId) {
+                            luna({
+                                method: 'selectTrack',
+                                parameters: {
+                                    'type': 'audio',
+                                    'mediaId': videoElement.mediaId,
+                                    'index': trackIndex
+                                }
+                            }, function() {
+                                var selectedAudioTrack = getProp('audioTracks')
+                                    .find(function(track) {
+                                        return track.id === propValue;
+                                    });
+
+                                audioTracks = audioTracks.map(function(track) {
+                                    track.mode = track.id === currentAudioTrack ? 'showing' : 'disabled';
+                                    return track;
                                 });
 
-                            audioTracks = audioTracks.map(function(track) {
-                                track.mode = track.id === currentAudioTrack ? 'showing' : 'disabled';
-                                return track;
+                                if (selectedAudioTrack) {
+                                    events.emit('audioTrackLoaded', selectedAudioTrack);
+                                    onPropChanged('selectedAudioTrackId');
+                                }
                             });
-
-                            if (selectedAudioTrack) {
-                                events.emit('audioTrackLoaded', selectedAudioTrack);
-                                onPropChanged('selectedAudioTrackId');
+                        }
+                        if (videoElement && videoElement.audioTracks) {
+                            for (var i = 0; i < videoElement.audioTracks.length; i++) {
+                                videoElement.audioTracks[i].enabled = false;
                             }
-                        });
-                    }
-                    if (videoElement && videoElement.audioTracks) {
-                        for (var i = 0; i < videoElement.audioTracks.length; i++) {
-                            videoElement.audioTracks[i].enabled = false;
+
+                            if(videoElement.audioTracks[trackIndex]) {
+                                videoElement.audioTracks[trackIndex].enabled = true;
+                            }
                         }
 
-                        if(videoElement.audioTracks[trackIndex]) {
-                            videoElement.audioTracks[trackIndex].enabled = true;
-                        }
                     }
-
                 }
 
                 break;
@@ -854,6 +937,9 @@ function WebOsVideo(options) {
                 // not sure about this
                 // command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    if (stream !== null) {
+                        clearPendingSubtitlesToggle();
+                    }
                     stream = commandArgs.stream;
                     startTime = commandArgs.time;
 
@@ -871,53 +957,71 @@ function WebOsVideo(options) {
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
 
-                    var count = 0;
+                    if (stream && stream.behaviorHints && stream.behaviorHints.useHLS === true) {
+                        hls = new Hls(HLS_CONFIG);
+                        hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
+                            onPropChanged('audioTracks');
+                            onPropChanged('selectedAudioTrackId');
+                        });
+                        hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
+                            onPropChanged('audioTracks');
+                            onPropChanged('selectedAudioTrackId');
+                        });
+                        hls.on(Hls.Events.MANIFEST_LOADING, function() {
+                            hls.subtitleTrack = -1;
+                        });
+                        hls.loadSource(stream.url);
+                        hls.attachMedia(videoElement);
+                    } else {
 
-                    var initMediaId = function (cb) {
-                        function retrieveMediaId() {
-                            if (videoElement.mediaId) {
-                                clearInterval(timer);
-                                retrieveExtendedTracks();
-                                retrieveDeviceInfo();
-                                cb();
-                                return;
+                        var count = 0;
+
+                        var initMediaId = function (cb) {
+                            function retrieveMediaId() {
+                                if (videoElement.mediaId) {
+                                    clearInterval(timer);
+                                    retrieveExtendedTracks();
+                                    retrieveDeviceInfo();
+                                    cb();
+                                    return;
+                                }
+                                count++;
+                                if (count > 4) {
+                                    // console.log('failed to get media id');
+                                    clearInterval(timer);
+                                    retrieveExtendedTracks();
+                                    retrieveDeviceInfo();
+                                    cb();
+                                }
                             }
-                            count++;
-                            if (count > 4) {
-                                // console.log('failed to get media id');
-                                clearInterval(timer);
-                                retrieveExtendedTracks();
-                                retrieveDeviceInfo();
-                                cb();
+                            var timer = setInterval(retrieveMediaId, 300);
+                        };
+
+                        var startVideo = function () {
+                            // console.log('startVideo');
+                            // not needed?
+                            // videoElement.src = stream.url;
+
+                            try {
+                                videoElement.load();
+                            } catch(_e) {
+                                // console.log('can\'t load video');
+                                // console.error(e);
                             }
-                        }
-                        var timer = setInterval(retrieveMediaId, 300);
-                    };
 
-                    var startVideo = function () {
-                        // console.log('startVideo');
-                        // not needed?
-                        // videoElement.src = stream.url;
+                            try {
+                                // console.log('try play');
+                                videoElement.play();
+                            } catch(_e) {
+                                // console.log('can\'t start video');
+                                // console.error(e);
+                            }
+                        };
 
-                        try {
-                            videoElement.load();
-                        } catch(_e) {
-                            // console.log('can\'t load video');
-                            // console.error(e);
-                        }
+                        videoElement.src = stream.url;
 
-                        try {
-                            // console.log('try play');
-                            videoElement.play();
-                        } catch(_e) {
-                            // console.log('can\'t start video');
-                            // console.error(e);
-                        }
-                    };
-
-                    videoElement.src = stream.url;
-
-                    initMediaId(startVideo);
+                        initMediaId(startVideo);
+                    }
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
@@ -927,11 +1031,18 @@ function WebOsVideo(options) {
                 break;
             }
             case 'unload': {
+                clearPendingSubtitlesToggle();
                 stream = null;
                 startTime = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;
                 });
+                if (hls !== null) {
+                    hls.removeAllListeners();
+                    hls.detachMedia(videoElement);
+                    hls.destroy();
+                    hls = null;
+                }
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 // not sure about this:
