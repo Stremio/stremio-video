@@ -149,6 +149,10 @@ function WebOsVideo(options) {
 
     var disabledSubs = true;
 
+    var pendingSubtitlesEnabled = null;
+
+    var subtitlesToggleTimer = null;
+
     var currentSubTrack = false;
 
     var currentAudioTrack = false;
@@ -168,18 +172,38 @@ function WebOsVideo(options) {
         char_opacity: 255
     };
 
-    var toggleSubtitles = function (status) {
-        if (!videoElement.mediaId) return;
+    var clearPendingSubtitlesToggle = function () {
+        pendingSubtitlesEnabled = null;
+        if (subtitlesToggleTimer !== null) {
+            clearInterval(subtitlesToggleTimer);
+            subtitlesToggleTimer = null;
+        }
+    };
 
-        disabledSubs = !status;
+    var applyPendingSubtitlesToggle = function () {
+        if (pendingSubtitlesEnabled === null) return;
 
+        var mediaId = videoElement.mediaId;
+        if (!mediaId || mediaId === '<invalid mediaId>') return;
+
+        var enabled = pendingSubtitlesEnabled;
+        clearPendingSubtitlesToggle();
         luna({
             method: 'setSubtitleEnable',
             parameters: {
-                'mediaId': videoElement.mediaId,
-                'enable': status
+                'mediaId': mediaId,
+                'enable': enabled
             }
         });
+    };
+
+    var toggleSubtitles = function (status) {
+        disabledSubs = !status;
+        pendingSubtitlesEnabled = status;
+        applyPendingSubtitlesToggle();
+        if (pendingSubtitlesEnabled !== null && subtitlesToggleTimer === null) {
+            subtitlesToggleTimer = setInterval(applyPendingSubtitlesToggle, 300);
+        }
     };
 
     var styleElement = document.createElement('style');
@@ -913,6 +937,9 @@ function WebOsVideo(options) {
                 // not sure about this
                 // command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    if (stream !== null) {
+                        clearPendingSubtitlesToggle();
+                    }
                     stream = commandArgs.stream;
                     startTime = commandArgs.time;
 
@@ -1004,6 +1031,7 @@ function WebOsVideo(options) {
                 break;
             }
             case 'unload': {
+                clearPendingSubtitlesToggle();
                 stream = null;
                 startTime = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
