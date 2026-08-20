@@ -11,22 +11,20 @@
 // single-byte encodings rarely contain invalid byte sequences.
 //
 // This module tries strict UTF-8 first (fatal: true) and, if that fails,
-// scores a handful of common legacy single-byte code pages. The scoring is
-// two-stage:
+// scores a handful of common legacy single-byte code pages. Candidates are
+// compared in this order:
 //   1. A structural penalty (replacement chars / C1 control codes), which
 //      catches decodes that are structurally broken.
-//   2. A language-plausibility score, which counts occurrences of a small
+//   2. For equally valid candidates, a language-plausibility score, which
+//      counts whole-token matches from a small
 //      set of very common short function words for the language each
 //      candidate encoding is normally used for (e.g. "için", "değil" for
 //      Turkish; "и", "что" for Russian; "και", "είναι" for Greek).
 //
-// The language-plausibility score is the primary signal: structural checks
-// alone can't tell apart candidates, because most single-byte code pages map
-// every byte to *some* printable character, so a wrong decode still "looks"
-// clean structurally - it just isn't real text in that language. Two
-// mismatched Latin-family code pages (e.g. real Turkish text decoded as
-// windows-1252) will look structurally fine, but this misdecode will not
-// contain recognizable Turkish function words, exposing the mismatch.
+// Structural checks alone often can't tell candidates apart, because most
+// single-byte code pages map every byte to *some* printable character. When
+// candidates have the same structural penalty, recognizable language tokens
+// provide the tie-break without allowing language matches to hide corruption.
 
 var CANDIDATE_ENCODINGS = [
     'windows-1254', // Turkish
@@ -46,26 +44,28 @@ var CANDIDATE_ENCODINGS = [
 var COMMON_WORDS = {
     'windows-1254': ['için', 'değil', 'çok', 'gibi', 'ama', 'evet', 'hayır', 'şey', 'bir', 've'],
     'iso-8859-9': ['için', 'değil', 'çok', 'gibi', 'ama', 'evet', 'hayır', 'şey', 'bir', 've'],
-    'windows-1252': ['the', 'and', 'que', 'est', 'être', 'être', 'für', 'nicht', 'être', 'ist'],
+    'windows-1252': ['the', 'and', 'que', 'est', 'être', 'für', 'nicht', 'ist'],
     'iso-8859-1': ['the', 'and', 'que', 'est', 'être', 'für', 'nicht', 'ist'],
     'windows-1251': ['что', 'это', 'как', 'не', 'вы', 'она', 'они', 'да', 'нет', 'был'],
     'windows-1253': ['και', 'της', 'είναι', 'δεν', 'μια', 'ένα', 'εγώ', 'εσύ', 'τι'],
-    'windows-1250': ['nie', 'się', 'jest', 'czy', 'ale', 'bardzo', 'byłо', 'není', 'jsem'],
+    'windows-1250': ['nie', 'się', 'jest', 'czy', 'ale', 'bardzo', 'było', 'není', 'jsem'],
 };
 
 function countWordMatches(text, words) {
-    var lower = text.toLowerCase();
-    var count = 0;
+    var tokens = text.toLowerCase().match(/[0-9a-z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u024f\u0370-\u03ff\u0400-\u04ff]+/gu);
+    if (tokens === null) {
+        return 0;
+    }
+
+    var wordLookup = Object.create(null);
     for (var i = 0; i < words.length; i++) {
-        var word = words[i];
-        var idx = 0;
-        while (true) {
-            idx = lower.indexOf(word, idx);
-            if (idx === -1) {
-                break;
-            }
+        wordLookup[words[i]] = true;
+    }
+
+    var count = 0;
+    for (var j = 0; j < tokens.length; j++) {
+        if (wordLookup[tokens[j]]) {
             count += 1;
-            idx += word.length;
         }
     }
     return count;
@@ -128,11 +128,10 @@ function decode(bytes) {
         var penalty = structuralPenalty(candidate);
         var wordScore = countWordMatches(candidate, COMMON_WORDS[encoding] || []);
 
-        // Primary signal: which candidate contains more recognizable words
-        // for its own language. Structural penalty is used as a tie-breaker
-        // and as a sanity filter.
-        if (wordScore > bestWordScore ||
-            (wordScore === bestWordScore && penalty < bestPenalty)) {
+        // Reject structural corruption first. Language matches only
+        // disambiguate candidates with the same structural validity.
+        if (penalty < bestPenalty ||
+            (penalty === bestPenalty && wordScore > bestWordScore)) {
             bestWordScore = wordScore;
             bestPenalty = penalty;
             best = candidate;

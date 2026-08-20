@@ -10,7 +10,8 @@
         "url": "https://github.com/Stremio/stremio-video"
     },
     "scripts": {
-        "lint": "eslint src"
+        "lint": "eslint src",
+        "test": "node test/charsetDetector.test.js"
     },
     "dependencies": {
         "buffer": "6.0.3",
