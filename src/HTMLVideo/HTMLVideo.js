@@ -611,6 +611,22 @@ function HTMLVideo(options) {
 
                             if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
                                 hls = new Hls(HLS_CONFIG);
+                                hls.on(Hls.Events.ERROR, function(_event, data) {
+                                    if (!data.fatal) {
+                                        return;
+                                    }
+
+                                    var error = ERROR.UNKNOWN_ERROR;
+                                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                                        error = ERROR.HTML_VIDEO.MEDIA_ERR_NETWORK;
+                                    } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                                        error = ERROR.HTML_VIDEO.MEDIA_ERR_DECODE;
+                                    }
+                                    onError(Object.assign({}, error, {
+                                        critical: true,
+                                        error: data
+                                    }));
+                                });
                                 hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
