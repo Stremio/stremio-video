@@ -4,9 +4,6 @@ var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 var getTracksData = require('../tracksData');
 
-var Hls = require('hls.js');
-var HLS_CONFIG = require('./hlsConfig');
-
 function luna(params, call, fail, method) {
     if (call) params.onSuccess = call || function() {};
 
@@ -296,7 +293,6 @@ function WebOsVideo(options) {
     var lastSubBgColor = null;
     var lastPlaybackSpeed = 1;
 
-    var hls = null;
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
@@ -490,48 +486,9 @@ function WebOsVideo(options) {
                 return subtitlesOpacity || 100;
             }
             case 'audioTracks': {
-                if (hls !== null && Array.isArray(hls.allAudioTracks)) {
-                    return hls.allAudioTracks
-                        .map(function(track, index) {
-                            return Object.freeze({
-                                id: 'EMBEDDED_' + String(index),
-                                lang: typeof track.lang === 'string' && track.lang.length > 0 ?
-                                    track.lang
-                                    :
-                                    typeof track.name === 'string' && track.name.length > 0 ?
-                                        track.name
-                                        :
-                                        String(index),
-                                label: typeof track.name === 'string' && track.name.length > 0 ?
-                                    track.name
-                                    :
-                                    typeof track.lang === 'string' && track.lang.length > 0 ?
-                                        track.lang
-                                        :
-                                        String(index),
-                                origin: 'EMBEDDED',
-                                embedded: true
-                            });
-                        });
-                }
-
                 return audioTracks;
             }
             case 'selectedAudioTrackId': {
-                if (hls !== null && hls.audioTrack !== -1) {
-                    var currentGroupTrack = hls.audioTracks[hls.audioTrack];
-                    if (!currentGroupTrack) {
-                        return null;
-                    }
-
-                    var allTracksIndex = hls.allAudioTracks.indexOf(currentGroupTrack);
-                    if (allTracksIndex === -1) {
-                        return null;
-                    }
-
-                    return 'EMBEDDED_' + String(allTracksIndex);
-                }
-
                 return currentAudioTrack;
             }
             case 'volume': {
@@ -841,23 +798,6 @@ function WebOsVideo(options) {
                 break;
             }
             case 'selectedAudioTrackId': {
-                if (hls !== null) {
-                    var selectedAudioTrack = getProp('audioTracks')
-                        .find(function(track) {
-                            return track.id === propValue;
-                        });
-                    if (selectedAudioTrack) {
-                        var trackIndex = parseInt(selectedAudioTrack.id.split('_').pop(), 10);
-                        var allTracks = hls.allAudioTracks;
-                        if (trackIndex >= 0 && trackIndex < allTracks.length) {
-                            hls.setAudioOption(allTracks[trackIndex]);
-                        }
-                        onPropChanged('selectedAudioTrackId');
-                        events.emit('audioTrackLoaded', selectedAudioTrack);
-                    }
-                    return;
-                }
-
                 if ((propValue || '').indexOf('EMBEDDED_') === 0) {
                     currentAudioTrack = propValue;
                     var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
@@ -958,24 +898,6 @@ function WebOsVideo(options) {
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
 
-                    if (stream && stream.behaviorHints && stream.behaviorHints.useHLS === true) {
-                        hls = new Hls(HLS_CONFIG);
-                        hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
-                            onPropChanged('audioTracks');
-                            onPropChanged('selectedAudioTrackId');
-                        });
-                        hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
-                            onPropChanged('audioTracks');
-                            onPropChanged('selectedAudioTrackId');
-                        });
-                        hls.on(Hls.Events.MANIFEST_LOADING, function() {
-                            hls.subtitleTrack = -1;
-                        });
-                        hls.loadSource(stream.url);
-                        hls.attachMedia(videoElement);
-                        return;
-                    }
-
                     var count = 0;
 
                     var initMediaId = function (cb) {
@@ -1038,12 +960,6 @@ function WebOsVideo(options) {
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;
                 });
-                if (hls !== null) {
-                    hls.removeAllListeners();
-                    hls.detachMedia(videoElement);
-                    hls.destroy();
-                    hls = null;
-                }
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 // not sure about this:
