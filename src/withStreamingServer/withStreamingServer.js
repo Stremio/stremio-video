@@ -32,6 +32,7 @@ function withStreamingServer(Video) {
         var actionsQueue = [];
         var videoParams = null;
         var preparedEmbeddedSubtitleSignature = null;
+        var preparedVideoFpsMilli = null;
         var events = new EventEmitter();
         var destroyed = false;
         var observedProps = {
@@ -212,16 +213,32 @@ function withStreamingServer(Video) {
                                     commandArgs.streamingServerURL,
                                     result.mediaURL,
                                     result.probe
-                                ).then(function(signature) {
-                                    if (commandArgs !== loadArgs || typeof signature !== 'string') {
+                                ).then(function(response) {
+                                    if (commandArgs !== loadArgs || response === null) {
                                         return;
                                     }
-                                    preparedEmbeddedSubtitleSignature = signature;
-                                    if (videoParams !== null && videoParams.embeddedSubtitleSignature !== signature) {
-                                        videoParams = Object.assign({}, videoParams, {
-                                            embeddedSubtitleSignature: signature
-                                        });
-                                        onPropChanged('videoParams');
+                                    if (typeof response.signature === 'string') {
+                                        preparedEmbeddedSubtitleSignature = response.signature;
+                                    }
+                                    if (response.videoFpsMilli !== null) {
+                                        preparedVideoFpsMilli = response.videoFpsMilli;
+                                    }
+                                    if (videoParams !== null) {
+                                        var nextVideoParams = videoParams;
+                                        if (preparedEmbeddedSubtitleSignature !== null && nextVideoParams.embeddedSubtitleSignature !== preparedEmbeddedSubtitleSignature) {
+                                            nextVideoParams = Object.assign({}, nextVideoParams, {
+                                                embeddedSubtitleSignature: preparedEmbeddedSubtitleSignature
+                                            });
+                                        }
+                                        if (preparedVideoFpsMilli !== null && nextVideoParams.fpsMilli === null) {
+                                            nextVideoParams = Object.assign({}, nextVideoParams, {
+                                                fpsMilli: preparedVideoFpsMilli
+                                            });
+                                        }
+                                        if (nextVideoParams !== videoParams) {
+                                            videoParams = nextVideoParams;
+                                            onPropChanged('videoParams');
+                                        }
                                     }
                                 }).catch(function() {});
 
@@ -235,7 +252,8 @@ function withStreamingServer(Video) {
                                         }
 
                                         videoParams = Object.assign({}, result, {
-                                            embeddedSubtitleSignature: preparedEmbeddedSubtitleSignature
+                                            embeddedSubtitleSignature: preparedEmbeddedSubtitleSignature,
+                                            fpsMilli: result.fpsMilli !== null ? result.fpsMilli : preparedVideoFpsMilli
                                         });
                                         onPropChanged('videoParams');
                                     })
@@ -308,6 +326,7 @@ function withStreamingServer(Video) {
                     actionsQueue = [];
                     videoParams = null;
                     preparedEmbeddedSubtitleSignature = null;
+                    preparedVideoFpsMilli = null;
                     onPropChanged('stream');
                     onPropChanged('videoParams');
                     return false;
