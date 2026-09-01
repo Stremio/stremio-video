@@ -142,6 +142,8 @@ function WebOsVideo(options) {
 
     var isLoaded = null;
 
+    var showUnsupportedAudioTracks = false;
+
     var subSize = 75;
 
     var disabledSubs = true;
@@ -359,7 +361,7 @@ function WebOsVideo(options) {
                 }
                 if (((tracksData || {}).audio || []).length) {
                     tracksData.audio.forEach(function(track) {
-                        if (device.unsupportedAudio.includes(track.codec || '')) {
+                        if (!showUnsupportedAudioTracks && device.unsupportedAudio.includes(track.codec || '')) {
                             return;
                         }
                         var audioTrackId = nrAudio;
@@ -883,6 +885,7 @@ function WebOsVideo(options) {
                     }
                     stream = commandArgs.stream;
                     startTime = commandArgs.time;
+                    showUnsupportedAudioTracks = commandArgs.showUnsupportedAudioTracks === true;
 
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
