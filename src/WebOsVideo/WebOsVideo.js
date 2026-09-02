@@ -152,6 +152,8 @@ function WebOsVideo(options) {
 
     var subtitlesTrackTimer = null;
 
+    var pendingAudioTrack = null;
+
     var mediaIdTimer = null;
 
     var mediaIdAttempts = 0;
@@ -161,6 +163,8 @@ function WebOsVideo(options) {
     var previousMediaId = null;
 
     var sourceStartupPending = false;
+
+    var sourceStarted = false;
 
     var currentSubTrack = false;
 
@@ -228,6 +232,7 @@ function WebOsVideo(options) {
     var flushPendingMediaState = function () {
         applyPendingSubtitlesToggle();
         applyPendingSubtitlesTrack();
+        applyPendingAudioTrack();
     };
 
     var finishSourceStartup = function () {
@@ -308,6 +313,8 @@ function WebOsVideo(options) {
         onPropChanged('buffered');
     };
     videoElement.onplaying = function() {
+        sourceStarted = true;
+        applyPendingAudioTrack();
         onPropChanged('buffering');
         onPropChanged('buffered');
         if (!isLoaded) {
@@ -396,6 +403,39 @@ function WebOsVideo(options) {
         disabledSubs = true;
     }
 
+    function getNativeAudioTracks() {
+        return videoElement.audioTracks ? Array.from(videoElement.audioTracks) : [];
+    }
+
+    function syncAudioTrackFromNative() {
+        var nativeTracks = getNativeAudioTracks();
+        var enabledTrack = audioTracks.find(function(track) {
+            return (nativeTracks[track.nativeIndex] || {}).enabled;
+        });
+        if (!enabledTrack || enabledTrack.id === currentAudioTrack) {
+            return;
+        }
+        currentAudioTrack = enabledTrack.id;
+        audioTracks = audioTracks.map(function(track) {
+            track.mode = track.id === currentAudioTrack ? 'showing' : 'disabled';
+            return track;
+        });
+        onPropChanged('selectedAudioTrackId');
+    }
+
+    var onNativeAudioTrackAdded = function() {
+        if (stream === null) {
+            return;
+        }
+        if (pendingAudioTrack === null) {
+            syncAudioTrackFromNative();
+        }
+        applyPendingAudioTrack();
+    };
+    if (videoElement.audioTracks) {
+        videoElement.audioTracks.addEventListener('addtrack', onNativeAudioTrackAdded);
+    }
+
     // TODO: Verify source, Luna and DOM indexes on LG TVs that omit unsupported tracks.
     function retrieveExtendedTracks(activeStream) {
         if (!gotTraktData && activeStream !== null) {
@@ -457,8 +497,10 @@ function WebOsVideo(options) {
                     });
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
+                    syncAudioTrackFromNative();
                 }
                 applyPendingSubtitlesTrack();
+                applyPendingAudioTrack();
             });
         }
     }
@@ -654,6 +696,60 @@ function WebOsVideo(options) {
             observedProps[propName] = true;
         }
     }
+    function applyPendingAudioTrack() {
+        var selection = pendingAudioTrack;
+        if (selection === null || selection.sent) {
+            return;
+        }
+        var selectedAudioTrack = audioTracks.find(function(track) {
+            return track.id === selection.id;
+        });
+        if (!selectedAudioTrack) {
+            if (tracksReady) {
+                pendingAudioTrack = null;
+            }
+            return;
+        }
+        var mediaId = getActiveMediaId();
+        if (!mediaId) {
+            return;
+        }
+        var trackIndex = selectedAudioTrack.nativeIndex;
+        var nativeTracks = getNativeAudioTracks();
+        if (videoElement.audioTracks && !nativeTracks[trackIndex] && (!sourceStarted || nativeTracks.length)) {
+            return;
+        }
+
+        selection.sent = true;
+        luna({
+            method: 'selectTrack',
+            parameters: {
+                'type': 'audio',
+                'mediaId': mediaId,
+                'index': trackIndex
+            }
+        }, function() {
+            if (pendingAudioTrack !== selection) {
+                return;
+            }
+            pendingAudioTrack = null;
+            getNativeAudioTracks().forEach(function(track, index) {
+                track.enabled = index === trackIndex;
+            });
+            currentAudioTrack = selection.id;
+            audioTracks = audioTracks.map(function(track) {
+                track.mode = track.id === currentAudioTrack ? 'showing' : 'disabled';
+                return track;
+            });
+            events.emit('audioTrackLoaded', selectedAudioTrack);
+            onPropChanged('selectedAudioTrackId');
+        }, function() {
+            if (pendingAudioTrack === selection) {
+                pendingAudioTrack = null;
+            }
+        });
+    }
+
     function clearPendingSubtitlesTrack() {
         pendingSubtitlesTrack = null;
         if (subtitlesTrackTimer !== null) {
@@ -926,45 +1022,10 @@ function WebOsVideo(options) {
                 break;
             }
             case 'selectedAudioTrackId': {
-                if ((propValue || '').indexOf('EMBEDDED_') === 0) {
-                    var selectedAudioTrack = audioTracks.find(function(track) {
-                        return track.id === propValue;
-                    });
-                    if (!selectedAudioTrack) {
-                        break;
-                    }
-                    currentAudioTrack = propValue;
-                    var trackIndex = selectedAudioTrack.nativeIndex;
-                    if (videoElement.mediaId) {
-                        luna({
-                            method: 'selectTrack',
-                            parameters: {
-                                'type': 'audio',
-                                'mediaId': videoElement.mediaId,
-                                'index': trackIndex
-                            }
-                        }, function() {
-                            audioTracks = audioTracks.map(function(track) {
-                                track.mode = track.id === currentAudioTrack ? 'showing' : 'disabled';
-                                return track;
-                            });
-
-                            if (selectedAudioTrack) {
-                                events.emit('audioTrackLoaded', selectedAudioTrack);
-                                onPropChanged('selectedAudioTrackId');
-                            }
-                        });
-                    }
-                    if (videoElement && videoElement.audioTracks) {
-                        for (var i = 0; i < videoElement.audioTracks.length; i++) {
-                            videoElement.audioTracks[i].enabled = false;
-                        }
-
-                        if(videoElement.audioTracks[trackIndex]) {
-                            videoElement.audioTracks[trackIndex].enabled = true;
-                        }
-                    }
-
+                pendingAudioTrack = null;
+                if ((propValue || '').indexOf('EMBEDDED_') === 0 && stream !== null) {
+                    pendingAudioTrack = { id: propValue, sent: false };
+                    applyPendingAudioTrack();
                 }
 
                 break;
@@ -1045,7 +1106,9 @@ function WebOsVideo(options) {
                 activeMediaId = null;
                 previousMediaId = null;
                 sourceStartupPending = false;
+                sourceStarted = false;
                 clearPendingSubtitlesTrack();
+                pendingAudioTrack = null;
                 clearPendingSubtitlesToggle();
                 stream = null;
                 startTime = null;
@@ -1105,6 +1168,9 @@ function WebOsVideo(options) {
                 videoElement.onloadedmetadata = null;
                 videoElement.onvolumechange = null;
                 videoElement.onratechange = null;
+                if (videoElement.audioTracks) {
+                    videoElement.audioTracks.removeEventListener('addtrack', onNativeAudioTrackAdded);
+                }
                 videoElement.textTracks.onchange = null;
                 containerElement.removeChild(videoElement);
                 containerElement.removeChild(styleElement);
