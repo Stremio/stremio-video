@@ -510,7 +510,8 @@ function ShellVideo(options) {
                             !!commandArgs.hardwareDecoding;
 
                         // Hardware decoding
-                        var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : 'auto-copy') : 'no';
+                        var hwdecAuto = commandArgs.platform === 'windows' ? 'auto' : 'auto-copy';
+                        var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : hwdecAuto) : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
                         // GPU video processing
