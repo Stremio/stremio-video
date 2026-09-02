@@ -46,7 +46,7 @@ function fetchEmbeddedSubtitleSignature(streamingServerURL, mediaURL, probe) {
         Array.isArray(probe.streams) &&
         !probe.streams.some(function(stream) { return stream.track === 'subtitle'; })
     ) {
-        return Promise.resolve(null);
+        return Promise.resolve({ signature: null, videoFpsMilli: null });
     }
     var queryParams = new URLSearchParams([['videoUrl', mediaURL]]);
     if (probe && probe.format && typeof probe.format.name === 'string') {
@@ -64,10 +64,14 @@ function fetchEmbeddedSubtitleSignature(streamingServerURL, mediaURL, probe) {
             if (resp.error) {
                 throw new Error(resp.error);
             }
-            return resp.result && typeof resp.result.signature === 'string' ?
-                resp.result.signature
-                :
-                null;
+            var result = resp.result || {};
+            return {
+                signature: typeof result.signature === 'string' ? result.signature : null,
+                videoFpsMilli: Number.isInteger(result.videoFpsMilli) && result.videoFpsMilli > 0 ?
+                    result.videoFpsMilli
+                    :
+                    null
+            };
         });
 }
 
