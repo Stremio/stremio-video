@@ -581,12 +581,15 @@ function ShellVideo(options) {
                     buffered: null,
                     aid: null,
                     sid: null,
+                    videoScale: 'contain',
                     assSubtitlesStylingActive: false,
                 };
                 assSubtitlesStylingEnabled = false;
                 avgDuration = 0;
                 durationReady = false;
                 ipc.send('mpv-command', ['stop']);
+                ipc.send('mpv-set-prop', ['keepaspect', true]);
+                ipc.send('mpv-set-prop', ['panscan', 0.0]);
                 onPropChanged('loaded');
                 onPropChanged('stream');
                 onPropChanged('paused');
@@ -597,6 +600,7 @@ function ShellVideo(options) {
                 onPropChanged('muted');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
+                onPropChanged('videoScale');
                 if (wasASSSubtitlesStylingActive) {
                     onPropChanged('assSubtitlesStylingActive');
                 }

@@ -673,6 +673,7 @@ function HTMLVideo(options) {
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
+                videoElement.style.objectFit = 'contain';
                 onPropChanged('stream');
                 onPropChanged('loaded');
                 onPropChanged('paused');
@@ -684,6 +685,7 @@ function HTMLVideo(options) {
                 onPropChanged('selectedSubtitlesTrackId');
                 onPropChanged('audioTracks');
                 onPropChanged('selectedAudioTrackId');
+                onPropChanged('videoScale');
                 onPropChanged('fullscreen');
                 break;
             }
