@@ -148,7 +148,15 @@ function WebOsVideo(options) {
 
     var pendingSubtitlesEnabled = null;
 
-    var subtitlesToggleTimer = null;
+    var mediaIdTimer = null;
+
+    var mediaIdAttempts = 0;
+
+    var activeMediaId = null;
+
+    var previousMediaId = null;
+
+    var sourceStartupPending = false;
 
     var currentSubTrack = false;
 
@@ -171,17 +179,23 @@ function WebOsVideo(options) {
 
     var clearPendingSubtitlesToggle = function () {
         pendingSubtitlesEnabled = null;
-        if (subtitlesToggleTimer !== null) {
-            clearInterval(subtitlesToggleTimer);
-            subtitlesToggleTimer = null;
-        }
+    };
+
+    var getUsableMediaId = function () {
+        var mediaId = String(videoElement.mediaId || '').trim();
+        return mediaId && mediaId !== '<invalid mediaId>' ? mediaId : null;
+    };
+
+    var getActiveMediaId = function () {
+        var mediaId = getUsableMediaId();
+        return mediaId && mediaId === activeMediaId ? mediaId : null;
     };
 
     var applyPendingSubtitlesToggle = function () {
         if (pendingSubtitlesEnabled === null) return;
 
-        var mediaId = videoElement.mediaId;
-        if (!mediaId || mediaId === '<invalid mediaId>') return;
+        var mediaId = getActiveMediaId();
+        if (!mediaId) return;
 
         var enabled = pendingSubtitlesEnabled;
         clearPendingSubtitlesToggle();
@@ -198,9 +212,50 @@ function WebOsVideo(options) {
         disabledSubs = !status;
         pendingSubtitlesEnabled = status;
         applyPendingSubtitlesToggle();
-        if (pendingSubtitlesEnabled !== null && subtitlesToggleTimer === null) {
-            subtitlesToggleTimer = setInterval(applyPendingSubtitlesToggle, 300);
+    };
+
+    var clearMediaIdTimer = function () {
+        if (mediaIdTimer !== null) {
+            clearInterval(mediaIdTimer);
+            mediaIdTimer = null;
         }
+    };
+
+    var flushPendingMediaState = function () {
+        applyPendingSubtitlesToggle();
+    };
+
+    var finishSourceStartup = function () {
+        if (!sourceStartupPending) return;
+        sourceStartupPending = false;
+        retrieveExtendedTracks();
+        retrieveDeviceInfo();
+        try {
+            videoElement.play();
+        } catch (_error) {
+        }
+    };
+
+    // TODO: Verify mediaId reuse and invalidation during rapid source changes on LG TVs.
+    var waitForMediaId = function () {
+        clearMediaIdTimer();
+        mediaIdAttempts = 0;
+        mediaIdTimer = setInterval(function () {
+            var mediaId = getUsableMediaId();
+            if (!mediaId) {
+                previousMediaId = null;
+            } else if (mediaId !== previousMediaId) {
+                activeMediaId = mediaId;
+                clearMediaIdTimer();
+                finishSourceStartup();
+                flushPendingMediaState();
+                return;
+            }
+            mediaIdAttempts++;
+            if (mediaIdAttempts > 4) {
+                finishSourceStartup();
+            }
+        }, 300);
     };
 
     var styleElement = document.createElement('style');
@@ -875,12 +930,14 @@ function WebOsVideo(options) {
     function command(commandName, commandArgs) {
         switch (commandName) {
             case 'load': {
-                // not sure about this
-                // command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     if (stream !== null) {
-                        clearPendingSubtitlesToggle();
+                        command('unload');
                     }
+                    clearMediaIdTimer();
+                    previousMediaId = getUsableMediaId();
+                    activeMediaId = null;
+                    sourceStartupPending = true;
                     stream = commandArgs.stream;
                     startTime = commandArgs.time;
 
@@ -898,53 +955,8 @@ function WebOsVideo(options) {
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
 
-                    var count = 0;
-
-                    var initMediaId = function (cb) {
-                        function retrieveMediaId() {
-                            if (videoElement.mediaId) {
-                                clearInterval(timer);
-                                retrieveExtendedTracks();
-                                retrieveDeviceInfo();
-                                cb();
-                                return;
-                            }
-                            count++;
-                            if (count > 4) {
-                                // console.log('failed to get media id');
-                                clearInterval(timer);
-                                retrieveExtendedTracks();
-                                retrieveDeviceInfo();
-                                cb();
-                            }
-                        }
-                        var timer = setInterval(retrieveMediaId, 300);
-                    };
-
-                    var startVideo = function () {
-                        // console.log('startVideo');
-                        // not needed?
-                        // videoElement.src = stream.url;
-
-                        try {
-                            videoElement.load();
-                        } catch(_e) {
-                            // console.log('can\'t load video');
-                            // console.error(e);
-                        }
-
-                        try {
-                            // console.log('try play');
-                            videoElement.play();
-                        } catch(_e) {
-                            // console.log('can\'t start video');
-                            // console.error(e);
-                        }
-                    };
-
                     videoElement.src = stream.url;
-
-                    initMediaId(startVideo);
+                    waitForMediaId();
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
                         critical: true,
@@ -954,6 +966,10 @@ function WebOsVideo(options) {
                 break;
             }
             case 'unload': {
+                clearMediaIdTimer();
+                activeMediaId = null;
+                previousMediaId = null;
+                sourceStartupPending = false;
                 clearPendingSubtitlesToggle();
                 stream = null;
                 startTime = null;
