@@ -7,6 +7,7 @@ var binarySearchUpperBound = require('./binarySearchUpperBound');
 var subtitlesParser = require('./subtitlesParser');
 var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
+var charsetDetector = require('./charsetDetector');
 var subtitleTypes = require('./subtitleTypes');
 var createASSRenderer = require('./assRenderer');
 
@@ -374,7 +375,9 @@ function withHTMLSubtitles(Video) {
             }
             if (!isFallback && track.buffer instanceof ArrayBuffer) {
                 try {
-                    return Promise.resolve(new TextDecoder().decode(new Uint8Array(track.buffer)));
+                    // Local subtitle files may use a legacy code page, so
+                    // detect their charset instead of assuming UTF-8.
+                    return Promise.resolve(charsetDetector.decode(new Uint8Array(track.buffer)));
                 } catch (error) {
                     return Promise.reject(error);
                 }
