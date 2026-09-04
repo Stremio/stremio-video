@@ -407,6 +407,17 @@ function WebOsVideo(options) {
         return videoElement.audioTracks ? Array.from(videoElement.audioTracks) : [];
     }
 
+    function applyNativeAudioTrack(trackIndex) {
+        var nativeTracks = getNativeAudioTracks();
+        if (!nativeTracks[trackIndex]) {
+            return false;
+        }
+        nativeTracks.forEach(function(track, index) {
+            track.enabled = index === trackIndex;
+        });
+        return true;
+    }
+
     function syncAudioTrackFromNative() {
         var nativeTracks = getNativeAudioTracks();
         var enabledTrack = audioTracks.find(function(track) {
@@ -715,7 +726,14 @@ function WebOsVideo(options) {
             return;
         }
         var trackIndex = selectedAudioTrack.nativeIndex;
+        if (selection.lunaSelected) {
+            if (applyNativeAudioTrack(trackIndex)) {
+                pendingAudioTrack = null;
+            }
+            return;
+        }
         var nativeTracks = getNativeAudioTracks();
+        // TODO: Test permanently empty/partial native lists and Luna-rejection fallback on LG TVs.
         if (videoElement.audioTracks && !nativeTracks[trackIndex] && (!sourceStarted || nativeTracks.length)) {
             return;
         }
@@ -732,10 +750,11 @@ function WebOsVideo(options) {
             if (pendingAudioTrack !== selection) {
                 return;
             }
-            pendingAudioTrack = null;
-            getNativeAudioTracks().forEach(function(track, index) {
-                track.enabled = index === trackIndex;
-            });
+            selection.sent = false;
+            selection.lunaSelected = true;
+            if (!videoElement.audioTracks || applyNativeAudioTrack(trackIndex)) {
+                pendingAudioTrack = null;
+            }
             currentAudioTrack = selection.id;
             audioTracks = audioTracks.map(function(track) {
                 track.mode = track.id === currentAudioTrack ? 'showing' : 'disabled';
