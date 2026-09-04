@@ -195,7 +195,7 @@ function WebOsVideo(options) {
         return mediaId && mediaId === activeMediaId ? mediaId : null;
     };
 
-    var applyPendingSubtitlesToggle = function () {
+    var applyPendingSubtitlesToggle = function (onSuccess, onFailure) {
         if (pendingSubtitlesEnabled === null) return;
 
         var mediaId = getActiveMediaId();
@@ -209,13 +209,13 @@ function WebOsVideo(options) {
                 'mediaId': mediaId,
                 'enable': enabled
             }
-        });
+        }, onSuccess, onFailure);
     };
 
-    var toggleSubtitles = function (status) {
+    var toggleSubtitles = function (status, onSuccess, onFailure) {
         disabledSubs = !status;
         pendingSubtitlesEnabled = status;
-        applyPendingSubtitlesToggle();
+        applyPendingSubtitlesToggle(onSuccess, onFailure);
     };
 
     var clearMediaIdTimer = function () {
@@ -712,40 +712,53 @@ function WebOsVideo(options) {
             return;
         }
 
-        toggleSubtitles(true);
-        applySubtitleStyles(mediaId);
-        subtitlesTrackTimer = setTimeout(function() {
-            subtitlesTrackTimer = null;
+        selection.sent = true;
+        toggleSubtitles(true, function() {
+            if (pendingSubtitlesTrack !== selection) {
+                return;
+            }
             if (getActiveMediaId() !== mediaId) {
                 failPendingSubtitlesTrack();
                 return;
             }
-            selection.sent = true;
-            luna({
-                method: 'selectTrack',
-                parameters: {
-                    'type': 'text',
-                    'mediaId': mediaId,
-                    'index': selectedSubtitlesTrack.nativeIndex
-                }
-            }, function() {
-                if (pendingSubtitlesTrack !== selection) {
+            applySubtitleStyles(mediaId);
+            // TODO: Verify the subtitle-selection delay on slow LG TV pipelines.
+            subtitlesTrackTimer = setTimeout(function() {
+                subtitlesTrackTimer = null;
+                if (getActiveMediaId() !== mediaId) {
+                    failPendingSubtitlesTrack();
                     return;
                 }
-                pendingSubtitlesTrack = null;
-                currentSubTrack = selection.id;
-                textTracks = textTracks.map(function(track) {
-                    track.mode = track.id === currentSubTrack ? 'showing' : 'disabled';
-                    return track;
+                luna({
+                    method: 'selectTrack',
+                    parameters: {
+                        'type': 'text',
+                        'mediaId': mediaId,
+                        'index': selectedSubtitlesTrack.nativeIndex
+                    }
+                }, function() {
+                    if (pendingSubtitlesTrack !== selection) {
+                        return;
+                    }
+                    pendingSubtitlesTrack = null;
+                    currentSubTrack = selection.id;
+                    textTracks = textTracks.map(function(track) {
+                        track.mode = track.id === currentSubTrack ? 'showing' : 'disabled';
+                        return track;
+                    });
+                    events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
+                    onPropChanged('selectedSubtitlesTrackId');
+                }, function() {
+                    if (pendingSubtitlesTrack === selection) {
+                        failPendingSubtitlesTrack();
+                    }
                 });
-                events.emit('subtitlesTrackLoaded', selectedSubtitlesTrack);
-                onPropChanged('selectedSubtitlesTrackId');
-            }, function() {
-                if (pendingSubtitlesTrack === selection) {
-                    failPendingSubtitlesTrack();
-                }
-            });
-        }, 500);
+            }, 500);
+        }, function() {
+            if (pendingSubtitlesTrack === selection) {
+                failPendingSubtitlesTrack();
+            }
+        });
     }
 
     function setProp(propName, propValue) {
