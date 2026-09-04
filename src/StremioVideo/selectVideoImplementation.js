@@ -50,7 +50,7 @@ function selectVideoImplementation(commandArgs, options) {
         if (commandArgs.platform === 'Vidaa') {
             return withStreamingServer(withHTMLSubtitles(VidaaVideo));
         }
-        if (commandArgs.platform === 'uwp') {
+        if (commandArgs.platform === 'Xbox') {
             return withStreamingServer(withHTMLSubtitles(UwpVideo));
         }
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
@@ -69,7 +69,7 @@ function selectVideoImplementation(commandArgs, options) {
         if (commandArgs.platform === 'Vidaa') {
             return withVideoParams(withHTMLSubtitles(VidaaVideo));
         }
-        if (commandArgs.platform === 'uwp') {
+        if (commandArgs.platform === 'Xbox') {
             return withVideoParams(withHTMLSubtitles(UwpVideo));
         }
         return withVideoParams(withHTMLSubtitles(HTMLVideo));
