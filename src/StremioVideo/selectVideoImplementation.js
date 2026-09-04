@@ -3,6 +3,7 @@ var ShellVideo = require('../ShellVideo');
 var HTMLVideo = require('../HTMLVideo');
 var TizenVideo = require('../TizenVideo');
 var TitanVideo = require('../TitanVideo');
+var UwpVideo = require('../UwpVideo');
 var VidaaVideo = require('../VidaaVideo');
 var WebOsVideo = require('../WebOsVideo');
 var YouTubeVideo = require('../YouTubeVideo');
@@ -49,6 +50,9 @@ function selectVideoImplementation(commandArgs, options) {
         if (commandArgs.platform === 'Vidaa') {
             return withStreamingServer(withHTMLSubtitles(VidaaVideo));
         }
+        if (commandArgs.platform === 'uwp') {
+            return withStreamingServer(withHTMLSubtitles(UwpVideo));
+        }
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
     }
 
@@ -64,6 +68,9 @@ function selectVideoImplementation(commandArgs, options) {
         }
         if (commandArgs.platform === 'Vidaa') {
             return withVideoParams(withHTMLSubtitles(VidaaVideo));
+        }
+        if (commandArgs.platform === 'uwp') {
+            return withVideoParams(withHTMLSubtitles(UwpVideo));
         }
         return withVideoParams(withHTMLSubtitles(HTMLVideo));
     }
