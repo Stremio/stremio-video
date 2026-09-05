@@ -221,7 +221,8 @@ function createASSRenderer(options) {
                     workerUrl: embeddedUrls.workerUrl,
                     legacyWorkerUrl: embeddedUrls.legacyWorkerUrl,
                     fallbackFont: embeddedUrls.fallbackFont,
-                    fonts: Array.isArray(track.fonts) ? track.fonts : options.fonts || [],
+                    // Register the fallback family with fontconfig as well as libass.
+                    fonts: [embeddedUrls.fallbackFont].concat(Array.isArray(track.fonts) ? track.fonts : options.fonts || []),
                     availableFonts: track.availableFonts || options.availableFonts || {},
                     renderMode: 'wasm-blend',
                     targetFps: TARGET_FPS,
