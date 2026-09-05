@@ -5,6 +5,8 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
+var buildProxyUrl = require('./buildProxyUrl');
+var subtitleTypes = require('../withHTMLSubtitles/subtitleTypes');
 var fetchVideoParams = require('./fetchVideoParams');
 var isPlayerLoaded = require('./isPlayerLoaded');
 var supportsTranscoding = require('../supportsTranscoding');
@@ -27,6 +29,16 @@ var FONT_MIME_TYPES = [
 ];
 
 function withStreamingServer(Video) {
+    function prepareSubtitleTrack(track, streamingServerURL) {
+        return Object.assign({}, track, {
+            fallbackUrl: track.url,
+            url: typeof track.url === 'string' ?
+                (subtitleTypes.isASSSubtitleTrack(track) ?
+                    buildProxyUrl(streamingServerURL, track.url, {}, {}) :
+                    url.resolve(streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())) :
+                track.url
+        });
+    }
     function fetchStreamProbe(stream, options) {
         var queryParams = new URLSearchParams([['mediaURL', stream.url]]);
 
@@ -294,12 +306,7 @@ function withStreamingServer(Video) {
                                                     url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
                                                     subtitles: Array.isArray(commandArgs.stream.subtitles) ?
                                                         commandArgs.stream.subtitles.map(function(track) {
-                                                            return Object.assign({}, track, {
-                                                                url: typeof track.url === 'string' ?
-                                                                    url.resolve(commandArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
-                                                                    :
-                                                                    track.url
-                                                            });
+                                                            return prepareSubtitleTrack(track, commandArgs.streamingServerURL);
                                                         })
                                                         :
                                                         [],
@@ -418,14 +425,7 @@ function withStreamingServer(Video) {
                                 commandName: 'addExtraSubtitlesTracks',
                                 commandArgs: Object.assign({}, commandArgs, {
                                     tracks: commandArgs.tracks.map(function(track) {
-                                        return Object.assign({}, track, {
-                                            // fallback is used in case server conversion fails (if server is offline)
-                                            fallbackUrl: track.url,
-                                            url: typeof track.url === 'string' ?
-                                                url.resolve(loadArgs.streamingServerURL, '/subtitles.vtt?' + new URLSearchParams([['from', track.url]]).toString())
-                                                :
-                                                track.url
-                                        });
+                                        return prepareSubtitleTrack(track, loadArgs.streamingServerURL);
                                     })
                                 })
                             });
