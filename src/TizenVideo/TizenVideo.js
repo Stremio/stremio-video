@@ -439,6 +439,7 @@ function TizenVideo(options) {
                 }
 
                 onPropChanged('paused');
+                if (stream !== null) onPropChanged('time');
 
                 // the paused state is usually correct, but i have seen it not change on tizen 3
                 // which causes all kinds of issues in the UI: (only happens with some videos)
@@ -454,9 +455,12 @@ function TizenVideo(options) {
             }
             case 'time': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
-                    AVPlay.seekTo(parseInt(propValue, 10));
+                    AVPlay.seekTo(parseInt(propValue, 10), function() {
+                        if (!destroyed && stream !== null) {
+                            onPropChanged('time');
+                        }
+                    });
                     renderSubtitle(1, '');
-                    onPropChanged('time');
                 }
 
                 break;
