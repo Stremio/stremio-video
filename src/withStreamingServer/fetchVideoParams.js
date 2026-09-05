@@ -40,6 +40,41 @@ function fetchOpensubtitlesParams(streamingServerURL, mediaURL, behaviorHints) {
         });
 }
 
+function fetchEmbeddedSubtitleSignature(streamingServerURL, mediaURL, probe) {
+    if (
+        probe &&
+        Array.isArray(probe.streams) &&
+        !probe.streams.some(function(stream) { return stream.track === 'subtitle'; })
+    ) {
+        return Promise.resolve({ signature: null, videoFpsMilli: null });
+    }
+    var queryParams = new URLSearchParams([['videoUrl', mediaURL]]);
+    if (probe && probe.format && typeof probe.format.name === 'string') {
+        queryParams.set('container', probe.format.name);
+    }
+    return fetch(url.resolve(streamingServerURL, '/subtitleSignature?' + queryParams.toString()))
+        .then(function(resp) {
+            if (resp.ok) {
+                return resp.json();
+            }
+
+            throw new Error(resp.status + ' (' + resp.statusText + ')');
+        })
+        .then(function(resp) {
+            if (resp.error) {
+                throw new Error(resp.error);
+            }
+            var result = resp.result || {};
+            return {
+                signature: typeof result.signature === 'string' ? result.signature : null,
+                videoFpsMilli: Number.isInteger(result.videoFpsMilli) && result.videoFpsMilli > 0 ?
+                    result.videoFpsMilli
+                    :
+                    null
+            };
+        });
+}
+
 function fetchFilename(streamingServerURL, mediaURL, infoHash, fileIdx, behaviorHints) {
     if (behaviorHints && typeof behaviorHints.filename === 'string') {
         return Promise.resolve(behaviorHints.filename);
@@ -124,7 +159,8 @@ function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behav
             size: null,
             filename: null,
             fpsMilli: frameRate !== null ? Math.round(frameRate * 1000) : null,
-            durationMs: duration !== null ? Math.round(duration * 1000) : null
+            durationMs: duration !== null ? Math.round(duration * 1000) : null,
+            embeddedSubtitleSignature: null
         };
 
         if (results[0].status === 'fulfilled') {
@@ -147,3 +183,4 @@ function fetchVideoParams(streamingServerURL, mediaURL, infoHash, fileIdx, behav
 }
 
 module.exports = fetchVideoParams;
+module.exports.fetchEmbeddedSubtitleSignature = fetchEmbeddedSubtitleSignature;

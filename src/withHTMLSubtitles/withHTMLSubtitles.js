@@ -700,14 +700,11 @@ function withHTMLSubtitles(Video) {
                     }
 
                     selectedSubtitleText = text;
-                    var sourceTrack = Object.assign({}, track, {
-                        url: isFallback ? track.fallbackUrl : track.url,
-                        fallbackUrl: null
-                    });
-                    var isASS = subtitleTypes.isASSSubtitle(sourceTrack, text);
+                    var sourceURL = isFallback ? track.fallbackUrl : track.url;
+                    var isASS = subtitleTypes.isASSSubtitleSource(track, text, isFallback);
                     updateTrackASS(track, isASS);
-                    if (!forceWeb && nativeAssSubtitlesSupported && isASS && typeof sourceTrack.url === 'string') {
-                        delegateNativeASS(track, sourceTrack.url, text, currentRequestId);
+                    if (!forceWeb && nativeAssSubtitlesSupported && isASS && typeof sourceURL === 'string') {
+                        delegateNativeASS(track, sourceURL, text, currentRequestId);
                         return null;
                     }
                     return loadWebSubtitles(track, text, isASS, currentRequestId);
@@ -971,13 +968,16 @@ function withHTMLSubtitles(Video) {
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
+                        var isFallback = subtitleTypes.shouldUseASSFallback(selectedTrack, assSubtitlesStylingEnabled || nativeAssSubtitlesSupported);
+                        var sourceURL = isFallback ? selectedTrack.fallbackUrl : selectedTrack.url;
                         var selectedSourceIsASS = subtitleTypes.isASSSubtitleTrack(Object.assign({}, selectedTrack, {
+                            url: sourceURL,
                             fallbackUrl: null,
                         }));
-                        if (nativeAssSubtitlesSupported && selectedSourceIsASS && typeof selectedTrack.url === 'string') {
-                            delegateNativeASS(selectedTrack, selectedTrack.url, null, currentRequestId);
+                        if (nativeAssSubtitlesSupported && selectedSourceIsASS && typeof sourceURL === 'string') {
+                            delegateNativeASS(selectedTrack, sourceURL, null, currentRequestId);
                         } else {
-                            loadSelectedTrack(selectedTrack, false, currentRequestId, false);
+                            loadSelectedTrack(selectedTrack, isFallback, currentRequestId, false);
                         }
                     }
                     renderSubtitles();

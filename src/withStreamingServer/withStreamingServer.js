@@ -143,6 +143,8 @@ function withStreamingServer(Video) {
         var loaded = false;
         var actionsQueue = [];
         var videoParams = null;
+        var preparedEmbeddedSubtitleSignature = null;
+        var preparedVideoFpsMilli = null;
         var events = new EventEmitter();
         var destroyed = false;
         var observedProps = {
@@ -327,6 +329,39 @@ function withStreamingServer(Video) {
                                 loaded = true;
                                 flushActionsQueue();
 
+                                fetchVideoParams.fetchEmbeddedSubtitleSignature(
+                                    commandArgs.streamingServerURL,
+                                    result.mediaURL,
+                                    result.probe
+                                ).then(function(response) {
+                                    if (commandArgs !== loadArgs || response === null) {
+                                        return;
+                                    }
+                                    if (typeof response.signature === 'string') {
+                                        preparedEmbeddedSubtitleSignature = response.signature;
+                                    }
+                                    if (response.videoFpsMilli !== null) {
+                                        preparedVideoFpsMilli = response.videoFpsMilli;
+                                    }
+                                    if (videoParams !== null) {
+                                        var nextVideoParams = videoParams;
+                                        if (preparedEmbeddedSubtitleSignature !== null && nextVideoParams.embeddedSubtitleSignature !== preparedEmbeddedSubtitleSignature) {
+                                            nextVideoParams = Object.assign({}, nextVideoParams, {
+                                                embeddedSubtitleSignature: preparedEmbeddedSubtitleSignature
+                                            });
+                                        }
+                                        if (preparedVideoFpsMilli !== null && nextVideoParams.fpsMilli === null) {
+                                            nextVideoParams = Object.assign({}, nextVideoParams, {
+                                                fpsMilli: preparedVideoFpsMilli
+                                            });
+                                        }
+                                        if (nextVideoParams !== videoParams) {
+                                            videoParams = nextVideoParams;
+                                            onPropChanged('videoParams');
+                                        }
+                                    }
+                                }).catch(function() {});
+
                                 isPlayerLoaded(video, Video.manifest.props)
                                     .then(function() {
                                         return fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints, result.probe);
@@ -336,7 +371,10 @@ function withStreamingServer(Video) {
                                             return;
                                         }
 
-                                        videoParams = result;
+                                        videoParams = Object.assign({}, result, {
+                                            embeddedSubtitleSignature: preparedEmbeddedSubtitleSignature,
+                                            fpsMilli: result.fpsMilli !== null ? result.fpsMilli : preparedVideoFpsMilli
+                                        });
                                         onPropChanged('videoParams');
                                     })
                                     .catch(function(error) {
@@ -346,7 +384,7 @@ function withStreamingServer(Video) {
 
                                         // eslint-disable-next-line no-console
                                         console.error(error);
-                                        videoParams = { hash: null, size: null, filename: null, fpsMilli: null, durationMs: null };
+                                        videoParams = { hash: null, size: null, filename: null, fpsMilli: null, durationMs: null, embeddedSubtitleSignature: null };
                                         onPropChanged('videoParams');
                                     });
                             })
@@ -407,6 +445,8 @@ function withStreamingServer(Video) {
                     loaded = false;
                     actionsQueue = [];
                     videoParams = null;
+                    preparedEmbeddedSubtitleSignature = null;
+                    preparedVideoFpsMilli = null;
                     onPropChanged('stream');
                     onPropChanged('videoParams');
                     return false;
