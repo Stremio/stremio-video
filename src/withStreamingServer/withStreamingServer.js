@@ -152,6 +152,7 @@ function withStreamingServer(Video) {
 
         var self = this;
         var loadArgs = null;
+        var embeddedASSDiscovery = null;
         var loaded = false;
         var actionsQueue = [];
         var videoParams = null;
@@ -336,6 +337,30 @@ function withStreamingServer(Video) {
                                 loaded = true;
                                 flushActionsQueue();
 
+                                if (commandArgs.assSubtitlesStyling === true && ['Tizen', 'webOS'].includes(commandArgs.platform) && result.stream.url === result.mediaURL) {
+                                    var sourceQuery = new URLSearchParams([['mediaURL', result.mediaURL]]).toString();
+                                    var sourceBase = url.resolve(commandArgs.streamingServerURL, '/embedded-ass');
+                                    embeddedASSDiscovery = typeof AbortController === 'function' ? new AbortController() : null;
+                                    fetch(sourceBase + '?' + sourceQuery, embeddedASSDiscovery ? { signal: embeddedASSDiscovery.signal } : {})
+                                        .then(function(response) {
+                                            if (!response.ok) throw new Error('Embedded ASS discovery unavailable');
+                                            return response.json();
+                                        })
+                                        .then(function(metadata) {
+                                            if (commandArgs !== loadArgs || !Array.isArray(metadata.tracks)) return;
+                                            var fonts = (metadata.fonts || []).map(function(font) {
+                                                return sourceBase + '/font/' + font.id + '?' + sourceQuery;
+                                            });
+                                            video.dispatch({ type: 'command', commandName: 'addEmbeddedASSSources', commandArgs: {
+                                                sources: metadata.tracks.map(function(track) {
+                                                    return { trackId: 'EMBEDDED_ASS_' + track.number, codec: track.codec,
+                                                        lang: track.lang, label: track.label, fonts: fonts, windowed: true,
+                                                        url: sourceBase + '/' + track.number + '.ass?' + sourceQuery };
+                                                })
+                                            } });
+                                        }).catch(function() {});
+                                }
+
                                 fetchVideoParams.fetchEmbeddedSubtitleSignature(
                                     commandArgs.streamingServerURL,
                                     result.mediaURL,
@@ -441,6 +466,8 @@ function withStreamingServer(Video) {
                     return true;
                 }
                 case 'unload': {
+                    if (embeddedASSDiscovery) embeddedASSDiscovery.abort();
+                    embeddedASSDiscovery = null;
                     loadArgs = null;
                     loaded = false;
                     actionsQueue = [];
