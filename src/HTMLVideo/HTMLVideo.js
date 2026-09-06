@@ -422,10 +422,21 @@ function HTMLVideo(options) {
             }
             case 'selectedSubtitlesTrackId': {
                 if (stream !== null) {
-                    Array.from(videoElement.textTracks)
-                        .forEach(function(track, index) {
-                            track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                    var textTracks = Array.from(videoElement.textTracks);
+                    if (hls !== null) {
+                        var selectedTextTrack = textTracks.find(function(track, index) {
+                            return 'EMBEDDED_' + String(index) === propValue;
                         });
+                        hls.subtitleTrack = selectedTextTrack ?
+                            hls.subtitleTracks.findIndex(function(track) {
+                                return selectedTextTrack.label.toLowerCase() === track.name.toLowerCase() &&
+                                    (!selectedTextTrack.language || selectedTextTrack.language.toLowerCase() === (track.lang || '').toLowerCase());
+                            })
+                            : -1;
+                    }
+                    textTracks.forEach(function(track, index) {
+                        track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                    });
                     var selecterdSubtitlesTrack = getProp('subtitlesTracks')
                         .find(function(track) {
                             return track.id === propValue;
