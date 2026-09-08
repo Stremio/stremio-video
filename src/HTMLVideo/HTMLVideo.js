@@ -183,18 +183,18 @@ function HTMLVideo(options) {
 
                 // All values use milliseconds. The end is a safe live playback target,
                 // rather than the changing media duration or the last segment's end.
-                var tolerance = liveDetails ? liveDetails.targetduration : 3;
+                var targetDuration = liveDetails ? liveDetails.targetduration : 3;
                 var range = videoElement.seekable.length - 1;
                 var start = range >= 0 ? videoElement.seekable.start(range) : null;
                 var end = range >= 0 ? videoElement.seekable.end(range) : null;
                 if (start !== null && liveDetails && liveDetails.fragments.length > 0) {
                     start = Math.max(start, liveDetails.fragments[0].start);
                 }
-                var target = hls !== null ? hls.liveSyncPosition : end !== null ? end - tolerance : null;
+                var target = hls !== null ? hls.liveSyncPosition : end !== null ? end - targetDuration : null;
                 return Object.freeze({
                     start: start !== null ? Math.floor(start * 1000) : null,
                     end: target !== null && isFinite(target) && end !== null ? Math.floor(Math.max(start, Math.min(end, target)) * 1000) : null,
-                    tolerance: Math.max(1000, Math.floor(tolerance * 1000))
+                    tolerance: Math.max(1000, Math.floor(2 * targetDuration * 1000))
                 });
             }
             case 'buffering': {
