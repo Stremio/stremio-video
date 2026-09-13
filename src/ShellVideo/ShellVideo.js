@@ -514,6 +514,13 @@ function ShellVideo(options) {
                         var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : hwdecAuto) : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
+                        // Audio channels
+                        var stereoOnly = commandArgs.maxAudioChannels !== null &&
+                            isFinite(commandArgs.maxAudioChannels) &&
+                            commandArgs.maxAudioChannels <= 2;
+                        ipc.send('mpv-set-prop', ['audio-channels', stereoOnly ? 'stereo' : 'auto-safe']);
+                        ipc.send('mpv-set-prop', ['audio-normalize-downmix', stereoOnly]);
+
                         // GPU video processing
                         if (typeof commandArgs.gpuVideoProcessing === 'boolean') {
                             ipc.send('mpv-set-gpu-video-processing', gpuProcessing);
