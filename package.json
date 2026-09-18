@@ -10,7 +10,8 @@
         "url": "https://github.com/Stremio/stremio-video"
     },
     "scripts": {
-        "lint": "eslint src"
+        "lint": "eslint src",
+        "test": "node test/charsetDetector.test.js"
     },
     "dependencies": {
         "@stremio/libass-wasm": "https://github.com/Stremio/JavascriptSubtitlesOctopus/releases/download/v4.2.6/stremio-libass-wasm-4.2.6.tgz",
