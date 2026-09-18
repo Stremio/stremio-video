@@ -735,8 +735,6 @@ function HTMLVideo(options) {
                     track.oncuechange = null;
                 });
                 if (hls !== null) {
-                    hls.removeAllListeners();
-                    hls.detachMedia(videoElement);
                     hls.destroy();
                     hls = null;
                 }
