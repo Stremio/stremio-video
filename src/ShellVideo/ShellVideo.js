@@ -414,14 +414,17 @@ function ShellVideo(options) {
                         case 'cover':
                             ipc.send('mpv-set-prop', ['keepaspect', true]);
                             ipc.send('mpv-set-prop', ['panscan', 1.0]);
+                            ipc.send('mpv-set-prop', ['sub-ass-force-margins', true]);
                             break;
                         case 'fill':
                             ipc.send('mpv-set-prop', ['keepaspect', false]);
                             ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
                             break;
                         default:
                             ipc.send('mpv-set-prop', ['keepaspect', true]);
                             ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
                             break;
                     }
                     props.videoScale = propValue;
@@ -596,6 +599,7 @@ function ShellVideo(options) {
                 ipc.send('mpv-command', ['stop']);
                 ipc.send('mpv-set-prop', ['keepaspect', true]);
                 ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
                 onPropChanged('loaded');
                 onPropChanged('stream');
                 onPropChanged('paused');
