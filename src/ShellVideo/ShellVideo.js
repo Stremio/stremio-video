@@ -296,7 +296,7 @@ function ShellVideo(options) {
                         return {
                             id: 'EMBEDDED_' + x.id,
                             lang: x.lang === undefined ? 'Track ' + (index + 1) : x.lang,
-                            label: x.title || '',
+                            label: x.title || x.lang || '',
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: x.id === props.sid ? 'showing' : 'disabled',
