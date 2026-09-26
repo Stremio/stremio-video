@@ -264,6 +264,13 @@ function withStreamingServer(Video) {
                                         return { canPlay: false, probe: null };
                                     })
                                     .then(function(playability) {
+                                        var subtitles = Array.isArray(commandArgs.stream.subtitles) ?
+                                            commandArgs.stream.subtitles.map(function(track) {
+                                                return prepareSubtitleTrack(track, commandArgs.streamingServerURL);
+                                            })
+                                            :
+                                            [];
+
                                         if (playability.canPlay) {
                                             return {
                                                 mediaURL: mediaURL,
@@ -271,7 +278,8 @@ function withStreamingServer(Video) {
                                                 fileIdx: fileIdx,
                                                 probe: playability.probe,
                                                 stream: {
-                                                    url: mediaURL
+                                                    url: mediaURL,
+                                                    subtitles: subtitles
                                                 }
                                             };
                                         }
@@ -305,12 +313,7 @@ function withStreamingServer(Video) {
                                                 probe: probe,
                                                 stream: {
                                                     url: url.resolve(commandArgs.streamingServerURL, '/hlsv2/' + id + '/master.m3u8?' + queryParams.toString()),
-                                                    subtitles: Array.isArray(commandArgs.stream.subtitles) ?
-                                                        commandArgs.stream.subtitles.map(function(track) {
-                                                            return prepareSubtitleTrack(track, commandArgs.streamingServerURL);
-                                                        })
-                                                        :
-                                                        [],
+                                                    subtitles: subtitles,
                                                     _embeddedASSSources: getEmbeddedASSSources(probe, commandArgs.streamingServerURL, id, queryParams),
                                                     behaviorHints: {
                                                         headers: {
