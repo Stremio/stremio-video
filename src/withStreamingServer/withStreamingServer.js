@@ -12,6 +12,9 @@ var isPlayerLoaded = require('./isPlayerLoaded');
 var supportsTranscoding = require('../supportsTranscoding');
 var ERROR = require('../error');
 
+var RECOVERY_TIMEOUT_MS = 20000;
+var RECOVERY_PROPS = ['volume', 'muted', 'playbackSpeed', 'videoScale', 'time', 'paused'];
+
 var FONT_EXTENSION_PATTERN = /\.(?:otc|otf|ttc|ttf|woff2?)(?:$|[?#])/i;
 var FONT_MIME_TYPES = [
     'application/font-sfnt',
@@ -160,6 +163,11 @@ function withStreamingServer(Video) {
         var preparedVideoFpsMilli = null;
         var events = new EventEmitter();
         var destroyed = false;
+        var playbackRoute = null;
+        var resolvedSource = null;
+        var playbackState = {};
+        var mediaLoaded = false;
+        var recovery = null;
         var observedProps = {
             stream: false,
             videoParams: false
@@ -171,13 +179,95 @@ function withStreamingServer(Video) {
                 self.dispatch.call(self, action);
             }
         }
-        function onVideoError(error) {
+        function rememberPlayback(propName, propValue) {
+            var valid = (['time', 'volume', 'playbackSpeed'].includes(propName) &&
+                    typeof propValue === 'number' && isFinite(propValue) && propValue >= 0) ||
+                (['paused', 'muted'].includes(propName) && typeof propValue === 'boolean') ||
+                (propName === 'videoScale' && ['contain', 'cover', 'fill'].includes(propValue));
+            if (valid) {
+                playbackState[propName] = propValue;
+                if (recovery && recovery.pending) recovery.state[propName] = propValue;
+            }
+        }
+        function emitVideoError(error) {
+            var failedLoad = loadArgs;
+            if (recovery) {
+                error = Object.assign({}, error, {
+                    recovery: { attempts: 1, from: 'direct', to: 'streaming-server', initialCode: 83 }
+                });
+            }
             events.emit('error', error);
-            if (error.critical) {
+            // An error listener may already have started another load.
+            if (error.critical && failedLoad === loadArgs) {
                 command('unload');
             }
         }
+        function onVideoError(error) {
+            if (destroyed || loadArgs === null) return;
+            if (recovery && recovery.pending && error.code === ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED.code) {
+                // Ignore duplicate rejection events from the failed direct route only.
+                if (playbackRoute === 'direct') return;
+            }
+            if (error.critical && error.code === ERROR.HTML_VIDEO.MEDIA_ERR_SRC_NOT_SUPPORTED.code &&
+                playbackRoute === 'direct' && recovery === null && resolvedSource !== null) {
+                var attempt = {
+                    args: loadArgs,
+                    source: resolvedSource,
+                    state: Object.assign({}, playbackState),
+                    pending: true,
+                    timer: null
+                };
+                recovery = attempt;
+                loaded = false;
+                attempt.timer = setTimeout(function() {
+                    if (recovery !== attempt || !attempt.pending || destroyed) return;
+                    onError(Object.assign({}, ERROR.WITH_STREAMING_SERVER.RECOVERY_TIMEOUT, {
+                        critical: true,
+                        recovery: { attempts: 1, from: 'direct', to: 'streaming-server', initialCode: 83 }
+                    }));
+                }, RECOVERY_TIMEOUT_MS);
+                // Defer until the wrapped player has completed its own error teardown.
+                Promise.resolve().then(function() { return supportsTranscoding(); })
+                    .then(function(supported) {
+                        if (recovery !== attempt || loadArgs !== attempt.args || destroyed) return;
+                        if (!supported) {
+                            emitVideoError(error);
+                            return;
+                        }
+                        command('load', Object.assign({}, attempt.args, {
+                            time: attempt.state.time,
+                            autoplay: !attempt.state.paused
+                        }), { recovery: attempt });
+                    })
+                    .catch(function() {
+                        if (recovery === attempt && loadArgs === attempt.args && !destroyed) emitVideoError(error);
+                    });
+                return;
+            }
+            emitVideoError(error);
+        }
         function onVideoPropEvent(eventName, propName, propValue) {
+            if (propName === 'loaded') {
+                mediaLoaded = propValue === true;
+                if (mediaLoaded && recovery && recovery.pending && playbackRoute === 'streaming-server') {
+                    var recoveredLoad = loadArgs;
+                    var restore = Object.assign({}, recovery.state);
+                    recovery.pending = false;
+                    clearTimeout(recovery.timer);
+                    // Track identifiers are route specific and are intentionally not replayed.
+                    RECOVERY_PROPS.forEach(function(name) {
+                        if (loadArgs === recoveredLoad && Object.prototype.hasOwnProperty.call(restore, name)) {
+                            video.dispatch({ type: 'setProp', propName: name, propValue: restore[name] });
+                        }
+                    });
+                    if (loadArgs !== recoveredLoad) return;
+                    loaded = true;
+                    flushActionsQueue();
+                }
+            }
+            if (loadArgs !== null && !(recovery && recovery.pending) && mediaLoaded) {
+                rememberPlayback(propName, propValue);
+            }
             events.emit(eventName, propName, getProp(propName, propValue));
         }
         function onOtherVideoEvent(eventName) {
@@ -191,13 +281,19 @@ function withStreamingServer(Video) {
             }
         }
         function onError(error) {
+            var failedLoad = loadArgs;
             events.emit('error', error);
-            if (error.critical) {
+            if (error.critical && failedLoad === loadArgs) {
                 command('unload');
                 video.dispatch({ type: 'command', commandName: 'unload' });
             }
         }
         function getProp(propName, videoPropValue) {
+            if (recovery && recovery.pending) {
+                if (propName === 'buffering') return true;
+                if (propName === 'loaded') return false;
+                if (Object.prototype.hasOwnProperty.call(recovery.state, propName)) return recovery.state[propName];
+            }
             switch (propName) {
                 case 'stream': {
                     return loadArgs !== null ? loadArgs.stream : null;
@@ -223,15 +319,24 @@ function withStreamingServer(Video) {
                 }
             }
         }
-        function command(commandName, commandArgs) {
+        function command(commandName, commandArgs, commandOptions) {
+            commandOptions = commandOptions || {};
             switch (commandName) {
                 case 'load': {
-                    if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerURL === 'string') {
-                        command('unload');
+                    if (commandArgs && commandArgs.stream && typeof commandArgs.streamingServerURL === 'string' && commandArgs.streamingServerURL.trim()) {
+                        var isRecovery = recovery !== null && commandOptions.recovery === recovery;
+                        if (!isRecovery) command('unload');
+                        if (embeddedASSDiscovery) embeddedASSDiscovery.abort();
+                        embeddedASSDiscovery = null;
                         video.dispatch({ type: 'command', commandName: 'unload' });
                         loadArgs = commandArgs;
-                        onPropChanged('stream');
-                        convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo, commandArgs.streamingServerSettings)
+                        if (!isRecovery) {
+                            playbackState = { time: commandArgs.time, paused: commandArgs.autoplay === false };
+                            onPropChanged('stream');
+                        }
+                        // Retain the exact resolved file and proxy headers. Do not select a torrent again.
+                        (isRecovery ? Promise.resolve(recovery.source) :
+                            convertStream(commandArgs.streamingServerURL, commandArgs.stream, commandArgs.seriesInfo, commandArgs.streamingServerSettings))
                             .then(function(result) {
                                 var mediaURL = result.url;
                                 var infoHash = result.infoHash;
@@ -258,7 +363,7 @@ function withStreamingServer(Video) {
                                     audioCodecs: audioCodecs,
                                     maxAudioChannels: maxAudioChannels
                                 });
-                                return (commandArgs.forceTranscoding ? Promise.resolve({ canPlay: false, probe: null }) : getPlayability({ url: mediaURL }, canPlayStreamOptions))
+                                return ((isRecovery || commandArgs.forceTranscoding) ? Promise.resolve({ canPlay: false, probe: isRecovery ? result.probe : null }) : getPlayability({ url: mediaURL }, canPlayStreamOptions))
                                     .catch(function(error) {
                                         console.warn('Media probe error', error);
                                         return { canPlay: false, probe: null };
@@ -300,7 +405,7 @@ function withStreamingServer(Video) {
 
                                         queryParams.set('maxAudioChannels', maxAudioChannels);
 
-                                        var probePromise = playability.probe !== null ?
+                                        var probePromise = isRecovery || playability.probe !== null ?
                                             Promise.resolve(playability.probe)
                                             :
                                             fetchStreamProbe({ url: mediaURL }, canPlayStreamOptions).catch(function() { return null; });
@@ -330,6 +435,12 @@ function withStreamingServer(Video) {
                                     return;
                                 }
 
+                                resolvedSource = { url: result.mediaURL, infoHash: result.infoHash, fileIdx: result.fileIdx, probe: result.probe };
+                                playbackRoute = result.stream.url === result.mediaURL ? 'direct' : 'streaming-server';
+                                mediaLoaded = false;
+                                ['loaded'].concat(RECOVERY_PROPS).forEach(function(propName) {
+                                    if (Video.manifest.props.includes(propName)) video.dispatch({ type: 'observeProp', propName: propName });
+                                });
                                 video.dispatch({
                                     type: 'command',
                                     commandName: 'load',
@@ -337,8 +448,9 @@ function withStreamingServer(Video) {
                                         stream: result.stream
                                     })
                                 });
+                                if (commandArgs !== loadArgs || (recovery && recovery.pending && playbackRoute === 'direct')) return;
                                 loaded = true;
-                                flushActionsQueue();
+                                if (!(recovery && recovery.pending)) flushActionsQueue();
 
                                 if (commandArgs.assSubtitlesStyling === true && ['Tizen', 'webOS'].includes(commandArgs.platform) && result.stream.url === result.mediaURL) {
                                     var sourceQuery = new URLSearchParams([['mediaURL', result.mediaURL]]).toString();
@@ -399,6 +511,7 @@ function withStreamingServer(Video) {
 
                                 isPlayerLoaded(video, Video.manifest.props)
                                     .then(function() {
+                                        if (commandArgs !== loadArgs) return;
                                         return fetchVideoParams(commandArgs.streamingServerURL, result.mediaURL, result.infoHash, result.fileIdx, commandArgs.stream.behaviorHints, result.probe);
                                     })
                                     .then(function(result) {
@@ -436,7 +549,7 @@ function withStreamingServer(Video) {
                                 }));
                             });
                     } else {
-                        onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                        onError(Object.assign({}, commandArgs && commandArgs.stream ? ERROR.WITH_STREAMING_SERVER.UNAVAILABLE : ERROR.UNSUPPORTED_STREAM, {
                             critical: true,
                             stream: commandArgs ? commandArgs.stream : null,
                             streamingServerURL: commandArgs && typeof commandArgs.streamingServerURL === 'string' ? commandArgs.streamingServerURL : null
@@ -469,6 +582,12 @@ function withStreamingServer(Video) {
                     return true;
                 }
                 case 'unload': {
+                    if (recovery) clearTimeout(recovery.timer);
+                    recovery = null;
+                    playbackRoute = null;
+                    resolvedSource = null;
+                    playbackState = {};
+                    mediaLoaded = false;
                     if (embeddedASSDiscovery) embeddedASSDiscovery.abort();
                     embeddedASSDiscovery = null;
                     loadArgs = null;
@@ -524,6 +643,11 @@ function withStreamingServer(Video) {
                             return;
                         }
 
+                        break;
+                    }
+                    case 'setProp': {
+                        if (loadArgs !== null) rememberPlayback(action.propName, action.propValue);
+                        if (recovery && recovery.pending && RECOVERY_PROPS.includes(action.propName)) return;
                         break;
                     }
                     case 'command': {
