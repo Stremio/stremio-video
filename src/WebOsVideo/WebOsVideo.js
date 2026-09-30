@@ -228,7 +228,7 @@ function WebOsVideo(options) {
     var finishSourceStartup = function () {
         if (!sourceStartupPending) return;
         sourceStartupPending = false;
-        retrieveExtendedTracks();
+        retrieveExtendedTracks(stream);
         retrieveDeviceInfo();
         try {
             videoElement.play();
@@ -379,10 +379,24 @@ function WebOsVideo(options) {
     var gotTraktData = false;
     var tracksData = { audio: [], subs: [] };
 
-    function retrieveExtendedTracks() {
-        if (!gotTraktData && stream !== null) {
+    function resetTrackState() {
+        gotTraktData = false;
+        tracksData = { audio: [], subs: [] };
+        textTracks = [];
+        audioTracks = [];
+        currentSubTrack = false;
+        currentAudioTrack = false;
+        disabledSubs = true;
+    }
+
+    // TODO: Verify source, Luna and DOM indexes on LG TVs that omit unsupported tracks.
+    function retrieveExtendedTracks(activeStream) {
+        if (!gotTraktData && activeStream !== null) {
             gotTraktData = true;
-            getTracksData(stream.url, function(resp) {
+            getTracksData(activeStream.url, function(resp) {
+                if (stream !== activeStream) {
+                    return;
+                }
                 var nrSubs = 0;
                 var nrAudio = 0;
                 textTracks = [];
@@ -391,21 +405,22 @@ function WebOsVideo(options) {
                     tracksData = resp;
                 }
                 if (((tracksData || {}).subs || []).length) {
-                    tracksData.subs.forEach(function(track) {
+                    tracksData.subs.forEach(function(track, nativeIndex) {
                         if (device.unsupportedSubs.includes(track.codec || '')) {
                             return;
                         }
-                        var textTrackId = nrSubs;
+                        var textTrackId = 'EMBEDDED_' + nrSubs;
                         nrSubs++;
                         if (!currentSubTrack && !textTracks.length) {
                             currentSubTrack = textTrackId;
                         }
                         textTracks.push({
-                            id: 'EMBEDDED_' + textTrackId,
+                            id: textTrackId,
                             lang: track.lang || 'eng',
                             label: track.label || null,
                             origin: 'EMBEDDED',
                             embedded: true,
+                            nativeIndex: nativeIndex,
                             mode: textTrackId === currentSubTrack ? 'showing' : 'disabled',
                         });
                     });
@@ -413,27 +428,25 @@ function WebOsVideo(options) {
                     onPropChanged('selectedSubtitlesTrackId');
                 }
                 if (((tracksData || {}).audio || []).length) {
-                    tracksData.audio.forEach(function(track) {
+                    tracksData.audio.forEach(function(track, nativeIndex) {
                         if (device.unsupportedAudio.includes(track.codec || '')) {
                             return;
                         }
-                        var audioTrackId = nrAudio;
+                        var audioTrackId = 'EMBEDDED_' + nrAudio;
                         nrAudio++;
                         if (!currentAudioTrack && !audioTracks.length) {
                             currentAudioTrack = audioTrackId;
                         }
                         audioTracks.push({
-                            id: 'EMBEDDED_' + audioTrackId,
+                            id: audioTrackId,
                             lang: track.lang || 'eng',
                             label: track.label || null,
                             origin: 'EMBEDDED',
                             embedded: true,
+                            nativeIndex: nativeIndex,
                             mode: audioTrackId === currentAudioTrack ? 'showing' : 'disabled',
                         });
                     });
-                    if (!currentAudioTrack) {
-                        currentAudioTrack = 'EMBEDDED_0';
-                    }
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
                 }
@@ -657,6 +670,12 @@ function WebOsVideo(options) {
             case 'selectedSubtitlesTrackId': {
                 if (videoElement.mediaId && stream !== null) {
                     if ((propValue || '').indexOf('EMBEDDED_') === 0) {
+                        var selectedSubtitlesTrack = textTracks.find(function(track) {
+                            return track.id === propValue;
+                        });
+                        if (!selectedSubtitlesTrack) {
+                            break;
+                        }
                         toggleSubtitles(true);
 
                         subStyles.bg_opacity = subStyles.bg_color === 'none' ? 0 : 255;
@@ -687,15 +706,11 @@ function WebOsVideo(options) {
                         console.log('WebOS', 'change subtitles for id: ', videoElement.mediaId, ' index:', propValue);
 
                         currentSubTrack = propValue;
-                        var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
+                        var trackIndex = selectedSubtitlesTrack.nativeIndex;
                         // eslint-disable-next-line no-console
                         console.log('set subs to track idx: ' + trackIndex);
                         setTimeout(function() {
                             var successCb = function() {
-                                var selectedSubtitlesTrack = getProp('subtitlesTracks')
-                                    .find(function(track) {
-                                        return track.id === propValue;
-                                    });
                                 textTracks = textTracks.map(function(track) {
                                     track.mode = track.id === currentSubTrack ? 'showing' : 'disabled';
                                     return track;
@@ -854,8 +869,14 @@ function WebOsVideo(options) {
             }
             case 'selectedAudioTrackId': {
                 if ((propValue || '').indexOf('EMBEDDED_') === 0) {
+                    var selectedAudioTrack = audioTracks.find(function(track) {
+                        return track.id === propValue;
+                    });
+                    if (!selectedAudioTrack) {
+                        break;
+                    }
                     currentAudioTrack = propValue;
-                    var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
+                    var trackIndex = selectedAudioTrack.nativeIndex;
                     if (videoElement.mediaId) {
                         luna({
                             method: 'selectTrack',
@@ -865,11 +886,6 @@ function WebOsVideo(options) {
                                 'index': trackIndex
                             }
                         }, function() {
-                            var selectedAudioTrack = getProp('audioTracks')
-                                .find(function(track) {
-                                    return track.id === propValue;
-                                });
-
                             audioTracks = audioTracks.map(function(track) {
                                 track.mode = track.id === currentAudioTrack ? 'showing' : 'disabled';
                                 return track;
@@ -940,6 +956,7 @@ function WebOsVideo(options) {
                     sourceStartupPending = true;
                     stream = commandArgs.stream;
                     startTime = commandArgs.time;
+                    resetTrackState();
 
                     onPropChanged('stream');
                     videoElement.autoplay = typeof commandArgs.autoplay === 'boolean' ? commandArgs.autoplay : true;
@@ -973,6 +990,7 @@ function WebOsVideo(options) {
                 clearPendingSubtitlesToggle();
                 stream = null;
                 startTime = null;
+                resetTrackState();
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;
                 });
