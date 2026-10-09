@@ -13,6 +13,10 @@ var createASSRenderer = require('./assRenderer');
 const PREVIEW_INTERVAL = 300000;
 const NATIVE_ASS_TIMEOUT = 10000;
 
+function getOriginalUrl(track) {
+    return typeof track.fallbackUrl === 'string' ? track.fallbackUrl : track.url;
+}
+
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
         options = options || {};
@@ -1212,7 +1216,9 @@ function withHTMLSubtitles(Video) {
                                     typeof track.label === 'string' &&
                                     typeof track.origin === 'string' &&
                                     !track.embedded &&
-                                    index === tracks.findIndex(function(t) { return t.id === track.id; });
+                                    index === tracks.findIndex(function(t) {
+                                        return t.id === track.id || (typeof track.url === 'string' && getOriginalUrl(t) === getOriginalUrl(track));
+                                    });
                             });
                         onPropChanged('extraSubtitlesTracks');
                     }
