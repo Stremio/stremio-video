@@ -12,6 +12,38 @@ var createASSRenderer = require('./assRenderer');
 
 const PREVIEW_INTERVAL = 300000;
 const NATIVE_ASS_TIMEOUT = 10000;
+const LEGACY_SUBTITLES_ENCODINGS = [
+    ['windows-1250', ['pol', 'cze', 'ces', 'slo', 'slk', 'hun', 'hrv', 'slv', 'rum', 'ron', 'bos', 'alb', 'sqi', 'pl', 'cs', 'sk', 'hu', 'hr', 'sl', 'ro', 'bs', 'sq']],
+    ['windows-1251', ['rus', 'ukr', 'bul', 'srp', 'mac', 'mkd', 'bel', 'ru', 'uk', 'bg', 'sr', 'mk', 'be']],
+    ['windows-1253', ['gre', 'ell', 'el']],
+    ['windows-1254', ['tur', 'tr']],
+    ['windows-1255', ['heb', 'he']],
+    ['windows-1256', ['ara', 'per', 'fas', 'ar', 'fa']],
+    ['windows-1257', ['est', 'lav', 'lit', 'et', 'lv', 'lt']],
+    ['windows-1258', ['vie', 'vi']],
+    ['windows-874', ['tha', 'th']],
+    ['gb18030', ['chi', 'zho', 'zh']],
+    ['shift_jis', ['jpn', 'ja']],
+    ['euc-kr', ['kor', 'ko']],
+];
+
+function decodeSubtitles(buffer, lang) {
+    var bytes = new Uint8Array(buffer);
+    if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
+        return new TextDecoder('utf-16le').decode(bytes);
+    }
+    if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+        return new TextDecoder('utf-16be').decode(bytes);
+    }
+    try {
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (_error) {
+        var legacyEncoding = LEGACY_SUBTITLES_ENCODINGS.find(function(entry) {
+            return entry[1].includes(lang);
+        });
+        return new TextDecoder(legacyEncoding ? legacyEncoding[0] : 'windows-1252').decode(bytes);
+    }
+}
 
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
@@ -515,15 +547,18 @@ function withHTMLSubtitles(Video) {
                 return fetch(url)
                     .then(function(resp) {
                         if (resp.ok) {
-                            return resp.text();
+                            return resp.arrayBuffer();
                         }
 
                         throw new Error(resp.status + ' (' + resp.statusText + ')');
+                    })
+                    .then(function(buffer) {
+                        return decodeSubtitles(buffer, track.lang);
                     });
             }
             if (!isFallback && track.buffer instanceof ArrayBuffer) {
                 try {
-                    return Promise.resolve(new TextDecoder().decode(new Uint8Array(track.buffer)));
+                    return Promise.resolve(decodeSubtitles(track.buffer, track.lang));
                 } catch (error) {
                     return Promise.reject(error);
                 }
