@@ -152,6 +152,8 @@ function WebOsVideo(options) {
 
     var subtitlesTrackTimer = null;
 
+    var pendingAudioTrack = null;
+
     var mediaIdTimer = null;
 
     var activeMediaId = null;
@@ -242,6 +244,7 @@ function WebOsVideo(options) {
                 finishSourceStartup();
                 applyPendingSubtitlesToggle();
                 applyPendingSubtitlesTrack();
+                applyPendingAudioTrack();
                 return;
             }
             attempts++;
@@ -426,6 +429,7 @@ function WebOsVideo(options) {
         }), currentAudioTrack);
         onPropChanged('audioTracks');
         onPropChanged('selectedAudioTrackId');
+        applyPendingAudioTrack();
     }
 
     function retrieveExtendedTracks(activeStream) {
@@ -455,6 +459,7 @@ function WebOsVideo(options) {
                     }
                 }
                 applyPendingSubtitlesTrack();
+                applyPendingAudioTrack();
             });
         }
     }
@@ -738,6 +743,43 @@ function WebOsVideo(options) {
         });
     }
 
+    function applyPendingAudioTrack() {
+        var selection = pendingAudioTrack;
+        if (selection === null || selection.sent) {
+            return;
+        }
+        var selectedAudioTrack = audioTracks.find(function(track) {
+            return track.id === selection.id;
+        });
+        var mediaId = getActiveMediaId();
+        if (!selectedAudioTrack || !mediaId) {
+            return;
+        }
+        selection.sent = true;
+        luna({
+            method: 'selectTrack',
+            parameters: {
+                'type': 'audio',
+                'mediaId': mediaId,
+                'index': selectedAudioTrack.nativeIndex
+            }
+        }, function() {
+            if (pendingAudioTrack !== selection) {
+                return;
+            }
+            pendingAudioTrack = null;
+            currentAudioTrack = selection.id;
+            audioTracks = markShowing(audioTracks, currentAudioTrack);
+            events.emit('audioTrackLoaded', selectedAudioTrack);
+            onPropChanged('selectedAudioTrackId');
+        }, function() {
+            if (pendingAudioTrack === selection) {
+                pendingAudioTrack = null;
+                onPropChanged('selectedAudioTrackId');
+            }
+        });
+    }
+
     function setProp(propName, propValue) {
         switch (propName) {
             case 'paused': {
@@ -903,40 +945,10 @@ function WebOsVideo(options) {
                 break;
             }
             case 'selectedAudioTrackId': {
-                if ((propValue || '').indexOf('EMBEDDED_') === 0) {
-                    currentAudioTrack = propValue;
-                    var trackIndex = parseInt(propValue.replace('EMBEDDED_', ''));
-                    if (videoElement.mediaId) {
-                        luna({
-                            method: 'selectTrack',
-                            parameters: {
-                                'type': 'audio',
-                                'mediaId': videoElement.mediaId,
-                                'index': trackIndex
-                            }
-                        }, function() {
-                            var selectedAudioTrack = getProp('audioTracks')
-                                .find(function(track) {
-                                    return track.id === propValue;
-                                });
-
-                            audioTracks = markShowing(audioTracks, currentAudioTrack);
-                            if (selectedAudioTrack) {
-                                events.emit('audioTrackLoaded', selectedAudioTrack);
-                                onPropChanged('selectedAudioTrackId');
-                            }
-                        });
-                    }
-                    if (videoElement && videoElement.audioTracks) {
-                        for (var i = 0; i < videoElement.audioTracks.length; i++) {
-                            videoElement.audioTracks[i].enabled = false;
-                        }
-
-                        if(videoElement.audioTracks[trackIndex]) {
-                            videoElement.audioTracks[trackIndex].enabled = true;
-                        }
-                    }
-
+                pendingAudioTrack = null;
+                if ((propValue || '').indexOf('EMBEDDED_') === 0 && stream !== null) {
+                    pendingAudioTrack = { id: propValue, sent: false };
+                    applyPendingAudioTrack();
                 }
 
                 break;
@@ -1014,6 +1026,7 @@ function WebOsVideo(options) {
                 activeMediaId = null;
                 sourceStartupPending = false;
                 clearPendingSubtitlesTrack();
+                pendingAudioTrack = null;
                 pendingSubtitlesEnabled = null;
                 stream = null;
                 startTime = null;
