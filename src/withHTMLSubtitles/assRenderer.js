@@ -1,16 +1,6 @@
 var TARGET_FPS = 24;
 
-function loadLibass() {
-    return Promise.all([
-        import('@stremio/libass-wasm'),
-        import('@stremio/libass-wasm/dist/js/subtitles-octopus-assets')
-    ]).then(function(modules) {
-        return {
-            SubtitlesOctopus: modules[0].default || modules[0],
-            assets: modules[1].default || modules[1]
-        };
-    });
-}
+var libassPromise = null;
 
 function decodeBase64(base64) {
     var binary = atob(base64);
@@ -23,22 +13,45 @@ function decodeBase64(base64) {
     return bytes;
 }
 
-function createEmbeddedUrls(assets) {
-    return {
-        workerUrl: URL.createObjectURL(new Blob([assets.workerSource], { type: 'text/javascript' })),
-        legacyWorkerUrl: URL.createObjectURL(new Blob([assets.legacyWorkerSource], { type: 'text/javascript' })),
-        fallbackFont: URL.createObjectURL(new Blob([decodeBase64(assets.defaultFont)], { type: 'font/woff2' }))
-    };
+function createScriptUrl(source) {
+    return URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
 }
 
-function revokeEmbeddedUrls(urls) {
-    if (urls === null) {
-        return;
+function createWorkerOptions(assets) {
+    if (typeof WebAssembly !== 'object' || typeof WebAssembly.compile !== 'function') {
+        return Promise.resolve({ legacyWorkerUrl: createScriptUrl(assets.legacyWorkerSource) });
     }
 
-    URL.revokeObjectURL(urls.workerUrl);
-    URL.revokeObjectURL(urls.legacyWorkerUrl);
-    URL.revokeObjectURL(urls.fallbackFont);
+    var workerUrl = createScriptUrl(assets.workerSource);
+    var wasmBinary = decodeBase64(assets.wasmBinary);
+    return WebAssembly.compile(wasmBinary).then(function(wasmModule) {
+        return { workerUrl: workerUrl, wasmModule: wasmModule };
+    }, function() {
+        return { workerUrl: workerUrl, wasmBinary: wasmBinary };
+    });
+}
+
+function loadLibass() {
+    if (libassPromise === null) {
+        libassPromise = Promise.all([
+            import('@stremio/libass-wasm'),
+            import('@stremio/libass-wasm/dist/js/subtitles-octopus-assets')
+        ]).then(function(modules) {
+            var assets = modules[1].default || modules[1];
+            return createWorkerOptions(assets).then(function(workerOptions) {
+                return {
+                    SubtitlesOctopus: modules[0].default || modules[0],
+                    workerOptions: workerOptions,
+                    fallbackFont: URL.createObjectURL(new Blob([decodeBase64(assets.defaultFont)], { type: 'font/woff2' }))
+                };
+            });
+        }).catch(function(error) {
+            libassPromise = null;
+            throw error;
+        });
+    }
+
+    return libassPromise;
 }
 
 function getContentRect(containerElement) {
@@ -87,7 +100,6 @@ function createASSRenderer(options) {
     var instance = null;
     var instanceReady = false;
     var canvas = null;
-    var embeddedUrls = null;
     var resizeObserver = null;
     var resizeRafId = null;
     var pendingReady = null;
@@ -128,8 +140,6 @@ function createASSRenderer(options) {
             containerElement.removeChild(canvas);
         }
         canvas = null;
-        revokeEmbeddedUrls(embeddedUrls);
-        embeddedUrls = null;
         activeTrack = null;
         instanceReady = false;
         lastSentTime = null;
@@ -209,7 +219,6 @@ function createASSRenderer(options) {
     }
 
     function createInstance(libass, subtitleText, track, currentRequestId) {
-        embeddedUrls = createEmbeddedUrls(libass.assets);
         canvas = document.createElement('canvas');
         canvas.style.position = 'absolute';
         canvas.style.display = 'block';
@@ -222,14 +231,12 @@ function createASSRenderer(options) {
             pendingReady = { resolve: resolve, reject: reject };
 
             try {
-                createdInstance = new libass.SubtitlesOctopus({
+                createdInstance = new libass.SubtitlesOctopus(Object.assign({}, libass.workerOptions, {
                     canvas: canvas,
                     subContent: subtitleText,
-                    workerUrl: embeddedUrls.workerUrl,
-                    legacyWorkerUrl: embeddedUrls.legacyWorkerUrl,
-                    fallbackFont: embeddedUrls.fallbackFont,
+                    fallbackFont: libass.fallbackFont,
                     // Register the fallback family with fontconfig as well as libass.
-                    fonts: [embeddedUrls.fallbackFont].concat(Array.isArray(track.fonts) ? track.fonts : options.fonts || []),
+                    fonts: [libass.fallbackFont].concat(Array.isArray(track.fonts) ? track.fonts : options.fonts || []),
                     availableFonts: track.availableFonts || options.availableFonts || {},
                     renderMode: 'wasm-blend',
                     targetFps: TARGET_FPS,
@@ -262,7 +269,7 @@ function createASSRenderer(options) {
                             options.onError(error, failedTrack);
                         }
                     }
-                });
+                }));
                 if (currentRequestId !== requestId) {
                     createdInstance.dispose();
                     finishPending(null);
@@ -308,6 +315,10 @@ function createASSRenderer(options) {
         return Promise.resolve();
     }
 
+    function preload() {
+        loadLibass().catch(function() {});
+    }
+
     function setDelay(value) {
         delay = value !== null && isFinite(value) ? parseInt(value, 10) : 0;
         sendTime(true);
@@ -345,6 +356,7 @@ function createASSRenderer(options) {
     return {
         load: load,
         destroy: destroy,
+        preload: preload,
         setDelay: setDelay,
         setTime: setTime,
         setTrack: setTrack,
