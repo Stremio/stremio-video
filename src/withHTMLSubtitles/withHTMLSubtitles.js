@@ -1249,6 +1249,9 @@ function withHTMLSubtitles(Video) {
                 case 'addEmbeddedASSSources': {
                     if (assSubtitlesStylingEnabled && commandArgs && Array.isArray(commandArgs.sources)) {
                         embeddedASSSources = embeddedASSSources.concat(commandArgs.sources);
+                        if (embeddedASSSources.length > 0) {
+                            assRenderer.preload();
+                        }
                         onPropChanged('subtitlesTracks');
                         var selectedNativeTrack = videoSubtitleTracks.find(function(track) {
                             return track.id === videoSelectedSubtitlesTrackId;
@@ -1279,6 +1282,9 @@ function withHTMLSubtitles(Video) {
                                     });
                             });
                         onPropChanged('extraSubtitlesTracks');
+                        if (assSubtitlesStylingEnabled && tracks.some(function(track) { return track.ass; })) {
+                            assRenderer.preload();
+                        }
                     }
 
                     return true;
