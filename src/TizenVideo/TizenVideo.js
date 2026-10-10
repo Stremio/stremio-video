@@ -241,6 +241,7 @@ function TizenVideo(options) {
                         } catch(_e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
                         var textTrackLabel = null;
+                        var textTrackNumber = null;
                         if (((tracksData || {}).subs || []).length) {
                             var extendedTrackData = tracksData.subs.find(function(el) {
                                 return (el || {}).id-1 === textTrack.index;
@@ -248,6 +249,7 @@ function TizenVideo(options) {
                             if (extendedTrackData) {
                                 textTrackLang = extendedTrackData.lang || 'eng';
                                 textTrackLabel = extendedTrackData.label || null;
+                                textTrackNumber = extendedTrackData.id;
                             }
                         }
                         textTracks.push({
@@ -257,6 +259,7 @@ function TizenVideo(options) {
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: !disabledSubs && textTrackId === currentSubTrack ? 'showing' : 'disabled',
+                            _trackNumber: textTrackNumber,
                         });
                     }
                 }

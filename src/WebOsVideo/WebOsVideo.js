@@ -404,7 +404,7 @@ function WebOsVideo(options) {
         return tracks.filter(function(track) {
             return !unsupported.includes(track.codec || '');
         }).map(function(track, index) {
-            return embeddedTrack(index, track.lang, track.label);
+            return Object.assign(embeddedTrack(index, track.lang, track.label), { _trackNumber: track.id });
         });
     }
 
