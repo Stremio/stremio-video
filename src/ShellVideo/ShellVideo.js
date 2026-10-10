@@ -292,13 +292,18 @@ function ShellVideo(options) {
                 props.subtitlesTracks = args.data
                     .filter(function(x) { return x.type === 'sub'; })
                     .map(function(x, index) {
+                        var codec = typeof x.codec === 'string' ? x.codec.toLowerCase() : null;
                         return {
                             id: 'EMBEDDED_' + x.id,
                             lang: x.lang === undefined ? 'Track ' + (index + 1) : x.lang,
-                            label: x.title === undefined || x.lang === undefined ? '' : x.title || x.lang,
+                            label: x.title || x.lang || '',
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: x.id === props.sid ? 'showing' : 'disabled',
+                            ass: codec === 'ass' || codec === 'ssa',
+                            nativeExternal: x.external === true,
+                            nativeExternalFilename: x['external-filename'],
+                            nativeExternalTitle: x.title,
                         };
                     });
                 onPropChanged('subtitlesTracks');
@@ -409,14 +414,17 @@ function ShellVideo(options) {
                         case 'cover':
                             ipc.send('mpv-set-prop', ['keepaspect', true]);
                             ipc.send('mpv-set-prop', ['panscan', 1.0]);
+                            ipc.send('mpv-set-prop', ['sub-ass-force-margins', true]);
                             break;
                         case 'fill':
                             ipc.send('mpv-set-prop', ['keepaspect', false]);
                             ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
                             break;
                         default:
                             ipc.send('mpv-set-prop', ['keepaspect', true]);
                             ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
                             break;
                     }
                     props.videoScale = propValue;
@@ -591,6 +599,7 @@ function ShellVideo(options) {
                 ipc.send('mpv-command', ['stop']);
                 ipc.send('mpv-set-prop', ['keepaspect', true]);
                 ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
                 onPropChanged('loaded');
                 onPropChanged('stream');
                 onPropChanged('paused');

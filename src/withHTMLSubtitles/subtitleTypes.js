@@ -70,6 +70,7 @@ function shouldUseASSFallback(track, preferASS) {
     return preferASS === true &&
         track !== null &&
         typeof track === 'object' &&
+        !hasASSExtension(track.url) &&
         hasASSExtension(track.fallbackUrl);
 }
 

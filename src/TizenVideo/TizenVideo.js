@@ -241,6 +241,7 @@ function TizenVideo(options) {
                         } catch(_e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
                         var textTrackLabel = null;
+                        var textTrackNumber = null;
                         if (((tracksData || {}).subs || []).length) {
                             var extendedTrackData = tracksData.subs.find(function(el) {
                                 return (el || {}).id-1 === textTrack.index;
@@ -248,6 +249,7 @@ function TizenVideo(options) {
                             if (extendedTrackData) {
                                 textTrackLang = extendedTrackData.lang || 'eng';
                                 textTrackLabel = extendedTrackData.label || null;
+                                textTrackNumber = extendedTrackData.id;
                             }
                         }
                         textTracks.push({
@@ -257,6 +259,7 @@ function TizenVideo(options) {
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: !disabledSubs && textTrackId === currentSubTrack ? 'showing' : 'disabled',
+                            _trackNumber: textTrackNumber,
                         });
                     }
                 }
@@ -439,6 +442,7 @@ function TizenVideo(options) {
                 }
 
                 onPropChanged('paused');
+                if (stream !== null) onPropChanged('time');
 
                 // the paused state is usually correct, but i have seen it not change on tizen 3
                 // which causes all kinds of issues in the UI: (only happens with some videos)
@@ -454,9 +458,12 @@ function TizenVideo(options) {
             }
             case 'time': {
                 if (stream !== null && propValue !== null && isFinite(propValue)) {
-                    AVPlay.seekTo(parseInt(propValue, 10));
+                    AVPlay.seekTo(parseInt(propValue, 10), function() {
+                        if (!destroyed && stream !== null) {
+                            onPropChanged('time');
+                        }
+                    });
                     renderSubtitle(1, '');
-                    onPropChanged('time');
                 }
 
                 break;

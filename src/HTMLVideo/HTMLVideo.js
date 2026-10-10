@@ -40,9 +40,14 @@ function HTMLVideo(options) {
     videoElement.ontimeupdate = function() {
         onPropChanged('time');
         onPropChanged('buffered');
+        onPropChanged('live');
     };
     videoElement.ondurationchange = function() {
         onPropChanged('duration');
+        onPropChanged('live');
+    };
+    videoElement.onprogress = function() {
+        onPropChanged('live');
     };
     videoElement.onwaiting = function() {
         onPropChanged('buffering');
@@ -107,6 +112,7 @@ function HTMLVideo(options) {
     videoElement.addEventListener('fullscreenchange', onFullscreenChanged);
 
     var hls = null;
+    var liveDetails = null;
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
@@ -118,6 +124,7 @@ function HTMLVideo(options) {
         paused: false,
         time: false,
         duration: false,
+        live: false,
         buffering: false,
         buffered: false,
         subtitlesTracks: false,
@@ -169,6 +176,27 @@ function HTMLVideo(options) {
 
                 return Math.floor(videoElement.duration * 1000);
             }
+            case 'live': {
+                if (stream === null || (hls !== null ? !liveDetails || !liveDetails.live : videoElement.duration !== Infinity)) {
+                    return null;
+                }
+
+                // All values use milliseconds. The end is a safe live playback target,
+                // rather than the changing media duration or the last segment's end.
+                var targetDuration = liveDetails ? liveDetails.targetduration : 3;
+                var range = videoElement.seekable.length - 1;
+                var start = range >= 0 ? videoElement.seekable.start(range) : null;
+                var end = range >= 0 ? videoElement.seekable.end(range) : null;
+                if (start !== null && liveDetails && liveDetails.fragments.length > 0) {
+                    start = Math.max(start, liveDetails.fragments[0].start);
+                }
+                var target = hls !== null ? hls.liveSyncPosition : end !== null ? end - targetDuration : null;
+                return Object.freeze({
+                    start: start !== null ? Math.floor(start * 1000) : null,
+                    end: target !== null && isFinite(target) && end !== null ? Math.floor(Math.max(start, Math.min(end, target)) * 1000) : null,
+                    tolerance: Math.max(1000, Math.floor(2 * targetDuration * 1000))
+                });
+            }
             case 'buffering': {
                 if (stream === null) {
                     return null;
@@ -195,6 +223,19 @@ function HTMLVideo(options) {
                     return [];
                 }
 
+                if (hls !== null && Array.isArray(hls.subtitleTracks)) {
+                    return hls.subtitleTracks.map(function(track, index) {
+                        return Object.freeze({
+                            id: 'EMBEDDED_' + String(index),
+                            lang: typeof track.lang === 'string' && track.lang.length > 0 ? track.lang : '',
+                            label: typeof track.name === 'string' && track.name.length > 0 ? track.name : null,
+                            origin: 'EMBEDDED',
+                            embedded: true,
+                            _hlsSubtitlePlaylistURL: typeof track.url === 'string' ? track.url : null
+                        });
+                    });
+                }
+
                 return Array.from(videoElement.textTracks)
                     .map(function(track, index) {
                         return Object.freeze({
@@ -209,6 +250,10 @@ function HTMLVideo(options) {
             case 'selectedSubtitlesTrackId': {
                 if (stream === null) {
                     return null;
+                }
+
+                if (hls !== null) {
+                    return hls.subtitleTrack >= 0 ? 'EMBEDDED_' + String(hls.subtitleTrack) : null;
                 }
 
                 return Array.from(videoElement.textTracks)
@@ -422,10 +467,17 @@ function HTMLVideo(options) {
             }
             case 'selectedSubtitlesTrackId': {
                 if (stream !== null) {
-                    Array.from(videoElement.textTracks)
-                        .forEach(function(track, index) {
-                            track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                    if (hls !== null) {
+                        var selectedIndex = getProp('subtitlesTracks').findIndex(function(track) {
+                            return track.id === propValue;
                         });
+                        hls.subtitleTrack = selectedIndex;
+                    } else {
+                        Array.from(videoElement.textTracks)
+                            .forEach(function(track, index) {
+                                track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                            });
+                    }
                     var selecterdSubtitlesTrack = getProp('subtitlesTracks')
                         .find(function(track) {
                             return track.id === propValue;
@@ -611,6 +663,12 @@ function HTMLVideo(options) {
 
                             if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
                                 hls = new Hls(HLS_CONFIG);
+                                var activeHls = hls;
+                                hls.on(Hls.Events.LEVEL_UPDATED, function(_event, data) {
+                                    if (hls !== activeHls) return;
+                                    liveDetails = data.details;
+                                    onPropChanged('live');
+                                });
                                 hls.on(Hls.Events.ERROR, function(_event, data) {
                                     if (!data.fatal) {
                                         return;
@@ -634,6 +692,17 @@ function HTMLVideo(options) {
                                 hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
+                                });
+                                hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, function() {
+                                    onPropChanged('subtitlesTracks');
+                                    onPropChanged('selectedSubtitlesTrackId');
+                                });
+                                hls.on(Hls.Events.SUBTITLE_TRACKS_CLEARED, function() {
+                                    onPropChanged('subtitlesTracks');
+                                    onPropChanged('selectedSubtitlesTrackId');
+                                });
+                                hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, function() {
+                                    onPropChanged('selectedSubtitlesTrackId');
                                 });
                                 hls.on(Hls.Events.MANIFEST_LOADING, function() {
                                     hls.subtitleTrack = -1;
@@ -661,6 +730,7 @@ function HTMLVideo(options) {
             }
             case 'unload': {
                 stream = null;
+                liveDetails = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;
                 });
@@ -679,6 +749,7 @@ function HTMLVideo(options) {
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
+                onPropChanged('live');
                 onPropChanged('buffering');
                 onPropChanged('buffered');
                 onPropChanged('subtitlesTracks');
@@ -708,6 +779,7 @@ function HTMLVideo(options) {
                 videoElement.onplay = null;
                 videoElement.ontimeupdate = null;
                 videoElement.ondurationchange = null;
+                videoElement.onprogress = null;
                 videoElement.onwaiting = null;
                 videoElement.onseeking = null;
                 videoElement.onseeked = null;
@@ -781,7 +853,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'live', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
