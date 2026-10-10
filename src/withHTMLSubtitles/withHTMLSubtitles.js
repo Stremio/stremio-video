@@ -45,6 +45,10 @@ function decodeSubtitles(buffer, lang) {
     }
 }
 
+function getOriginalUrl(track) {
+    return typeof track.fallbackUrl === 'string' ? track.fallbackUrl : track.url;
+}
+
 function withHTMLSubtitles(Video) {
     function VideoWithHTMLSubtitles(options) {
         options = options || {};
@@ -1270,7 +1274,9 @@ function withHTMLSubtitles(Video) {
                                     typeof track.label === 'string' &&
                                     typeof track.origin === 'string' &&
                                     !track.embedded &&
-                                    index === tracks.findIndex(function(t) { return t.id === track.id; });
+                                    index === tracks.findIndex(function(t) {
+                                        return t.id === track.id || (typeof track.url === 'string' && getOriginalUrl(t) === getOriginalUrl(track));
+                                    });
                             });
                         onPropChanged('extraSubtitlesTracks');
                     }
