@@ -9,6 +9,8 @@ var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
 var subtitleTypes = require('./subtitleTypes');
 var createASSRenderer = require('./assRenderer');
+var createCanvasASSRenderer = require('./canvasASSRenderer');
+var usesCanvasASS = require('./usesCanvasASS');
 
 const PREVIEW_INTERVAL = 300000;
 const NATIVE_ASS_TIMEOUT = 10000;
@@ -70,10 +72,8 @@ function withHTMLSubtitles(Video) {
             throw new Error('Container element required to be instance of HTMLElement');
         }
 
-        var assRenderer = createASSRenderer({
+        var assRenderer = (usesCanvasASS() ? createCanvasASSRenderer : createASSRenderer)({
             containerElement: containerElement,
-            useWorkerClock: ['TizenVideo', 'WebOsVideo'].includes(Video.manifest.name),
-            maxRenderHeight: ['TizenVideo', 'WebOsVideo'].includes(Video.manifest.name) ? 720 : null,
             onError: function(error, track) {
                 if (track && track.id === selectedEmbeddedASSTrackId) {
                     fallbackFromEmbeddedASS(error, track);
@@ -387,9 +387,6 @@ function withHTMLSubtitles(Video) {
                 }
             }
 
-            if (['paused', 'buffering', 'playbackSpeed'].includes(propName)) {
-                assRenderer.setPlaybackState(videoState.paused || videoState.buffering, videoState.playbackSpeed);
-            }
             events.emit(eventName, propName, getProp(propName, propValue));
 
             if (propName === 'selectedSubtitlesTrackId' && propValue !== null && selectedTrackId !== null && nativeTextTrack === null && !isNativeASSSelection(propValue)) {
@@ -1303,6 +1300,17 @@ function withHTMLSubtitles(Video) {
                     }
                     return true;
                 }
+                case 'addEmbeddedASSFonts': {
+                    if (commandArgs && Array.isArray(commandArgs.fonts)) {
+                        embeddedASSSources = embeddedASSSources.map(function(source) {
+                            return source.windowed ? Object.assign({}, source, { fonts: commandArgs.fonts }) : source;
+                        });
+                        if (embeddedASSWindow !== null && !embeddedASSWindow.plain) {
+                            assRenderer.addFonts(commandArgs.fonts);
+                        }
+                    }
+                    return true;
+                }
                 case 'addExtraSubtitlesTracks': {
                     if (commandArgs && Array.isArray(commandArgs.tracks)) {
                         tracks = tracks
@@ -1488,7 +1496,7 @@ function withHTMLSubtitles(Video) {
         external: Video.manifest.external,
         props: Video.manifest.props.concat(['subtitlesOffsetMinimum', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview', 'assSubtitlesStylingActive'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles', 'addEmbeddedASSSources'])
+        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles', 'addEmbeddedASSSources', 'addEmbeddedASSFonts'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         events: Video.manifest.events.concat(['propValue', 'propChanged', 'error', 'extraSubtitlesTrackLoaded', 'extraSubtitlesTrackAdded'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })
