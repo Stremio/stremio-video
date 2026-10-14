@@ -457,7 +457,8 @@ function withHTMLSubtitles(Video) {
         }
         function getPublicSubtitleTrack(track) {
             var publicTrack = Object.assign({}, track);
-            if (assSubtitlesStylingEnabled && getEmbeddedASSSource(track) !== null) {
+            var source = getEmbeddedASSSource(track);
+            if (source !== null && (assSubtitlesStylingEnabled || source.windowed !== true)) {
                 publicTrack.ass = true;
             }
             delete publicTrack.nativeExternal;
