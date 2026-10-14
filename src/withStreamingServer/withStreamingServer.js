@@ -340,7 +340,7 @@ function withStreamingServer(Video) {
                                 loaded = true;
                                 flushActionsQueue();
 
-                                if (commandArgs.assSubtitlesStyling === true && ['Tizen', 'webOS'].includes(commandArgs.platform) && result.stream.url === result.mediaURL) {
+                                if (['Tizen', 'webOS'].includes(commandArgs.platform) && result.stream.url === result.mediaURL) {
                                     var sourceQuery = new URLSearchParams([['mediaURL', result.mediaURL]]).toString();
                                     var sourceBase = url.resolve(commandArgs.streamingServerURL, '/embedded-ass');
                                     embeddedASSDiscovery = typeof AbortController === 'function' ? new AbortController() : null;
