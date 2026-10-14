@@ -52,7 +52,7 @@ function selectVideoImplementation(commandArgs, options) {
         return withStreamingServer(withHTMLSubtitles(HTMLVideo));
     }
 
-    if (typeof commandArgs.stream.url === 'string') {
+    if (typeof commandArgs.stream.url === 'string' && commandArgs.stream.url.indexOf('magnet:') !== 0) {
         if (commandArgs.platform === 'Tizen') {
             return withVideoParams(withHTMLSubtitles(TizenVideo));
         }
