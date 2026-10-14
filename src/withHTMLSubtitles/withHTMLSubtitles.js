@@ -9,6 +9,8 @@ var subtitlesRenderer = require('./subtitlesRenderer');
 var subtitlesConverter = require('./subtitlesConverter');
 var subtitleTypes = require('./subtitleTypes');
 var createASSRenderer = require('./assRenderer');
+var createCanvasASSRenderer = require('./canvasASSRenderer');
+var usesCanvasASS = require('./usesCanvasASS');
 
 const PREVIEW_INTERVAL = 300000;
 const NATIVE_ASS_TIMEOUT = 10000;
@@ -70,10 +72,8 @@ function withHTMLSubtitles(Video) {
             throw new Error('Container element required to be instance of HTMLElement');
         }
 
-        var assRenderer = createASSRenderer({
+        var assRenderer = (usesCanvasASS() ? createCanvasASSRenderer : createASSRenderer)({
             containerElement: containerElement,
-            useWorkerClock: ['TizenVideo', 'WebOsVideo'].includes(Video.manifest.name),
-            maxRenderHeight: ['TizenVideo', 'WebOsVideo'].includes(Video.manifest.name) ? 720 : null,
             onError: function(error, track) {
                 if (track && track.id === selectedEmbeddedASSTrackId) {
                     fallbackFromEmbeddedASS(error, track);
@@ -387,9 +387,6 @@ function withHTMLSubtitles(Video) {
                 }
             }
 
-            if (['paused', 'buffering', 'playbackSpeed'].includes(propName)) {
-                assRenderer.setPlaybackState(videoState.paused || videoState.buffering, videoState.playbackSpeed);
-            }
             events.emit(eventName, propName, getProp(propName, propValue));
 
             if (propName === 'selectedSubtitlesTrackId' && propValue !== null && selectedTrackId !== null && nativeTextTrack === null && !isNativeASSSelection(propValue)) {
