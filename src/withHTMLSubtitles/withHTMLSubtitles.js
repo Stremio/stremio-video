@@ -655,13 +655,8 @@ function withHTMLSubtitles(Video) {
             }
 
             var trackId = selectedEmbeddedASSTrackId;
-            var plain = embeddedASSWindow !== null && embeddedASSWindow.plain === true;
             reportSubtitleError(error, getPublicSubtitleTrack(track));
             clearEmbeddedASS();
-            if (plain) {
-                onPropChanged('selectedSubtitlesTrackId');
-                return;
-            }
             video.dispatch({
                 type: 'setProp',
                 propName: 'selectedSubtitlesTrackId',
