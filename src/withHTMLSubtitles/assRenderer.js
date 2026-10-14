@@ -1,3 +1,5 @@
+var getContentRect = require('./getContentRect');
+
 var TARGET_FPS = 24;
 
 var libassPromise = null;
@@ -54,41 +56,6 @@ function loadLibass() {
     return libassPromise;
 }
 
-function getContentRect(containerElement) {
-    var containerRect = containerElement.getBoundingClientRect();
-    var videoElement = containerElement.querySelector('video');
-    if (!(videoElement instanceof HTMLVideoElement) || !videoElement.videoWidth || !videoElement.videoHeight) {
-        return { left: 0, top: 0, width: containerRect.width, height: containerRect.height };
-    }
-
-    var videoRect = videoElement.getBoundingClientRect();
-    var objectFit = window.getComputedStyle(videoElement).objectFit || 'contain';
-    var left = videoRect.left - containerRect.left;
-    var top = videoRect.top - containerRect.top;
-    if (objectFit === 'fill') {
-        return { left: left, top: top, width: videoRect.width, height: videoRect.height };
-    }
-
-    var containScale = Math.min(videoRect.width / videoElement.videoWidth, videoRect.height / videoElement.videoHeight);
-    var scale = objectFit === 'cover' ?
-        Math.max(videoRect.width / videoElement.videoWidth, videoRect.height / videoElement.videoHeight) :
-        containScale;
-    if (objectFit === 'none') {
-        scale = 1;
-    } else if (objectFit === 'scale-down') {
-        scale = Math.min(1, containScale);
-    }
-
-    var width = videoElement.videoWidth * scale;
-    var height = videoElement.videoHeight * scale;
-    return {
-        left: left + (videoRect.width - width) / 2,
-        top: top + (videoRect.height - height) / 2,
-        width: width,
-        height: height
-    };
-}
-
 function createASSRenderer(options) {
     options = options || {};
 
@@ -110,8 +77,6 @@ function createASSRenderer(options) {
     var lastTime = null;
     var lastSentTime = null;
     var lastSentAt = 0;
-    var paused = true;
-    var playbackSpeed = 1;
 
     function finishPending(value, error) {
         var pending = pendingReady;
@@ -186,10 +151,6 @@ function createASSRenderer(options) {
         var pixelRatio = window.devicePixelRatio || 1;
         var width = Math.max(1, Math.floor(rect.width * pixelRatio));
         var height = Math.max(1, Math.floor(rect.height * pixelRatio));
-        if (options.maxRenderHeight && height > options.maxRenderHeight) {
-            width = Math.max(1, Math.floor(width * options.maxRenderHeight / height));
-            height = options.maxRenderHeight;
-        }
         if (canvas.width !== width || canvas.height !== height) {
             instance.resize(width, height, 0, 0);
         }
@@ -208,7 +169,7 @@ function createASSRenderer(options) {
 
         var currentTime = Math.max(0, (lastTime - delay) / 1000);
         var now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        var interval = options.useWorkerClock ? 500 : 1000 / TARGET_FPS;
+        var interval = 1000 / TARGET_FPS;
         if (!force && (currentTime === lastSentTime || now - lastSentAt < interval)) {
             return;
         }
@@ -248,10 +209,6 @@ function createASSRenderer(options) {
                         instanceReady = true;
                         syncLayout();
                         sendTime(true);
-                        if (options.useWorkerClock) {
-                            instance.setRate(playbackSpeed);
-                            instance.setIsPaused(paused);
-                        }
                         finishPending(track);
                     },
                     onError: function(error) {
@@ -344,15 +301,6 @@ function createASSRenderer(options) {
         sendTime(true);
     }
 
-    function setPlaybackState(nextPaused, nextSpeed) {
-        if (instance !== null && instanceReady && options.useWorkerClock) {
-            if (playbackSpeed !== nextSpeed) instance.setRate(nextSpeed);
-            if (paused !== nextPaused) instance.setIsPaused(nextPaused);
-        }
-        paused = nextPaused;
-        playbackSpeed = nextSpeed;
-    }
-
     return {
         load: load,
         destroy: destroy,
@@ -360,7 +308,6 @@ function createASSRenderer(options) {
         setDelay: setDelay,
         setTime: setTime,
         setTrack: setTrack,
-        setPlaybackState: setPlaybackState,
         setOpacity: setOpacity
     };
 }
