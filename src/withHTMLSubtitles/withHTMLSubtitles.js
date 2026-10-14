@@ -1300,6 +1300,17 @@ function withHTMLSubtitles(Video) {
                     }
                     return true;
                 }
+                case 'addEmbeddedASSFonts': {
+                    if (commandArgs && Array.isArray(commandArgs.fonts)) {
+                        embeddedASSSources = embeddedASSSources.map(function(source) {
+                            return source.windowed ? Object.assign({}, source, { fonts: commandArgs.fonts }) : source;
+                        });
+                        if (embeddedASSWindow !== null && !embeddedASSWindow.plain) {
+                            assRenderer.addFonts(commandArgs.fonts);
+                        }
+                    }
+                    return true;
+                }
                 case 'addExtraSubtitlesTracks': {
                     if (commandArgs && Array.isArray(commandArgs.tracks)) {
                         tracks = tracks
@@ -1485,7 +1496,7 @@ function withHTMLSubtitles(Video) {
         external: Video.manifest.external,
         props: Video.manifest.props.concat(['subtitlesOffsetMinimum', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview', 'assSubtitlesStylingActive'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
-        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles', 'addEmbeddedASSSources'])
+        commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles', 'addEmbeddedASSSources', 'addEmbeddedASSFonts'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         events: Video.manifest.events.concat(['propValue', 'propChanged', 'error', 'extraSubtitlesTrackLoaded', 'extraSubtitlesTrackAdded'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; })

@@ -7,6 +7,7 @@ var mediaCapabilities = require('../mediaCapabilities');
 var convertStream = require('./convertStream');
 var buildProxyUrl = require('./buildProxyUrl');
 var subtitleTypes = require('../withHTMLSubtitles/subtitleTypes');
+var usesCanvasASS = require('../withHTMLSubtitles/usesCanvasASS');
 var fetchVideoParams = require('./fetchVideoParams');
 var isPlayerLoaded = require('./isPlayerLoaded');
 var supportsTranscoding = require('../supportsTranscoding');
@@ -344,16 +345,18 @@ function withStreamingServer(Video) {
                                     var sourceQuery = new URLSearchParams([['mediaURL', result.mediaURL]]).toString();
                                     var sourceBase = url.resolve(commandArgs.streamingServerURL, '/embedded-ass');
                                     embeddedASSDiscovery = typeof AbortController === 'function' ? new AbortController() : null;
-                                    fetch(sourceBase + '?' + sourceQuery, embeddedASSDiscovery ? { signal: embeddedASSDiscovery.signal } : {})
+                                    var fetchOptions = embeddedASSDiscovery ? { signal: embeddedASSDiscovery.signal } : {};
+                                    var getFontURL = function(font) {
+                                        return sourceBase + '/font/' + font.id + '?' + sourceQuery;
+                                    };
+                                    fetch(sourceBase + '?' + sourceQuery + (usesCanvasASS() ? '&deferFonts=1' : ''), fetchOptions)
                                         .then(function(response) {
                                             if (!response.ok) throw new Error('Embedded ASS discovery unavailable');
                                             return response.json();
                                         })
                                         .then(function(metadata) {
                                             if (commandArgs !== loadArgs || !Array.isArray(metadata.tracks)) return;
-                                            var fonts = (metadata.fonts || []).map(function(font) {
-                                                return sourceBase + '/font/' + font.id + '?' + sourceQuery;
-                                            });
+                                            var fonts = (metadata.fonts || []).map(getFontURL);
                                             video.dispatch({ type: 'command', commandName: 'addEmbeddedASSSources', commandArgs: {
                                                 sources: metadata.tracks.map(function(track) {
                                                     return { trackId: 'EMBEDDED_ASS_' + track.number, codec: track.codec,
@@ -361,6 +364,18 @@ function withStreamingServer(Video) {
                                                         url: sourceBase + '/' + track.number + '.ass?' + sourceQuery };
                                                 })
                                             } });
+                                            if (metadata.fonts !== null || metadata.tracks.length === 0) return;
+                                            return fetch(sourceBase + '/fonts?' + sourceQuery, fetchOptions)
+                                                .then(function(response) {
+                                                    if (!response.ok) throw new Error('Embedded ASS fonts unavailable');
+                                                    return response.json();
+                                                })
+                                                .then(function(deferredFonts) {
+                                                    if (commandArgs !== loadArgs || !Array.isArray(deferredFonts)) return;
+                                                    video.dispatch({ type: 'command', commandName: 'addEmbeddedASSFonts', commandArgs: {
+                                                        fonts: deferredFonts.map(getFontURL)
+                                                    } });
+                                                });
                                         }).catch(function() {});
                                 }
 
