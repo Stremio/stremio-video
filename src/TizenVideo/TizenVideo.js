@@ -347,6 +347,10 @@ function TizenVideo(options) {
                             extra = JSON.parse(audioTrack.extra_info);
                         } catch(_e) {}
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
+                        // AVPlay on Tizen 5.5 reports Spanish (spa) audio as esa.
+                        if (audioTrackLang === 'esa') {
+                            audioTrackLang = 'spa';
+                        }
                         var audioTrackLabel = null;
                         if (((tracksData || {}).audio || []).length) {
                             var extendedTrackData = tracksData.audio.find(function(el) {
