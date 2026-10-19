@@ -14,6 +14,7 @@ var usesCanvasASS = require('./usesCanvasASS');
 
 const PREVIEW_INTERVAL = 300000;
 const NATIVE_ASS_TIMEOUT = 10000;
+const MAX_TIME_JITTER = 500;
 const LEGACY_SUBTITLES_ENCODINGS = [
     ['windows-1250', ['pol', 'cze', 'ces', 'slo', 'slk', 'hun', 'hrv', 'slv', 'rum', 'ron', 'bos', 'alb', 'sqi', 'pl', 'cs', 'sk', 'hu', 'hr', 'sl', 'ro', 'bs', 'sq']],
     ['windows-1251', ['rus', 'ukr', 'bul', 'srp', 'mac', 'mkd', 'bel', 'ru', 'uk', 'bg', 'sr', 'mk', 'be']],
@@ -159,6 +160,7 @@ function withHTMLSubtitles(Video) {
             paused: false,
             buffering: false,
             lastSyncAt: null,
+            minTime: -Infinity,
             playbackSpeed: 1
         };
         var rafId = null;
@@ -237,7 +239,7 @@ function withHTMLSubtitles(Video) {
             if (videoState.paused || videoState.buffering || videoState.lastSyncAt === null) {
                 return videoState.time;
             }
-            return videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
+            return Math.max(videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed, videoState.minTime);
         }
         function startRenderLoop() {
             if (rafId !== null) {
@@ -331,10 +333,14 @@ function withHTMLSubtitles(Video) {
         function onVideoPropEvent(eventName, propName, propValue) {
             switch (propName) {
                 case 'time': {
+                    var extrapolatedTime = getCurrentTime();
+                    var timeBehind = extrapolatedTime - propValue;
+                    var isTimeJitter = !videoState.paused && !videoState.buffering && propValue !== null && extrapolatedTime !== null && timeBehind > 0 && timeBehind < MAX_TIME_JITTER;
+                    videoState.minTime = isTimeJitter ? extrapolatedTime : -Infinity;
                     videoState.time = propValue;
                     videoState.lastSyncAt = Date.now();
                     if (usingASSRenderer) {
-                        assRenderer.setTime(propValue, true);
+                        assRenderer.setTime(getCurrentTime(), true);
                     }
                     if (embeddedASSWindow) {
                         updateEmbeddedASSWindow(propValue);
@@ -357,7 +363,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'paused': {
                     if (propValue && !videoState.paused && !videoState.buffering && videoState.lastSyncAt !== null && videoState.time !== null) {
-                        videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
+                        videoState.time = getCurrentTime();
                         videoState.lastSyncAt = Date.now();
                     } else if (!propValue && videoState.paused) {
                         videoState.lastSyncAt = Date.now();
@@ -367,7 +373,7 @@ function withHTMLSubtitles(Video) {
                 }
                 case 'buffering': {
                     if (propValue && !videoState.buffering && !videoState.paused && videoState.lastSyncAt !== null && videoState.time !== null) {
-                        videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
+                        videoState.time = getCurrentTime();
                         videoState.lastSyncAt = Date.now();
                     } else if (!propValue && videoState.buffering) {
                         videoState.lastSyncAt = Date.now();
@@ -378,7 +384,7 @@ function withHTMLSubtitles(Video) {
                 case 'playbackSpeed': {
                     if (propValue !== null && isFinite(propValue)) {
                         if (!videoState.paused && !videoState.buffering && videoState.lastSyncAt !== null && videoState.time !== null) {
-                            videoState.time = videoState.time + (Date.now() - videoState.lastSyncAt) * videoState.playbackSpeed;
+                            videoState.time = getCurrentTime();
                             videoState.lastSyncAt = Date.now();
                         }
                         videoState.playbackSpeed = propValue;
