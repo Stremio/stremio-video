@@ -36,7 +36,14 @@ function StremioVideo() {
                 }
                 if (video === null) {
                     if (Video === null) {
-                        events.emit('error', Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
+                        var stream = action.commandArgs.stream;
+                        var requiresServer = stream && typeof stream.externalUrl !== 'string' && (
+                            typeof stream.infoHash === 'string' ||
+                            (typeof stream.url === 'string' && stream.url.indexOf('magnet:') === 0)
+                        );
+                        var errorDefinition = requiresServer && typeof action.commandArgs.streamingServerURL !== 'string' ?
+                            ERROR.WITH_STREAMING_SERVER.UNAVAILABLE : ERROR.UNSUPPORTED_STREAM;
+                        events.emit('error', Object.assign({}, errorDefinition, {
                             error: new Error('No video implementation was selected'),
                             critical: true,
                             stream: action.commandArgs.stream
