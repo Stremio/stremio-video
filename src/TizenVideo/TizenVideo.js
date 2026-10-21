@@ -4,6 +4,7 @@ var deepFreeze = require('deep-freeze');
 var Color = require('color');
 var ERROR = require('../error');
 var getTracksData = require('../tracksData');
+var mapTracksData = require('./mapTracksData');
 
 var SSA_DESCRIPTORS_REGEX = /^\{(\\an[1-8])+\}/i;
 
@@ -158,12 +159,16 @@ function TizenVideo(options) {
     };
 
     var gotTraktData = false;
+    var loadGeneration = 0;
+    var tracksServerURL = null;
     var tracksData = { audio: [], subs: [] };
 
     function retrieveExtendedTracks() {
         if (!gotTraktData && stream !== null) {
             gotTraktData = true;
+            var generation = loadGeneration;
             getTracksData(stream.url, function(resp) {
+                if (generation !== loadGeneration || stream === null || destroyed) return;
                 if (resp) {
                     tracksData = resp;
                 }
@@ -173,7 +178,7 @@ function TizenVideo(options) {
                 if (((tracksData || {}).audio || []).length) {
                     onPropChanged('audioTracks');
                 }
-            });
+            }, tracksServerURL);
         }
     }
 
@@ -230,6 +235,7 @@ function TizenVideo(options) {
 
                 var totalTrackInfo = AVPlay.getTotalTrackInfo();
                 var textTracks = [];
+                var textMetadata = mapTracksData(totalTrackInfo, (tracksData || {}).subs, 'TEXT');
 
                 for (var i = 0; i < totalTrackInfo.length; i++) {
                     if (totalTrackInfo[i].type === 'TEXT') {
@@ -237,20 +243,16 @@ function TizenVideo(options) {
                         var textTrackId = 'EMBEDDED_' + String(textTrack.index);
                         var extra = {};
                         try {
-                            extra = JSON.parse(textTrack.extra_info);
+                            extra = JSON.parse(textTrack.extra_info) || {};
                         } catch(_e) {}
                         var textTrackLang = typeof extra.track_lang === 'string' && extra.track_lang.length > 0 ? extra.track_lang.trim() : null;
                         var textTrackLabel = null;
                         var textTrackNumber = null;
-                        if (((tracksData || {}).subs || []).length) {
-                            var extendedTrackData = tracksData.subs.find(function(el) {
-                                return (el || {}).id-1 === textTrack.index;
-                            });
-                            if (extendedTrackData) {
-                                textTrackLang = extendedTrackData.lang || 'eng';
-                                textTrackLabel = extendedTrackData.label || null;
-                                textTrackNumber = extendedTrackData.id;
-                            }
+                        var extendedTrackData = textMetadata[textTrack.index];
+                        if (extendedTrackData) {
+                            textTrackLang = extendedTrackData.lang || textTrackLang;
+                            textTrackLabel = extendedTrackData.label || null;
+                            textTrackNumber = extendedTrackData.id;
                         }
                         textTracks.push({
                             id: textTrackId,
@@ -282,7 +284,7 @@ function TizenVideo(options) {
                     }
                 }
 
-                return currentIndex ? 'EMBEDDED_' + String(currentIndex) : null;
+                return typeof currentIndex === 'number' && currentIndex >= 0 ? 'EMBEDDED_' + String(currentIndex) : null;
 
             }
             case 'subtitlesOffset': {
@@ -334,6 +336,7 @@ function TizenVideo(options) {
 
                 var totalTrackInfo = AVPlay.getTotalTrackInfo();
                 var audioTracks = [];
+                var audioMetadata = mapTracksData(totalTrackInfo, (tracksData || {}).audio, 'AUDIO');
 
                 for (var i = 0; i < totalTrackInfo.length; i++) {
                     if (totalTrackInfo[i].type === 'AUDIO') {
@@ -344,18 +347,18 @@ function TizenVideo(options) {
                         }
                         var extra = {};
                         try {
-                            extra = JSON.parse(audioTrack.extra_info);
+                            extra = JSON.parse(audioTrack.extra_info) || {};
                         } catch(_e) {}
                         var audioTrackLang = typeof extra.language === 'string' && extra.language.length > 0 ? extra.language : null;
+                        // AVPlay on Tizen 5.5 reports Spanish (spa) audio as esa.
+                        if (audioTrackLang === 'esa') {
+                            audioTrackLang = 'spa';
+                        }
                         var audioTrackLabel = null;
-                        if (((tracksData || {}).audio || []).length) {
-                            var extendedTrackData = tracksData.audio.find(function(el) {
-                                return (el || {}).id-1 === audioTrack.index;
-                            });
-                            if (extendedTrackData) {
-                                audioTrackLang = extendedTrackData.lang || 'eng';
-                                audioTrackLabel = extendedTrackData.label || null;
-                            }
+                        var extendedTrackData = audioMetadata[audioTrack.index];
+                        if (extendedTrackData) {
+                            audioTrackLang = extendedTrackData.lang || audioTrackLang;
+                            audioTrackLabel = extendedTrackData.label || null;
                         }
                         audioTracks.push({
                             id: audioTrackId,
@@ -579,13 +582,14 @@ function TizenVideo(options) {
             }
             case 'selectedAudioTrackId': {
                 if (stream !== null) {
-                    currentAudioTrack = propValue;
-
                     var audioTracks = getProp('audioTracks');
                     var selectedAudioTrack = audioTracks
                         .find(function(track) {
                             return track.id === propValue;
                         });
+
+                    if (!selectedAudioTrack) return;
+                    currentAudioTrack = propValue;
 
                     if (getProp('paused')) {
                         // issues before this logic:
@@ -625,24 +629,16 @@ function TizenVideo(options) {
         switch (commandName) {
             case 'load': {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    var generation = ++loadGeneration;
                     stream = commandArgs.stream;
-
-                    if (stream !== commandArgs.stream) {
-                        return;
-                    }
+                    gotTraktData = false;
+                    tracksData = { audio: [], subs: [] };
+                    tracksServerURL = commandArgs.streamingServerURL || null;
+                    currentAudioTrack = null;
+                    currentSubTrack = null;
+                    promiseAudioTrackChange = false;
+                    disabledSubs = true;
                     onPropChanged('buffering');
-
-                    var tizenVersion = false;
-
-                    var TIZEN_MATCHES = navigator.userAgent.match(/Tizen (\d+\.\d+)/i);
-
-                    if (TIZEN_MATCHES && TIZEN_MATCHES[1]) {
-                        tizenVersion = parseFloat(TIZEN_MATCHES[1]);
-                    }
-
-                    if (!tizenVersion || tizenVersion >= 6) {
-                        retrieveExtendedTracks();
-                    }
 
                     AVPlay.open(stream.url);
                     AVPlay.setDisplayRect(0, 0, window.innerWidth, window.innerHeight);
@@ -650,6 +646,7 @@ function TizenVideo(options) {
                     AVPlay.seekTo(commandArgs.time !== null && isFinite(commandArgs.time) ? parseInt(commandArgs.time, 10) : 0);
 
                     function onPrepareSuccess() {
+                        if (generation !== loadGeneration || stream === null || destroyed) return;
                         onPropChanged('duration');
                         AVPlay.play();
 
@@ -663,9 +660,11 @@ function TizenVideo(options) {
                         onPropChanged('selectedSubtitlesTrackId');
                         onPropChanged('audioTracks');
                         onPropChanged('selectedAudioTrackId');
+                        retrieveExtendedTracks();
                     }
 
                     function onPrepareError(error) {
+                        if (generation !== loadGeneration || stream === null || destroyed) return;
                         if (retries < maxRetries) {
                             retries++;
                             try {
@@ -691,6 +690,14 @@ function TizenVideo(options) {
                 break;
             }
             case 'unload': {
+                loadGeneration++;
+                gotTraktData = false;
+                tracksData = { audio: [], subs: [] };
+                tracksServerURL = null;
+                currentAudioTrack = null;
+                currentSubTrack = null;
+                promiseAudioTrackChange = false;
+                disabledSubs = true;
                 stream = null;
                 AVPlay.stop();
                 isLoaded = false;

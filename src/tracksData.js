@@ -1,5 +1,5 @@
-module.exports = function(url, cb) {
-    fetch('http://127.0.0.1:11470/tracks/'+encodeURIComponent(url)).then(function(resp) {
+module.exports = function(url, cb, streamingServerURL) {
+    fetch((streamingServerURL || 'http://127.0.0.1:11470').replace(/\/$/, '') + '/tracks/' + encodeURIComponent(url)).then(function(resp) {
         return resp.json();
     }).then(function(tracks) {
         var audioTracks = tracks.filter(function(el) { return (el || {}).type === 'audio'; });
