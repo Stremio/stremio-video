@@ -10,6 +10,14 @@ function buildProxyUrl(streamingServerURL, streamURL, requestHeaders, responseHe
     Object.entries(responseHeaders).forEach(function(entry) {
         proxyOptions.append('r', entry[0] + ':' + entry[1]);
     });
+        if (parsedStreamURL.search) {
+        var searchParams = new URLSearchParams(parsedStreamURL.search);
+        if (searchParams.has('filename')) {
+            searchParams.set('filename', encodeURIComponent(decodeURIComponent(searchParams.get('filename'))));
+            parsedStreamURL.search = '?' + searchParams.toString();
+        }
+    }
+
     return url.resolve(streamingServerURL, '/proxy/' + proxyOptions.toString() + parsedStreamURL.pathname) + parsedStreamURL.search;
 }
 
