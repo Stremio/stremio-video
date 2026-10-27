@@ -13,6 +13,8 @@ var createCanvasASSRenderer = require('./canvasASSRenderer');
 var usesCanvasASS = require('./usesCanvasASS');
 
 const PREVIEW_INTERVAL = 300000;
+const MIN_RATE = 0.5;
+const MAX_RATE = 2;
 const NATIVE_ASS_TIMEOUT = 10000;
 const MAX_TIME_JITTER = 500;
 const LEGACY_SUBTITLES_ENCODINGS = [
@@ -113,8 +115,8 @@ function withHTMLSubtitles(Video) {
             cuesByTime.times.forEach(function(time) {
                 cuesByTime[time].forEach(function(cue) {
                     if (cue.startTime !== time) return;
-                    var start = (cue.startTime + delayMs) / 1000;
-                    var end = (cue.endTime + delayMs) / 1000;
+                    var start = (cue.startTime * rate + delayMs) / 1000;
+                    var end = (cue.endTime * rate + delayMs) / 1000;
                     if (start < 0) start = 0;
                     if (end <= start) return;
                     nativeTextTrack.addCue(new VTTCue(start, end, cue.text));
@@ -172,6 +174,7 @@ function withHTMLSubtitles(Video) {
         var tracks = [];
         var selectedTrackId = null;
         var delay = null;
+        var rate = 1;
         var size = 100;
         var subtitlesOffset = 0;
         var offset = 0;
@@ -277,7 +280,7 @@ function withHTMLSubtitles(Video) {
                 return;
             }
 
-            var timeIndex = binarySearchUpperBound(cuesByTime.times, time - delay);
+            var timeIndex = binarySearchUpperBound(cuesByTime.times, (time - delay) / rate);
             if (timeIndex === lastTimeIndex && !forceRender) {
                 return;
             }
@@ -312,7 +315,7 @@ function withHTMLSubtitles(Video) {
                 return;
             }
 
-            const currentTime = videoState.time - delay;
+            const currentTime = (videoState.time - delay) / rate;
             const startInterval = currentTime - PREVIEW_INTERVAL;
             const endInterval = currentTime + PREVIEW_INTERVAL;
 
@@ -694,6 +697,7 @@ function withHTMLSubtitles(Video) {
             }
             lastTimeIndex = null;
             assRenderer.setDelay(0);
+            assRenderer.setRate(1);
             assRenderer.setOpacity(embeddedSubtitlesOpacity);
             startRenderLoop();
 
@@ -797,6 +801,7 @@ function withHTMLSubtitles(Video) {
             }
             lastTimeIndex = null;
             assRenderer.setDelay(delay);
+            assRenderer.setRate(rate);
             assRenderer.setOpacity(opacity);
             startRenderLoop();
 
@@ -917,6 +922,13 @@ function withHTMLSubtitles(Video) {
 
                     return delay;
                 }
+                case 'extraSubtitlesRate': {
+                    if (destroyed) {
+                        return null;
+                    }
+
+                    return rate;
+                }
                 case 'extraSubtitlesSize': {
                     if (destroyed) {
                         return null;
@@ -1031,6 +1043,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesTracks':
                 case 'selectedExtraSubtitlesTrackId':
                 case 'extraSubtitlesDelay':
+                case 'extraSubtitlesRate':
                 case 'extraSubtitlesSize':
                 case 'extraSubtitlesOffset':
                 case 'extraSubtitlesTextColor':
@@ -1138,6 +1151,7 @@ function withHTMLSubtitles(Video) {
                     selectedTrackId = null;
                     selectedSubtitleText = null;
                     delay = null;
+                    rate = 1;
                     usingASSRenderer = false;
                     setASSSubtitlesStylingActive(false);
                     assRenderer.destroy();
@@ -1153,6 +1167,7 @@ function withHTMLSubtitles(Video) {
                     if (selectedTrack) {
                         selectedTrackId = selectedTrack.id;
                         delay = 0;
+                        rate = 1;
                         var isFallback = subtitleTypes.shouldUseASSFallback(selectedTrack, assSubtitlesStylingEnabled || canDelegateNativeASS(selectedTrack));
                         var sourceURL = isFallback ? selectedTrack.fallbackUrl : selectedTrack.url;
                         var selectedSourceIsASS = subtitleTypes.isASSSubtitleTrack(Object.assign({}, selectedTrack, {
@@ -1168,6 +1183,7 @@ function withHTMLSubtitles(Video) {
                     renderSubtitles();
                     onPropChanged('selectedExtraSubtitlesTrackId');
                     onPropChanged('extraSubtitlesDelay');
+                    onPropChanged('extraSubtitlesRate');
                     return true;
                 }
                 case 'extraSubtitlesDelay': {
@@ -1184,6 +1200,25 @@ function withHTMLSubtitles(Video) {
                         forceRender = true;
                         renderSubtitles();
                         onPropChanged('extraSubtitlesDelay');
+                    }
+
+                    return true;
+                }
+                case 'extraSubtitlesRate': {
+                    if (selectedTrackId !== null && propValue !== null && isFinite(propValue) && propValue >= MIN_RATE && propValue <= MAX_RATE) {
+                        rate = parseFloat(propValue);
+                        assRenderer.setRate(rate);
+                        if (nativeAssTrackId !== null || pendingNativeAss !== null) {
+                            video.dispatch({
+                                type: 'setProp',
+                                propName: 'subtitlesRate',
+                                propValue: rate,
+                            });
+                        }
+                        removeNativeTrack();
+                        forceRender = true;
+                        renderSubtitles();
+                        onPropChanged('extraSubtitlesRate');
                     }
 
                     return true;
@@ -1410,6 +1445,7 @@ function withHTMLSubtitles(Video) {
                     selectedEmbeddedASSTrackId = null;
                     embeddedSubtitlesOpacity = 1;
                     delay = null;
+                    rate = 1;
                     usingASSRenderer = false;
                     setASSSubtitlesStylingActive(false);
                     assRenderer.destroy();
@@ -1500,7 +1536,7 @@ function withHTMLSubtitles(Video) {
     VideoWithHTMLSubtitles.manifest = {
         name: Video.manifest.name + 'WithHTMLSubtitles',
         external: Video.manifest.external,
-        props: Video.manifest.props.concat(['subtitlesOffsetMinimum', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview', 'assSubtitlesStylingActive'])
+        props: Video.manifest.props.concat(['subtitlesOffsetMinimum', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesRate', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview', 'assSubtitlesStylingActive'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles', 'addEmbeddedASSSources', 'addEmbeddedASSFonts'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),

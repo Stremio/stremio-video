@@ -73,6 +73,7 @@ function createASSRenderer(options) {
     var requestId = 0;
     var activeTrack = null;
     var delay = 0;
+    var rate = 1;
     var opacity = 1;
     var lastTime = null;
     var lastSentTime = null;
@@ -167,7 +168,7 @@ function createASSRenderer(options) {
             return;
         }
 
-        var currentTime = Math.max(0, (lastTime - delay) / 1000);
+        var currentTime = Math.max(0, (lastTime - delay) / rate / 1000);
         var now = typeof performance !== 'undefined' ? performance.now() : Date.now();
         var interval = 1000 / TARGET_FPS;
         if (!force && (currentTime === lastSentTime || now - lastSentAt < interval)) {
@@ -281,6 +282,11 @@ function createASSRenderer(options) {
         sendTime(true);
     }
 
+    function setRate(value) {
+        rate = value !== null && isFinite(value) && value > 0 ? parseFloat(value) : 1;
+        sendTime(true);
+    }
+
     function setTime(value, force) {
         if (value !== null && isFinite(value)) {
             lastTime = Number(value);
@@ -306,6 +312,7 @@ function createASSRenderer(options) {
         destroy: destroy,
         preload: preload,
         setDelay: setDelay,
+        setRate: setRate,
         setTime: setTime,
         setTrack: setTrack,
         setOpacity: setOpacity

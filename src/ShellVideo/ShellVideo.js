@@ -24,6 +24,7 @@ var stremioToMPVProps = {
     'subtitlesSize': 'sub-scale',
     'subtitlesOffset': 'sub-pos',
     'subtitlesDelay': 'sub-delay',
+    'subtitlesRate': 'sub-speed',
     'subtitlesTextColor': 'sub-color',
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
@@ -477,7 +478,8 @@ function ShellVideo(options) {
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], props.assSubtitlesStylingActive ? 1 : propValue * SUBS_SCALE_FACTOR]);
                 break;
             }
-            case 'subtitlesDelay': {
+            case 'subtitlesDelay':
+            case 'subtitlesRate': {
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue]);
                 break;
             }

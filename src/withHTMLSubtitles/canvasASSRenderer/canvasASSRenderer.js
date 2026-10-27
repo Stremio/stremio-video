@@ -37,6 +37,7 @@ function createCanvasASSRenderer(options) {
     var resizeRafId = null;
     var renderRafId = null;
     var delay = 0;
+    var rate = 1;
     var opacity = 1;
     var lastTime = null;
     var lastRectCheck = 0;
@@ -444,7 +445,7 @@ function createCanvasASSRenderer(options) {
             return;
         }
 
-        var time = lastTime - delay;
+        var time = (lastTime - delay) / rate;
         var changed = time < validFrom || time >= validTo;
         if (!changed && !dirty && (!animated || now - lastComposeAt < 1000 / TARGET_FPS)) {
             return;
@@ -530,6 +531,12 @@ function createCanvasASSRenderer(options) {
         render();
     }
 
+    function setRate(value) {
+        rate = value !== null && isFinite(value) && value > 0 ? parseFloat(value) : 1;
+        validTo = -Infinity;
+        render();
+    }
+
     function setTime(value) {
         if (value !== null && isFinite(value)) {
             lastTime = Number(value);
@@ -550,6 +557,7 @@ function createCanvasASSRenderer(options) {
         preload: preload,
         addFonts: addFonts,
         setDelay: setDelay,
+        setRate: setRate,
         setTime: setTime,
         setTrack: setTrack,
         setOpacity: setOpacity
