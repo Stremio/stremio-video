@@ -156,6 +156,8 @@ function WebOsVideo(options) {
 
     var sourceStarted = false;
 
+    var startSeekPending = false;
+
     var mediaIdTimer = null;
 
     var activeMediaId = null;
@@ -293,6 +295,9 @@ function WebOsVideo(options) {
         onPropChanged('buffered');
     };
     videoElement.onseeked = function() {
+        startSeekPending = false;
+        applyPendingSubtitlesTrack();
+        applyPendingAudioTrack();
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
@@ -326,7 +331,10 @@ function WebOsVideo(options) {
     videoElement.onloadedmetadata = function() {
         onPropChanged('buffering');
         onPropChanged('buffered');
-        setProp('time', startTime);
+        if (startTime) {
+            startSeekPending = true;
+            setProp('time', startTime);
+        }
     };
     videoElement.onvolumechange = function() {
         onPropChanged('volume');
@@ -708,7 +716,7 @@ function WebOsVideo(options) {
             return track.id === selection.id;
         });
         var mediaId = getActiveMediaId();
-        if (!selectedSubtitlesTrack || !mediaId || !sourceStarted) {
+        if (!selectedSubtitlesTrack || !mediaId || !sourceStarted || startSeekPending) {
             return;
         }
         selection.sent = true;
@@ -757,7 +765,7 @@ function WebOsVideo(options) {
             return track.id === selection.id;
         });
         var mediaId = getActiveMediaId();
-        if (!selectedAudioTrack || !mediaId || !sourceStarted) {
+        if (!selectedAudioTrack || !mediaId || !sourceStarted || startSeekPending) {
             return;
         }
         selection.sent = true;
@@ -800,6 +808,7 @@ function WebOsVideo(options) {
                         videoElement.currentTime = parseInt(propValue, 10) / 1000;
                         onPropChanged('time');
                     } catch(_e) {
+                        startSeekPending = false;
                         // console.log('webos video change time error');
                         // console.error(e);
                     }
@@ -1033,6 +1042,7 @@ function WebOsVideo(options) {
                 clearPendingSubtitlesTrack();
                 pendingAudioTrack = null;
                 sourceStarted = false;
+                startSeekPending = false;
                 pendingSubtitlesEnabled = null;
                 stream = null;
                 startTime = null;
