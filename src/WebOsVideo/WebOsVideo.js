@@ -154,6 +154,8 @@ function WebOsVideo(options) {
 
     var pendingAudioTrack = null;
 
+    var sourceStarted = false;
+
     var mediaIdTimer = null;
 
     var activeMediaId = null;
@@ -299,6 +301,9 @@ function WebOsVideo(options) {
         onPropChanged('buffered');
     };
     videoElement.onplaying = function() {
+        sourceStarted = true;
+        applyPendingSubtitlesTrack();
+        applyPendingAudioTrack();
         onPropChanged('buffering');
         onPropChanged('buffered');
         if (!isLoaded) {
@@ -703,7 +708,7 @@ function WebOsVideo(options) {
             return track.id === selection.id;
         });
         var mediaId = getActiveMediaId();
-        if (!selectedSubtitlesTrack || !mediaId) {
+        if (!selectedSubtitlesTrack || !mediaId || !sourceStarted) {
             return;
         }
         selection.sent = true;
@@ -752,7 +757,7 @@ function WebOsVideo(options) {
             return track.id === selection.id;
         });
         var mediaId = getActiveMediaId();
-        if (!selectedAudioTrack || !mediaId) {
+        if (!selectedAudioTrack || !mediaId || !sourceStarted) {
             return;
         }
         selection.sent = true;
@@ -1027,6 +1032,7 @@ function WebOsVideo(options) {
                 sourceStartupPending = false;
                 clearPendingSubtitlesTrack();
                 pendingAudioTrack = null;
+                sourceStarted = false;
                 pendingSubtitlesEnabled = null;
                 stream = null;
                 startTime = null;
