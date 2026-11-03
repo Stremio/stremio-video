@@ -1382,6 +1382,7 @@ function withHTMLSubtitles(Video) {
                         command('addExtraSubtitlesTracks', {
                             tracks: commandArgs.stream.subtitles.map(function(track) {
                                 return Object.assign({}, track, {
+                                    label: typeof track.label === 'string' ? track.label : track.lang,
                                     origin: 'EXCLUSIVE',
                                     exclusive: true,
                                     embedded: false
