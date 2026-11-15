@@ -301,6 +301,7 @@ function ShellVideo(options) {
                             embedded: true,
                             mode: x.id === props.sid ? 'showing' : 'disabled',
                             ass: codec === 'ass' || codec === 'ssa',
+                            codec: codec,
                             nativeExternal: x.external === true,
                             nativeExternalFilename: x['external-filename'],
                             nativeExternalTitle: x.title,

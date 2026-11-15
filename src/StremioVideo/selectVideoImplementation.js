@@ -1,5 +1,7 @@
 var ChromecastSenderVideo = require('../ChromecastSenderVideo');
 var ShellVideo = require('../ShellVideo');
+var withSecondarySubtitles = require('../withSecondarySubtitles');
+var LinuxShellVideo = withSecondarySubtitles(ShellVideo);
 var HTMLVideo = require('../HTMLVideo');
 var TizenVideo = require('../TizenVideo');
 var TitanVideo = require('../TitanVideo');
@@ -33,7 +35,7 @@ function selectVideoImplementation(commandArgs, options) {
     }
 
     if (options.shellTransport) {
-        return withStreamingServer(withHTMLSubtitles(ShellVideo));
+        return withStreamingServer(withHTMLSubtitles(commandArgs.platform === 'linux' ? LinuxShellVideo : ShellVideo));
     }
 
     if (typeof commandArgs.streamingServerURL === 'string') {
