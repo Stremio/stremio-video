@@ -33,7 +33,8 @@ module.exports = function withSecondarySubtitles(Video) {
             if (observed[name]) events.emit('propChanged', name, value(name));
         }
         function setNative(name, val) {
-            ipc.send('mpv-set-prop', [name, val]);
+            // The Linux shell's typed property bridge does not expose secondary properties.
+            ipc.send('mpv-command', ['set', name, String(val)]);
         }
         function owned(track) {
             return track.nativeExternal === true && typeof track.nativeExternalTitle === 'string' && track.nativeExternalTitle.startsWith(prefix);
