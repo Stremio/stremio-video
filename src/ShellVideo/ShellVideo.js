@@ -27,6 +27,7 @@ var stremioToMPVProps = {
     'subtitlesTextColor': 'sub-color',
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
+    'subtitlesBold': 'sub-bold',
     'assSubtitlesStylingActive': null,
     'hdrInfo': null,
     'videoScale': null,
@@ -86,6 +87,7 @@ function ShellVideo(options) {
     ipc.send('mpv-observe-prop', 'sub-scale');
     ipc.send('mpv-observe-prop', 'sub-pos');
     ipc.send('mpv-observe-prop', 'sub-delay');
+    ipc.send('mpv-observe-prop', 'sub-bold');
     ipc.send('mpv-observe-prop', 'speed');
 
     ipc.send('mpv-observe-prop', 'mpv-version');
@@ -354,6 +356,7 @@ function ShellVideo(options) {
         if (propName === 'assSubtitlesStylingActive') return props.assSubtitlesStylingActive === true;
         if (propName === 'subtitlesSize' && typeof props.subtitlesSize === 'number') return props.subtitlesSize;
         if (propName === 'subtitlesOffset' && typeof props.subtitlesOffset === 'number') return props.subtitlesOffset;
+        if (propName === 'subtitlesBold') return props['sub-bold'] === true;
         if(stremioToMPVProps[propName]) return props[stremioToMPVProps[propName]];
         // eslint-disable-next-line no-console
         console.log('Unsupported prop requested', propName);
@@ -493,6 +496,13 @@ function ShellVideo(options) {
                 // MPV accepts color in #AARRGGBB
                 var argb = propValue.replace(/^#(\w{6})(\w{2})$/, '#$2$1');
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], argb]);
+                break;
+            }
+            case 'subtitlesBold': {
+                if (typeof propValue === 'boolean') {
+                    ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue]);
+                }
+
                 break;
             }
             default: {
