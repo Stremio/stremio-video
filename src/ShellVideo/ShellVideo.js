@@ -87,6 +87,7 @@ function ShellVideo(options) {
     ipc.send('mpv-observe-prop', 'sub-scale');
     ipc.send('mpv-observe-prop', 'sub-pos');
     ipc.send('mpv-observe-prop', 'sub-delay');
+    ipc.send('mpv-observe-prop', 'sub-bold');
     ipc.send('mpv-observe-prop', 'speed');
 
     ipc.send('mpv-observe-prop', 'mpv-version');
@@ -355,7 +356,7 @@ function ShellVideo(options) {
         if (propName === 'assSubtitlesStylingActive') return props.assSubtitlesStylingActive === true;
         if (propName === 'subtitlesSize' && typeof props.subtitlesSize === 'number') return props.subtitlesSize;
         if (propName === 'subtitlesOffset' && typeof props.subtitlesOffset === 'number') return props.subtitlesOffset;
-        if (propName === 'subtitlesBold') return props.subtitlesBold === true;
+        if (propName === 'subtitlesBold') return props['sub-bold'] === true;
         if(stremioToMPVProps[propName]) return props[stremioToMPVProps[propName]];
         // eslint-disable-next-line no-console
         console.log('Unsupported prop requested', propName);
@@ -499,9 +500,7 @@ function ShellVideo(options) {
             }
             case 'subtitlesBold': {
                 if (typeof propValue === 'boolean') {
-                    props.subtitlesBold = propValue;
                     ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue]);
-                    onPropChanged('subtitlesBold');
                 }
 
                 break;
