@@ -11,10 +11,12 @@ function parse(text) {
         var cuesByTime = {};
 
         parser.oncue = function(c) {
+            var cueTags = c.text.match(/\{\\[^}]*\}/g) || [];
             var cue = {
                 startTime: (c.startTime * 1000) | 0,
                 endTime: (c.endTime * 1000) | 0,
-                text: c.text
+                text: c.text.replace(/\{\\[^}]*\}/g, '').replace(/\\N/g, '\n').trim(),
+                top: cueTags.some(function(tag) { return /\\an[789](?![0-9])/.test(tag); })
             };
             cues.push(cue);
             cuesByTime[cue.startTime] = cuesByTime[cue.startTime] || [];

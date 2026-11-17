@@ -6,6 +6,7 @@ function render(cuesByTime, timeIndex) {
         var cuesForTime = cuesByTime[cuesByTime.times[timeIndex]];
         for (var i = 0; i < cuesForTime.length; i++) {
             var node = VTTJS.WebVTT.convertCueToDOMTree(window, cuesForTime[i].text);
+            node.subtitlesTop = cuesForTime[i].top === true;
             nodes.push(node);
         }
     }
