@@ -2,6 +2,20 @@ var VTTJS = require('vtt.js');
 var binarySearchUpperBound = require('./binarySearchUpperBound');
 
 var CRITICAL_ERROR_CODE = 0;
+var ASS_TAGS_PATTERN = /\{\\[^}\n]*\}/g;
+var ASS_STYLE_PATTERN = /\\([ib])(\d+)/g;
+
+// Turns an ASS override block like {\an8\i1} into the <i>/<b> tags vtt.js renders.
+function assTagsToHTML(tags) {
+    var html = '';
+    var style;
+    ASS_STYLE_PATTERN.lastIndex = 0;
+    while ((style = ASS_STYLE_PATTERN.exec(tags)) !== null) {
+        html += (parseInt(style[2], 10) === 0 ? '</' : '<') + style[1] + '>';
+    }
+
+    return html;
+}
 
 function parse(text) {
     return new Promise(function(resolve, reject) {
@@ -11,12 +25,24 @@ function parse(text) {
         var cuesByTime = {};
 
         parser.oncue = function(c) {
-            var cueTags = c.text.match(/\{\\[^}]*\}/g) || [];
+            var top = false;
+            var text = c.text
+                .replace(ASS_TAGS_PATTERN, function(tags) {
+                    top = top || /\\an[789](?![0-9])/.test(tags);
+                    return assTagsToHTML(tags);
+                })
+                .replace(/\\[Nn]/g, '\n')
+                .replace(/\\h/g, ' ')
+                .trim();
+            if (text.replace(/<\/?[ib]>/g, '').trim().length === 0) {
+                return;
+            }
+
             var cue = {
                 startTime: (c.startTime * 1000) | 0,
                 endTime: (c.endTime * 1000) | 0,
-                text: c.text.replace(/\{\\[^}]*\}/g, '').replace(/\\N/g, '\n').trim(),
-                top: cueTags.some(function(tag) { return /\\an[789](?![0-9])/.test(tag); })
+                text: text,
+                top: top
             };
             cues.push(cue);
             cuesByTime[cue.startTime] = cuesByTime[cue.startTime] || [];
