@@ -577,8 +577,6 @@ function HTMLVideo(options) {
                         if (trackIndex >= 0 && trackIndex < allTracks.length) {
                             hls.setAudioOption(allTracks[trackIndex]);
                         }
-                        onPropChanged('selectedAudioTrackId');
-                        events.emit('audioTrackLoaded', selectedAudioTrack);
                     }
                 }
 
@@ -689,9 +687,18 @@ function HTMLVideo(options) {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
                                 });
-                                hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
+                                hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function(_event, data) {
+                                    if (hls !== activeHls) return;
+
+                                    var allTracksIndex = activeHls.allAudioTracks.findIndex(function(track) {
+                                        return track.id === data.id && track.groupId === data.groupId;
+                                    });
+                                    var loadedTrack = getProp('audioTracks')[allTracksIndex];
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
+                                    if (hls === activeHls && loadedTrack) {
+                                        events.emit('audioTrackLoaded', loadedTrack);
+                                    }
                                 });
                                 hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, function() {
                                     onPropChanged('subtitlesTracks');
