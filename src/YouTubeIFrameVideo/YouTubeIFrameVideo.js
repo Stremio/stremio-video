@@ -3,6 +3,8 @@ var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
 
+var IFRAME_ORIGIN = 'https://yt.strem.io';
+
 function YouTubeIFrameVideo(options) {
     options = options || {};
 
@@ -37,35 +39,25 @@ function YouTubeIFrameVideo(options) {
         selectedSubtitlesTrackId: false
     };
 
-    function onIFrameLoad() {
-        if (destroyed) {
-            return;
-        }
-
-        ready = true;
-        if (pendingLoadArgs !== null) {
-            command('load', pendingLoadArgs);
-            pendingLoadArgs = null;
-        }
-    }
-
     function onIFrameError(e) {
         console.error('Failed to load iFrame:', e);
     }
 
     var iFrameElement = document.createElement('iframe');
-    iFrameElement.src = 'https://yt.strem.io';
+    iFrameElement.src = IFRAME_ORIGIN;
+    iFrameElement.setAttribute('allow', 'autoplay; encrypted-media; fullscreen');
+    iFrameElement.setAttribute('allowfullscreen', '');
     iFrameElement.style = 'height: 100%; width: 100%; border: none;';
-    iFrameElement.onload = onIFrameLoad;
     iFrameElement.onerror = onIFrameError;
-    containerElement.appendChild(iFrameElement);
 
     function sendAction(name, ...args) {
+        if (!ready) return;
+
         try {
             iFrameElement.contentWindow.postMessage(JSON.stringify({
                 name,
                 args
-            }), '*');
+            }), IFRAME_ORIGIN);
         } catch (e) {
             console.error('Failed to send command to iFrame:', e);
         }
@@ -179,14 +171,23 @@ function YouTubeIFrameVideo(options) {
         }
     }
 
-    window.addEventListener('message', (event) => {
+    function onIFrameMessage(event) {
+        if (destroyed || event.origin !== IFRAME_ORIGIN || event.source !== iFrameElement.contentWindow || typeof event.data !== 'string') {
+            return;
+        }
+
         try {
             var message = JSON.parse(event.data);
-            onMessage(message);
+            if (message && typeof message.name === 'string' && Array.isArray(message.args)) {
+                onMessage(message);
+            }
         } catch (e) {
             console.error('Failed to parse message', e);
         }
-    });
+    }
+
+    window.addEventListener('message', onIFrameMessage);
+    containerElement.appendChild(iFrameElement);
 
     function onError(error) {
         events.emit('error', error);
@@ -343,6 +344,8 @@ function YouTubeIFrameVideo(options) {
             case 'destroy': {
                 command('unload');
                 destroyed = true;
+                window.removeEventListener('message', onIFrameMessage);
+                iFrameElement.onerror = null;
                 events.removeAllListeners();
                 sendAction('destroy');
                 containerElement.removeChild(iFrameElement);
