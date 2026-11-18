@@ -541,6 +541,11 @@ function ShellVideo(options) {
                         var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
                         ipc.send('mpv-set-prop', ['vo', videoOutput]);
 
+                        // Audio passthrough: send these formats undecoded to the receiver (mpv decodes them if the output can't take them)
+                        if (typeof commandArgs.audioPassthrough === 'boolean') {
+                            ipc.send('mpv-set-prop', ['audio-spdif', commandArgs.audioPassthrough ? 'ac3,eac3,dts,dts-hd,truehd' : '']);
+                        }
+
                         var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-default-bindings', separateWindow]);
