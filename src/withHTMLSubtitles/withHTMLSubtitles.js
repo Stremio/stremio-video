@@ -91,6 +91,8 @@ function withHTMLSubtitles(Video) {
         subtitlesElement.style.position = 'absolute';
         subtitlesElement.style.right = '0';
         subtitlesElement.style.bottom = '0';
+        subtitlesElement.style.top = '0';
+        subtitlesElement.style.pointerEvents = 'none';
         subtitlesElement.style.left = '0';
         subtitlesElement.style.zIndex = '1';
         subtitlesElement.style.textAlign = 'center';
@@ -296,6 +298,18 @@ function withHTMLSubtitles(Video) {
 
             subtitlesElement.style.bottom = getEffectiveSubtitlesOffset(offset) + '%';
             subtitlesElement.style.opacity = opacity;
+            var topCuesElement = document.createElement('div');
+            topCuesElement.style.position = 'absolute';
+            topCuesElement.style.top = '3%';
+            topCuesElement.style.right = '0';
+            topCuesElement.style.left = '0';
+            var bottomCuesElement = document.createElement('div');
+            bottomCuesElement.style.position = 'absolute';
+            bottomCuesElement.style.bottom = '0';
+            bottomCuesElement.style.right = '0';
+            bottomCuesElement.style.left = '0';
+            subtitlesElement.appendChild(topCuesElement);
+            subtitlesElement.appendChild(bottomCuesElement);
             subtitlesRenderer.render(cuesByTime, timeIndex).forEach(function(cueNode) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
@@ -306,8 +320,9 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.backgroundColor = backgroundColor;
                 cueNode.style.fontWeight = bold ? 'bold' : 'normal';
                 cueNode.style.textShadow = '-0.15rem -0.15rem 0.15rem ' + outlineColor + ', 0px -0.15rem 0.15rem ' + outlineColor + ', 0.15rem -0.15rem 0.15rem ' + outlineColor + ', -0.15rem 0px 0.15rem ' + outlineColor + ', 0.15rem 0px 0.15rem ' + outlineColor + ', -0.15rem 0.15rem 0.15rem ' + outlineColor + ', 0px 0.15rem 0.15rem ' + outlineColor + ', 0.15rem 0.15rem 0.15rem ' + outlineColor;
-                subtitlesElement.appendChild(cueNode);
-                subtitlesElement.appendChild(document.createElement('br'));
+                var cuesElement = cueNode.subtitlesTop ? topCuesElement : bottomCuesElement;
+                cuesElement.appendChild(cueNode);
+                cuesElement.appendChild(document.createElement('br'));
             });
         }
         function setPreview() {
