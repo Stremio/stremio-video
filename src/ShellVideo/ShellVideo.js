@@ -31,6 +31,7 @@ var stremioToMPVProps = {
     'assSubtitlesStylingActive': null,
     'hdrInfo': null,
     'videoScale': null,
+    'mediaTitle': null,
 };
 
 function parseVersion(version) {
@@ -353,6 +354,7 @@ function ShellVideo(options) {
     function getProp(propName) {
         if (propName === 'hdrInfo') return props.hdrInfo || null;
         if (propName === 'videoScale') return props.videoScale || 'contain';
+        if (propName === 'mediaTitle') return props.mediaTitle || null;
         if (propName === 'assSubtitlesStylingActive') return props.assSubtitlesStylingActive === true;
         if (propName === 'subtitlesSize' && typeof props.subtitlesSize === 'number') return props.subtitlesSize;
         if (propName === 'subtitlesOffset' && typeof props.subtitlesOffset === 'number') return props.subtitlesOffset;
@@ -505,6 +507,12 @@ function ShellVideo(options) {
 
                 break;
             }
+            case 'mediaTitle': {
+                props.mediaTitle = typeof propValue === 'string' && propValue.length > 0 ? propValue : null;
+                ipc.send('mpv-set-prop', ['force-media-title', props.mediaTitle || '']);
+                onPropChanged('mediaTitle');
+                break;
+            }
             default: {
                 // eslint-disable-next-line no-console
                 console.log('Unhandled setProp for', propName);
@@ -516,6 +524,7 @@ function ShellVideo(options) {
             case 'load': {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    props.mediaTitle = typeof commandArgs.mediaTitle === 'string' && commandArgs.mediaTitle.length > 0 ? commandArgs.mediaTitle : null;
                     waitForMPVVersion.then(function (mpvVersion) {
                         stream = commandArgs.stream;
                         onPropChanged('stream');
@@ -550,6 +559,8 @@ function ShellVideo(options) {
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-default-bindings', separateWindow]);
                         ipc.send('mpv-set-prop', ['input-vo-keyboard', separateWindow]);
+
+                        ipc.send('mpv-set-prop', ['force-media-title', props.mediaTitle || '']);
 
                         var startAt = Math.floor(parseInt(commandArgs.time, 10) / 1000) || 0;
                         if (startAt !== 0) {
@@ -612,6 +623,7 @@ function ShellVideo(options) {
                 avgDuration = 0;
                 durationReady = false;
                 ipc.send('mpv-command', ['stop']);
+                ipc.send('mpv-set-prop', ['force-media-title', '']);
                 ipc.send('mpv-set-prop', ['keepaspect', true]);
                 ipc.send('mpv-set-prop', ['panscan', 0.0]);
                 ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
