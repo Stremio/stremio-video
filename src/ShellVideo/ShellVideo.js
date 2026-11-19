@@ -103,6 +103,7 @@ function ShellVideo(options) {
     var minClipDuration = 30;
     var activeVideoReadyLoadId = null;
     var videoReadyEventsSupported = false;
+    var loadGeneration = 0;
 
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
@@ -516,7 +517,9 @@ function ShellVideo(options) {
             case 'load': {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    var generation = loadGeneration;
                     waitForMPVVersion.then(function (mpvVersion) {
+                        if (generation !== loadGeneration) return;
                         stream = commandArgs.stream;
                         onPropChanged('stream');
 
@@ -592,6 +595,7 @@ function ShellVideo(options) {
                 break;
             }
             case 'unload': {
+                loadGeneration++;
                 var wasASSSubtitlesStylingActive = props.assSubtitlesStylingActive === true;
                 activeVideoReadyLoadId = null;
                 props = {
