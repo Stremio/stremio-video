@@ -332,6 +332,8 @@ function ShellVideo(options) {
         if (args.error) onError(args.error);
         else if (!args.reason || args.reason === 'eof' || args.reason === 'other') {
             if (!isKnownEarlyEof()) onEnded();
+        } else if (args.reason === 'stop' && props.loaded) {
+            onEnded();
         }
     });
     ipc.on('mpv-event-video-ready', function(args) {
