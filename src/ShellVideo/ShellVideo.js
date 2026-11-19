@@ -522,9 +522,10 @@ function ShellVideo(options) {
     function command(commandName, commandArgs) {
         switch (commandName) {
             case 'load': {
+                var pendingMediaTitle = props.mediaTitle || null;
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
-                    props.mediaTitle = typeof commandArgs.mediaTitle === 'string' && commandArgs.mediaTitle.length > 0 ? commandArgs.mediaTitle : null;
+                    props.mediaTitle = typeof commandArgs.mediaTitle === 'string' && commandArgs.mediaTitle.length > 0 ? commandArgs.mediaTitle : pendingMediaTitle;
                     waitForMPVVersion.then(function (mpvVersion) {
                         stream = commandArgs.stream;
                         onPropChanged('stream');
