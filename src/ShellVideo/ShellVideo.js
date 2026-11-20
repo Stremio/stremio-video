@@ -19,6 +19,7 @@ var stremioToMPVProps = {
     'playbackSpeed': 'speed',
     'audioTracks': 'audioTracks',
     'selectedAudioTrackId': 'aid',
+    'audioDelay': 'audio-delay',
     'subtitlesTracks': 'subtitlesTracks',
     'selectedSubtitlesTrackId': 'sid',
     'subtitlesSize': 'sub-scale',
@@ -82,6 +83,7 @@ function ShellVideo(options) {
     ipc.send('mpv-observe-prop', 'demuxer-cache-time');
 
     ipc.send('mpv-observe-prop', 'aid');
+    ipc.send('mpv-observe-prop', 'audio-delay');
     ipc.send('mpv-observe-prop', 'vid');
     ipc.send('mpv-observe-prop', 'sid');
     ipc.send('mpv-observe-prop', 'sub-scale');
@@ -103,6 +105,7 @@ function ShellVideo(options) {
     var minClipDuration = 30;
     var activeVideoReadyLoadId = null;
     var videoReadyEventsSupported = false;
+    var audioDelaySupported = false;
     var loadGeneration = 0;
 
     function setBackground(visible) {
@@ -218,7 +221,9 @@ function ShellVideo(options) {
                 }
                 break;
             }
-            case 'sub-delay': {
+            case 'sub-delay':
+            case 'audio-delay': {
+                if (args.name === 'audio-delay') audioDelaySupported = true;
                 props[args.name] = Math.round(args.data*1000);
                 break;
             }
@@ -358,6 +363,7 @@ function ShellVideo(options) {
         if (propName === 'subtitlesSize' && typeof props.subtitlesSize === 'number') return props.subtitlesSize;
         if (propName === 'subtitlesOffset' && typeof props.subtitlesOffset === 'number') return props.subtitlesOffset;
         if (propName === 'subtitlesBold') return props['sub-bold'] === true;
+        if (propName === 'audioDelay') return audioDelaySupported ? props['audio-delay'] || 0 : null;
         if(stremioToMPVProps[propName]) return props[stremioToMPVProps[propName]];
         // eslint-disable-next-line no-console
         console.log('Unsupported prop requested', propName);
@@ -483,6 +489,12 @@ function ShellVideo(options) {
             }
             case 'subtitlesDelay': {
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue]);
+                break;
+            }
+            case 'audioDelay': {
+                if (propValue !== null && isFinite(propValue)) {
+                    ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue / 1000]);
+                }
                 break;
             }
             case 'subtitlesOffset': {
@@ -616,6 +628,10 @@ function ShellVideo(options) {
                 avgDuration = 0;
                 durationReady = false;
                 ipc.send('mpv-command', ['stop']);
+                if (audioDelaySupported) {
+                    ipc.send('mpv-set-prop', ['audio-delay', 0]);
+                    onPropChanged('audioDelay');
+                }
                 ipc.send('mpv-set-prop', ['keepaspect', true]);
                 ipc.send('mpv-set-prop', ['panscan', 0.0]);
                 ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
