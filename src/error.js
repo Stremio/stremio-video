@@ -59,6 +59,14 @@ var ERROR = {
         CONVERT_FAILED: {
             code: 60,
             message: 'Your device does not support the stream'
+        },
+        UNAVAILABLE: {
+            code: 61,
+            message: 'Streaming server is not available'
+        },
+        RECOVERY_TIMEOUT: {
+            code: 62,
+            message: 'Playback recovery timed out'
         }
     },
     UNKNOWN_ERROR: {
