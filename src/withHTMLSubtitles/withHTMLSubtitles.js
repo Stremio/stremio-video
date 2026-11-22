@@ -179,6 +179,7 @@ function withHTMLSubtitles(Video) {
         var textColor = 'rgb(255, 255, 255)';
         var backgroundColor = 'rgba(0, 0, 0, 0)';
         var outlineColor = 'rgb(34, 34, 34)';
+        var bold = false;
         var opacity = 1;
         var preview = [];
         var assSubtitlesStylingEnabled = false;
@@ -212,6 +213,7 @@ function withHTMLSubtitles(Video) {
             extraSubtitlesTextColor: false,
             extraSubtitlesBackgroundColor: false,
             extraSubtitlesOutlineColor: false,
+            extraSubtitlesBold: false,
             extraSubtitlesOpacity: false,
             extraSubtitlesPreview: false,
             assSubtitlesStylingActive: false,
@@ -302,6 +304,7 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.fontSize = Math.floor((size / 25) * fontSizeMultiplier) + 'vmin';
                 cueNode.style.color = textColor;
                 cueNode.style.backgroundColor = backgroundColor;
+                cueNode.style.fontWeight = bold ? 'bold' : 'normal';
                 cueNode.style.textShadow = '-0.15rem -0.15rem 0.15rem ' + outlineColor + ', 0px -0.15rem 0.15rem ' + outlineColor + ', 0.15rem -0.15rem 0.15rem ' + outlineColor + ', -0.15rem 0px 0.15rem ' + outlineColor + ', 0.15rem 0px 0.15rem ' + outlineColor + ', -0.15rem 0.15rem 0.15rem ' + outlineColor + ', 0px 0.15rem 0.15rem ' + outlineColor + ', 0.15rem 0.15rem 0.15rem ' + outlineColor;
                 subtitlesElement.appendChild(cueNode);
                 subtitlesElement.appendChild(document.createElement('br'));
@@ -952,6 +955,13 @@ function withHTMLSubtitles(Video) {
 
                     return outlineColor;
                 }
+                case 'extraSubtitlesBold': {
+                    if (destroyed) {
+                        return null;
+                    }
+
+                    return bold;
+                }
                 case 'extraSubtitlesOpacity': {
                     if (destroyed) {
                         return null;
@@ -1036,6 +1046,7 @@ function withHTMLSubtitles(Video) {
                 case 'extraSubtitlesTextColor':
                 case 'extraSubtitlesBackgroundColor':
                 case 'extraSubtitlesOutlineColor':
+                case 'extraSubtitlesBold':
                 case 'extraSubtitlesOpacity':
                 case 'extraSubtitlesPreview': {
                     events.emit('propValue', propName, getProp(propName, null));
@@ -1256,6 +1267,16 @@ function withHTMLSubtitles(Video) {
 
                     return true;
                 }
+                case 'extraSubtitlesBold': {
+                    if (typeof propValue === 'boolean') {
+                        bold = propValue;
+                        forceRender = true;
+                        renderSubtitles();
+                        onPropChanged('extraSubtitlesBold');
+                    }
+
+                    return true;
+                }
                 case 'extraSubtitlesOpacity': {
                     if (typeof propValue === 'number') {
                         try {
@@ -1382,6 +1403,7 @@ function withHTMLSubtitles(Video) {
                         command('addExtraSubtitlesTracks', {
                             tracks: commandArgs.stream.subtitles.map(function(track) {
                                 return Object.assign({}, track, {
+                                    label: typeof track.label === 'string' ? track.label : track.lang,
                                     origin: 'EXCLUSIVE',
                                     exclusive: true,
                                     embedded: false
@@ -1436,6 +1458,7 @@ function withHTMLSubtitles(Video) {
                     onPropChanged('extraSubtitlesTextColor');
                     onPropChanged('extraSubtitlesBackgroundColor');
                     onPropChanged('extraSubtitlesOutlineColor');
+                    onPropChanged('extraSubtitlesBold');
                     onPropChanged('extraSubtitlesOpacity');
                     onPropChanged('extraSubtitlesPreview');
                     onPropChanged('assSubtitlesStylingActive');
@@ -1500,7 +1523,7 @@ function withHTMLSubtitles(Video) {
     VideoWithHTMLSubtitles.manifest = {
         name: Video.manifest.name + 'WithHTMLSubtitles',
         external: Video.manifest.external,
-        props: Video.manifest.props.concat(['subtitlesOffsetMinimum', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesOpacity', 'extraSubtitlesPreview', 'assSubtitlesStylingActive'])
+        props: Video.manifest.props.concat(['subtitlesOffsetMinimum', 'extraSubtitlesTracks', 'selectedExtraSubtitlesTrackId', 'extraSubtitlesDelay', 'extraSubtitlesSize', 'extraSubtitlesOffset', 'extraSubtitlesTextColor', 'extraSubtitlesBackgroundColor', 'extraSubtitlesOutlineColor', 'extraSubtitlesBold', 'extraSubtitlesOpacity', 'extraSubtitlesPreview', 'assSubtitlesStylingActive'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
         commands: Video.manifest.commands.concat(['load', 'unload', 'destroy', 'addExtraSubtitlesTracks', 'addLocalSubtitles', 'addEmbeddedASSSources', 'addEmbeddedASSFonts'])
             .filter(function(value, index, array) { return array.indexOf(value) === index; }),
