@@ -17,7 +17,7 @@ function HTMLVideo(options) {
 
     var styleElement = document.createElement('style');
     containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }');
+    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; font-weight: normal; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }');
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -134,6 +134,7 @@ function HTMLVideo(options) {
         subtitlesTextColor: false,
         subtitlesBackgroundColor: false,
         subtitlesOutlineColor: false,
+        subtitlesBold: false,
         audioTracks: false,
         selectedAudioTrackId: false,
         volume: false,
@@ -299,6 +300,13 @@ function HTMLVideo(options) {
                 }
 
                 return styleElement.sheet.cssRules[0].style.textShadow.slice(0, styleElement.sheet.cssRules[0].style.textShadow.indexOf(')') + 1);
+            }
+            case 'subtitlesBold': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return styleElement.sheet.cssRules[0].style.fontWeight === 'bold';
             }
             case 'subtitlesOpacity': {
                 if (destroyed) {
@@ -550,6 +558,14 @@ function HTMLVideo(options) {
 
                 break;
             }
+            case 'subtitlesBold': {
+                if (typeof propValue === 'boolean') {
+                    styleElement.sheet.cssRules[0].style.fontWeight = propValue ? 'bold' : 'normal';
+                    onPropChanged('subtitlesBold');
+                }
+
+                break;
+            }
             case 'subtitlesOpacity': {
                 if (typeof propValue === 'number') {
                     try {
@@ -766,6 +782,7 @@ function HTMLVideo(options) {
                 onPropChanged('subtitlesTextColor');
                 onPropChanged('subtitlesBackgroundColor');
                 onPropChanged('subtitlesOutlineColor');
+                onPropChanged('subtitlesBold');
                 onPropChanged('subtitlesOpacity');
                 onPropChanged('volume');
                 onPropChanged('muted');
@@ -851,7 +868,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'live', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'live', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesBold', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };

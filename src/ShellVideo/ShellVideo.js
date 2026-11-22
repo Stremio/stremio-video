@@ -27,6 +27,7 @@ var stremioToMPVProps = {
     'subtitlesTextColor': 'sub-color',
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
+    'subtitlesBold': 'sub-bold',
     'assSubtitlesStylingActive': null,
     'hdrInfo': null,
     'videoScale': null,
@@ -86,6 +87,7 @@ function ShellVideo(options) {
     ipc.send('mpv-observe-prop', 'sub-scale');
     ipc.send('mpv-observe-prop', 'sub-pos');
     ipc.send('mpv-observe-prop', 'sub-delay');
+    ipc.send('mpv-observe-prop', 'sub-bold');
     ipc.send('mpv-observe-prop', 'speed');
 
     ipc.send('mpv-observe-prop', 'mpv-version');
@@ -101,6 +103,7 @@ function ShellVideo(options) {
     var minClipDuration = 30;
     var activeVideoReadyLoadId = null;
     var videoReadyEventsSupported = false;
+    var loadGeneration = 0;
 
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
@@ -354,6 +357,7 @@ function ShellVideo(options) {
         if (propName === 'assSubtitlesStylingActive') return props.assSubtitlesStylingActive === true;
         if (propName === 'subtitlesSize' && typeof props.subtitlesSize === 'number') return props.subtitlesSize;
         if (propName === 'subtitlesOffset' && typeof props.subtitlesOffset === 'number') return props.subtitlesOffset;
+        if (propName === 'subtitlesBold') return props['sub-bold'] === true;
         if(stremioToMPVProps[propName]) return props[stremioToMPVProps[propName]];
         // eslint-disable-next-line no-console
         console.log('Unsupported prop requested', propName);
@@ -495,6 +499,13 @@ function ShellVideo(options) {
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], argb]);
                 break;
             }
+            case 'subtitlesBold': {
+                if (typeof propValue === 'boolean') {
+                    ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue]);
+                }
+
+                break;
+            }
             default: {
                 // eslint-disable-next-line no-console
                 console.log('Unhandled setProp for', propName);
@@ -506,7 +517,9 @@ function ShellVideo(options) {
             case 'load': {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    var generation = loadGeneration;
                     waitForMPVVersion.then(function (mpvVersion) {
+                        if (generation !== loadGeneration) return;
                         stream = commandArgs.stream;
                         onPropChanged('stream');
 
@@ -530,6 +543,11 @@ function ShellVideo(options) {
                         // Video output
                         var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
                         ipc.send('mpv-set-prop', ['vo', videoOutput]);
+
+                        // Audio passthrough: send these formats undecoded to the receiver (mpv decodes them if the output can't take them)
+                        if (typeof commandArgs.audioPassthrough === 'boolean') {
+                            ipc.send('mpv-set-prop', ['audio-spdif', commandArgs.audioPassthrough ? 'ac3,eac3,dts,dts-hd,truehd' : '']);
+                        }
 
                         var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
@@ -577,6 +595,7 @@ function ShellVideo(options) {
                 break;
             }
             case 'unload': {
+                loadGeneration++;
                 var wasASSSubtitlesStylingActive = props.assSubtitlesStylingActive === true;
                 activeVideoReadyLoadId = null;
                 props = {
