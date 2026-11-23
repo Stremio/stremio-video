@@ -776,6 +776,7 @@ function HTMLVideo(options) {
                 break;
             }
             case 'unload': {
+                command('exitPictureInPicture');
                 stream = null;
                 liveDetails = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
