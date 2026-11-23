@@ -783,7 +783,6 @@ function HTMLVideo(options) {
                 break;
             }
             case 'unload': {
-                setProp('pictureInPictureActive', false);
                 stream = null;
                 liveDetails = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
@@ -816,6 +815,7 @@ function HTMLVideo(options) {
                 break;
             }
             case 'destroy': {
+                setProp('pictureInPictureActive', false);
                 command('unload');
                 destroyed = true;
                 onPropChanged('subtitlesOffset');
