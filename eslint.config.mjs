@@ -25,7 +25,7 @@ export default defineConfig([globalIgnores(["*", "!src"]), {
             cast: "readonly",
         },
 
-        ecmaVersion: 8,
+        ecmaVersion: 2020,
         sourceType: "script",
     },
 
@@ -43,7 +43,7 @@ export default defineConfig([globalIgnores(["*", "!src"]), {
         }],
 
         "no-console": ["error", {
-            allow: ["warn"],
+            allow: ["warn", "error"],
         }],
 
         "no-extra-semi": "error",

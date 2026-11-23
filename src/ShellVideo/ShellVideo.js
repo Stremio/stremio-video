@@ -27,6 +27,8 @@ var stremioToMPVProps = {
     'subtitlesTextColor': 'sub-color',
     'subtitlesBackgroundColor': 'sub-back-color',
     'subtitlesOutlineColor': 'sub-border-color',
+    'subtitlesBold': 'sub-bold',
+    'assSubtitlesStylingActive': null,
     'hdrInfo': null,
     'videoScale': null,
 };
@@ -85,6 +87,7 @@ function ShellVideo(options) {
     ipc.send('mpv-observe-prop', 'sub-scale');
     ipc.send('mpv-observe-prop', 'sub-pos');
     ipc.send('mpv-observe-prop', 'sub-delay');
+    ipc.send('mpv-observe-prop', 'sub-bold');
     ipc.send('mpv-observe-prop', 'speed');
 
     ipc.send('mpv-observe-prop', 'mpv-version');
@@ -93,9 +96,14 @@ function ShellVideo(options) {
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
+    var assSubtitlesStylingEnabled = false;
 
     var avgDuration = 0;
+    var durationReady = false;
     var minClipDuration = 30;
+    var activeVideoReadyLoadId = null;
+    var videoReadyEventsSupported = false;
+    var loadGeneration = 0;
 
     function setBackground(visible) {
         // This is a bit of a hack but there is no better way so far
@@ -110,12 +118,57 @@ function ShellVideo(options) {
             }
         }
     }
+    // Preserve loading for legacy shells that do not emit mpv-event-video-ready.
+    function updateLoaded() {
+        if (!videoReadyEventsSupported && !props.loaded && durationReady && props['video-params'] && props['paused-for-cache'] === false) {
+            props.loaded = true;
+            setBackground(false);
+            onPropChanged('loaded');
+        }
+    }
     function logProp(args) {
         // eslint-disable-next-line no-console
         console.log(args.name+': '+args.data);
     }
     function embeddedProp(args) {
         return args.data && args.data !== 'no' ? 'EMBEDDED_' + args.data.toString() : null;
+    }
+    function getSelectedSubtitleTrack() {
+        if (typeof props.sid !== 'string' || !props.sid.startsWith('EMBEDDED_') || !Array.isArray(props['track-list'])) {
+            return null;
+        }
+
+        var selectedId = props.sid.slice('EMBEDDED_'.length);
+        return props['track-list'].find(function(track) {
+            return track.type === 'sub' && String(track.id) === selectedId;
+        }) || null;
+    }
+    function applySubtitleStyle() {
+        if (stream === null) {
+            return;
+        }
+
+        if (props.assSubtitlesStylingActive) {
+            ipc.send('mpv-set-prop', ['sub-scale', 1]);
+            ipc.send('mpv-set-prop', ['sub-pos', 100]);
+            return;
+        }
+        if (typeof props.subtitlesSize === 'number') {
+            ipc.send('mpv-set-prop', ['sub-scale', props.subtitlesSize * SUBS_SCALE_FACTOR]);
+        }
+        if (typeof props.subtitlesOffset === 'number') {
+            ipc.send('mpv-set-prop', ['sub-pos', 100 - props.subtitlesOffset]);
+        }
+    }
+    function updateASSSubtitlesStylingActive() {
+        var track = getSelectedSubtitleTrack();
+        var codec = track && typeof track.codec === 'string' ? track.codec.toLowerCase() : null;
+        var active = assSubtitlesStylingEnabled && (codec === 'ass' || codec === 'ssa');
+        if (props.assSubtitlesStylingActive !== active) {
+            props.assSubtitlesStylingActive = active;
+            applySubtitleStyle();
+            onPropChanged('assSubtitlesStylingActive');
+        }
     }
 
     var last_time = 0;
@@ -143,11 +196,8 @@ function ShellVideo(options) {
                 // for bitwise maths so the maximum supported video duration is 1073741823 (2 ^ 30 - 1)
                 // which is around 34 years of playback time.
                 avgDuration = avgDuration ? (avgDuration + intDuration) >> 1 : intDuration;
-                props.loaded = intDuration > 0;
-                if(props.loaded) {
-                    setBackground(false);
-                    onPropChanged('loaded');
-                }
+                durationReady = intDuration > 0;
+                updateLoaded();
                 break;
             }
             case 'time-pos': {
@@ -156,10 +206,16 @@ function ShellVideo(options) {
             }
             case 'sub-scale': {
                 props[args.name] = Math.round(args.data / SUBS_SCALE_FACTOR);
+                if (!props.assSubtitlesStylingActive) {
+                    props.subtitlesSize = props[args.name];
+                }
                 break;
             }
             case 'sub-pos': {
                 props[args.name] = 100 - args.data;
+                if (!props.assSubtitlesStylingActive) {
+                    props.subtitlesOffset = props[args.name];
+                }
                 break;
             }
             case 'sub-delay': {
@@ -176,6 +232,10 @@ function ShellVideo(options) {
             case 'paused-for-cache':
             case 'seeking':
             {
+                if (args.name === 'paused-for-cache') {
+                    props[args.name] = args.data;
+                    updateLoaded();
+                }
                 if(props.buffering !== args.data) {
                     props.buffering = args.data;
                     onPropChanged('buffering');
@@ -192,10 +252,14 @@ function ShellVideo(options) {
             case 'sid':
             case 'vid': {
                 props[args.name] = embeddedProp(args);
+                if (args.name === 'sid') {
+                    updateASSSubtitlesStylingActive();
+                }
                 break;
             }
             case 'video-params': {
                 props[args.name] = args.data;
+                updateLoaded();
                 var params = args.data || {};
                 var gamma = typeof params.gamma === 'string' ? params.gamma : null;
                 if (gamma === 'pq' || gamma === 'hlg') {
@@ -214,6 +278,7 @@ function ShellVideo(options) {
             // In that case onPropChanged() is manually invoked as track-list contains all
             // the tracks but we have different event for each track type
             case 'track-list': {
+                props['track-list'] = args.data;
                 props.audioTracks = args.data.filter(function(x) { return x.type === 'audio'; })
                     .map(function(x, index) {
                         return {
@@ -230,16 +295,22 @@ function ShellVideo(options) {
                 props.subtitlesTracks = args.data
                     .filter(function(x) { return x.type === 'sub'; })
                     .map(function(x, index) {
+                        var codec = typeof x.codec === 'string' ? x.codec.toLowerCase() : null;
                         return {
                             id: 'EMBEDDED_' + x.id,
                             lang: x.lang === undefined ? 'Track ' + (index + 1) : x.lang,
-                            label: x.title === undefined || x.lang === undefined ? '' : x.title || x.lang,
+                            label: x.title || x.lang || '',
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: x.id === props.sid ? 'showing' : 'disabled',
+                            ass: codec === 'ass' || codec === 'ssa',
+                            nativeExternal: x.external === true,
+                            nativeExternalFilename: x['external-filename'],
+                            nativeExternalTitle: x.title,
                         };
                     });
                 onPropChanged('subtitlesTracks');
+                updateASSSubtitlesStylingActive();
                 break;
             }
             default: {
@@ -264,10 +335,29 @@ function ShellVideo(options) {
             if (!isKnownEarlyEof()) onEnded();
         }
     });
+    ipc.on('mpv-event-video-ready', function(args) {
+        if (!args || !Number.isSafeInteger(args.loadId) || typeof args.ready !== 'boolean') {
+            return;
+        }
+        videoReadyEventsSupported = true;
+        if (!args.ready) {
+            if (activeVideoReadyLoadId === null || args.loadId > activeVideoReadyLoadId) {
+                activeVideoReadyLoadId = args.loadId;
+            }
+        } else if (args.loadId === activeVideoReadyLoadId && !props.loaded) {
+            props.loaded = true;
+            setBackground(false);
+            onPropChanged('loaded');
+        }
+    });
 
     function getProp(propName) {
         if (propName === 'hdrInfo') return props.hdrInfo || null;
         if (propName === 'videoScale') return props.videoScale || 'contain';
+        if (propName === 'assSubtitlesStylingActive') return props.assSubtitlesStylingActive === true;
+        if (propName === 'subtitlesSize' && typeof props.subtitlesSize === 'number') return props.subtitlesSize;
+        if (propName === 'subtitlesOffset' && typeof props.subtitlesOffset === 'number') return props.subtitlesOffset;
+        if (propName === 'subtitlesBold') return props['sub-bold'] === true;
         if(stremioToMPVProps[propName]) return props[stremioToMPVProps[propName]];
         // eslint-disable-next-line no-console
         console.log('Unsupported prop requested', propName);
@@ -328,14 +418,17 @@ function ShellVideo(options) {
                         case 'cover':
                             ipc.send('mpv-set-prop', ['keepaspect', true]);
                             ipc.send('mpv-set-prop', ['panscan', 1.0]);
+                            ipc.send('mpv-set-prop', ['sub-ass-force-margins', true]);
                             break;
                         case 'fill':
                             ipc.send('mpv-set-prop', ['keepaspect', false]);
                             ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
                             break;
                         default:
                             ipc.send('mpv-set-prop', ['keepaspect', true]);
                             ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                            ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
                             break;
                     }
                     props.videoScale = propValue;
@@ -384,7 +477,8 @@ function ShellVideo(options) {
                 break;
             }
             case 'subtitlesSize': {
-                ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue * SUBS_SCALE_FACTOR]);
+                props.subtitlesSize = propValue;
+                ipc.send('mpv-set-prop', [stremioToMPVProps[propName], props.assSubtitlesStylingActive ? 1 : propValue * SUBS_SCALE_FACTOR]);
                 break;
             }
             case 'subtitlesDelay': {
@@ -392,7 +486,8 @@ function ShellVideo(options) {
                 break;
             }
             case 'subtitlesOffset': {
-                ipc.send('mpv-set-prop', [stremioToMPVProps[propName], 100 - propValue]);
+                props.subtitlesOffset = propValue;
+                ipc.send('mpv-set-prop', [stremioToMPVProps[propName], props.assSubtitlesStylingActive ? 100 : 100 - propValue]);
                 break;
             }
             case 'subtitlesTextColor':
@@ -402,6 +497,13 @@ function ShellVideo(options) {
                 // MPV accepts color in #AARRGGBB
                 var argb = propValue.replace(/^#(\w{6})(\w{2})$/, '#$2$1');
                 ipc.send('mpv-set-prop', [stremioToMPVProps[propName], argb]);
+                break;
+            }
+            case 'subtitlesBold': {
+                if (typeof propValue === 'boolean') {
+                    ipc.send('mpv-set-prop', [stremioToMPVProps[propName], propValue]);
+                }
+
                 break;
             }
             default: {
@@ -415,18 +517,22 @@ function ShellVideo(options) {
             case 'load': {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
+                    var generation = loadGeneration;
                     waitForMPVVersion.then(function (mpvVersion) {
+                        if (generation !== loadGeneration) return;
                         stream = commandArgs.stream;
                         onPropChanged('stream');
 
-                        var subAssOverride = commandArgs.assSubtitlesStyling ? 'strip' : 'no';
+                        assSubtitlesStylingEnabled = commandArgs.assSubtitlesStyling === true;
+                        var subAssOverride = assSubtitlesStylingEnabled ? 'no' : 'strip';
                         ipc.send('mpv-set-prop', ['sub-ass-override', subAssOverride]);
 
                         var gpuProcessing = !!commandArgs.gpuVideoProcessing &&
                             !!commandArgs.hardwareDecoding;
 
                         // Hardware decoding
-                        var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : 'auto-copy') : 'no';
+                        var hwdecAuto = commandArgs.platform === 'windows' || commandArgs.platform === 'macos' ? 'auto' : 'auto-copy';
+                        var hwdecValue = commandArgs.hardwareDecoding ? (gpuProcessing ? 'd3d11va' : hwdecAuto) : 'no';
                         ipc.send('mpv-set-prop', ['hwdec', hwdecValue]);
 
                         // GPU video processing
@@ -437,6 +543,11 @@ function ShellVideo(options) {
                         // Video output
                         var videoOutput = commandArgs.platform === 'windows' ? (commandArgs.videoMode === null ? 'gpu-next' : 'gpu') : 'libmpv';
                         ipc.send('mpv-set-prop', ['vo', videoOutput]);
+
+                        // Audio passthrough: send these formats undecoded to the receiver (mpv decodes them if the output can't take them)
+                        if (typeof commandArgs.audioPassthrough === 'boolean') {
+                            ipc.send('mpv-set-prop', ['audio-spdif', commandArgs.audioPassthrough ? 'ac3,eac3,dts,dts-hd,truehd' : '']);
+                        }
 
                         var separateWindow = options.mpvSeparateWindow ? 'yes' : 'no';
                         ipc.send('mpv-set-prop', ['osc', separateWindow]);
@@ -473,6 +584,7 @@ function ShellVideo(options) {
                         onPropChanged('muted');
                         onPropChanged('subtitlesTracks');
                         onPropChanged('selectedSubtitlesTrackId');
+                        onPropChanged('assSubtitlesStylingActive');
                     });
                 } else {
                     onError(Object.assign({}, ERROR.UNSUPPORTED_STREAM, {
@@ -483,6 +595,9 @@ function ShellVideo(options) {
                 break;
             }
             case 'unload': {
+                loadGeneration++;
+                var wasASSSubtitlesStylingActive = props.assSubtitlesStylingActive === true;
+                activeVideoReadyLoadId = null;
                 props = {
                     loaded: false,
                     pause: false,
@@ -494,9 +609,16 @@ function ShellVideo(options) {
                     buffered: null,
                     aid: null,
                     sid: null,
+                    videoScale: 'contain',
+                    assSubtitlesStylingActive: false,
                 };
+                assSubtitlesStylingEnabled = false;
                 avgDuration = 0;
+                durationReady = false;
                 ipc.send('mpv-command', ['stop']);
+                ipc.send('mpv-set-prop', ['keepaspect', true]);
+                ipc.send('mpv-set-prop', ['panscan', 0.0]);
+                ipc.send('mpv-set-prop', ['sub-ass-force-margins', false]);
                 onPropChanged('loaded');
                 onPropChanged('stream');
                 onPropChanged('paused');
@@ -507,6 +629,10 @@ function ShellVideo(options) {
                 onPropChanged('muted');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
+                onPropChanged('videoScale');
+                if (wasASSSubtitlesStylingActive) {
+                    onPropChanged('assSubtitlesStylingActive');
+                }
                 setBackground(true);
                 break;
             }

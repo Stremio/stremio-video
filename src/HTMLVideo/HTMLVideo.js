@@ -18,7 +18,7 @@ function HTMLVideo(options) {
 
     var styleElement = document.createElement('style');
     containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }');
+    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; font-weight: normal; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }');
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -41,9 +41,14 @@ function HTMLVideo(options) {
     videoElement.ontimeupdate = function() {
         onPropChanged('time');
         onPropChanged('buffered');
+        onPropChanged('live');
     };
     videoElement.ondurationchange = function() {
         onPropChanged('duration');
+        onPropChanged('live');
+    };
+    videoElement.onprogress = function() {
+        onPropChanged('live');
     };
     videoElement.onwaiting = function() {
         onPropChanged('buffering');
@@ -114,6 +119,7 @@ function HTMLVideo(options) {
     videoElement.addEventListener('fullscreenchange', onFullscreenChanged);
 
     var hls = null;
+    var liveDetails = null;
     var events = new EventEmitter();
     var destroyed = false;
     var stream = null;
@@ -125,6 +131,7 @@ function HTMLVideo(options) {
         paused: false,
         time: false,
         duration: false,
+        live: false,
         buffering: false,
         buffered: false,
         subtitlesTracks: false,
@@ -134,6 +141,7 @@ function HTMLVideo(options) {
         subtitlesTextColor: false,
         subtitlesBackgroundColor: false,
         subtitlesOutlineColor: false,
+        subtitlesBold: false,
         audioTracks: false,
         selectedAudioTrackId: false,
         volume: false,
@@ -178,6 +186,27 @@ function HTMLVideo(options) {
 
                 return Math.floor(videoElement.duration * 1000);
             }
+            case 'live': {
+                if (stream === null || (hls !== null ? !liveDetails || !liveDetails.live : videoElement.duration !== Infinity)) {
+                    return null;
+                }
+
+                // All values use milliseconds. The end is a safe live playback target,
+                // rather than the changing media duration or the last segment's end.
+                var targetDuration = liveDetails ? liveDetails.targetduration : 3;
+                var range = videoElement.seekable.length - 1;
+                var start = range >= 0 ? videoElement.seekable.start(range) : null;
+                var end = range >= 0 ? videoElement.seekable.end(range) : null;
+                if (start !== null && liveDetails && liveDetails.fragments.length > 0) {
+                    start = Math.max(start, liveDetails.fragments[0].start);
+                }
+                var target = hls !== null ? hls.liveSyncPosition : end !== null ? end - targetDuration : null;
+                return Object.freeze({
+                    start: start !== null ? Math.floor(start * 1000) : null,
+                    end: target !== null && isFinite(target) && end !== null ? Math.floor(Math.max(start, Math.min(end, target)) * 1000) : null,
+                    tolerance: Math.max(1000, Math.floor(2 * targetDuration * 1000))
+                });
+            }
             case 'buffering': {
                 if (stream === null) {
                     return null;
@@ -204,6 +233,19 @@ function HTMLVideo(options) {
                     return [];
                 }
 
+                if (hls !== null && Array.isArray(hls.subtitleTracks)) {
+                    return hls.subtitleTracks.map(function(track, index) {
+                        return Object.freeze({
+                            id: 'EMBEDDED_' + String(index),
+                            lang: typeof track.lang === 'string' && track.lang.length > 0 ? track.lang : '',
+                            label: typeof track.name === 'string' && track.name.length > 0 ? track.name : null,
+                            origin: 'EMBEDDED',
+                            embedded: true,
+                            _hlsSubtitlePlaylistURL: typeof track.url === 'string' ? track.url : null
+                        });
+                    });
+                }
+
                 return Array.from(videoElement.textTracks)
                     .map(function(track, index) {
                         return Object.freeze({
@@ -218,6 +260,10 @@ function HTMLVideo(options) {
             case 'selectedSubtitlesTrackId': {
                 if (stream === null) {
                     return null;
+                }
+
+                if (hls !== null) {
+                    return hls.subtitleTrack >= 0 ? 'EMBEDDED_' + String(hls.subtitleTrack) : null;
                 }
 
                 return Array.from(videoElement.textTracks)
@@ -263,6 +309,13 @@ function HTMLVideo(options) {
                 }
 
                 return styleElement.sheet.cssRules[0].style.textShadow.slice(0, styleElement.sheet.cssRules[0].style.textShadow.indexOf(')') + 1);
+            }
+            case 'subtitlesBold': {
+                if (destroyed) {
+                    return null;
+                }
+
+                return styleElement.sheet.cssRules[0].style.fontWeight === 'bold';
             }
             case 'subtitlesOpacity': {
                 if (destroyed) {
@@ -437,10 +490,17 @@ function HTMLVideo(options) {
             }
             case 'selectedSubtitlesTrackId': {
                 if (stream !== null) {
-                    Array.from(videoElement.textTracks)
-                        .forEach(function(track, index) {
-                            track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                    if (hls !== null) {
+                        var selectedIndex = getProp('subtitlesTracks').findIndex(function(track) {
+                            return track.id === propValue;
                         });
+                        hls.subtitleTrack = selectedIndex;
+                    } else {
+                        Array.from(videoElement.textTracks)
+                            .forEach(function(track, index) {
+                                track.mode = 'EMBEDDED_' + String(index) === propValue ? 'showing' : 'disabled';
+                            });
+                    }
                     var selecterdSubtitlesTrack = getProp('subtitlesTracks')
                         .find(function(track) {
                             return track.id === propValue;
@@ -509,6 +569,14 @@ function HTMLVideo(options) {
                     }
 
                     onPropChanged('subtitlesOutlineColor');
+                }
+
+                break;
+            }
+            case 'subtitlesBold': {
+                if (typeof propValue === 'boolean') {
+                    styleElement.sheet.cssRules[0].style.fontWeight = propValue ? 'bold' : 'normal';
+                    onPropChanged('subtitlesBold');
                 }
 
                 break;
@@ -642,6 +710,28 @@ function HTMLVideo(options) {
 
                             if (contentType === 'application/vnd.apple.mpegurl' && Hls.isSupported()) {
                                 hls = new Hls(HLS_CONFIG);
+                                var activeHls = hls;
+                                hls.on(Hls.Events.LEVEL_UPDATED, function(_event, data) {
+                                    if (hls !== activeHls) return;
+                                    liveDetails = data.details;
+                                    onPropChanged('live');
+                                });
+                                hls.on(Hls.Events.ERROR, function(_event, data) {
+                                    if (!data.fatal) {
+                                        return;
+                                    }
+
+                                    var error = ERROR.UNKNOWN_ERROR;
+                                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                                        error = ERROR.HTML_VIDEO.MEDIA_ERR_NETWORK;
+                                    } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                                        error = ERROR.HTML_VIDEO.MEDIA_ERR_DECODE;
+                                    }
+                                    onError(Object.assign({}, error, {
+                                        critical: true,
+                                        error: data
+                                    }));
+                                });
                                 hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function() {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
@@ -649,6 +739,17 @@ function HTMLVideo(options) {
                                 hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, function() {
                                     onPropChanged('audioTracks');
                                     onPropChanged('selectedAudioTrackId');
+                                });
+                                hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, function() {
+                                    onPropChanged('subtitlesTracks');
+                                    onPropChanged('selectedSubtitlesTrackId');
+                                });
+                                hls.on(Hls.Events.SUBTITLE_TRACKS_CLEARED, function() {
+                                    onPropChanged('subtitlesTracks');
+                                    onPropChanged('selectedSubtitlesTrackId');
+                                });
+                                hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, function() {
+                                    onPropChanged('selectedSubtitlesTrackId');
                                 });
                                 hls.on(Hls.Events.MANIFEST_LOADING, function() {
                                     hls.subtitleTrack = -1;
@@ -676,29 +777,31 @@ function HTMLVideo(options) {
             }
             case 'unload': {
                 stream = null;
+                liveDetails = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
                     track.oncuechange = null;
                 });
                 if (hls !== null) {
-                    hls.removeAllListeners();
-                    hls.detachMedia(videoElement);
                     hls.destroy();
                     hls = null;
                 }
                 videoElement.removeAttribute('src');
                 videoElement.load();
                 videoElement.currentTime = 0;
+                videoElement.style.objectFit = 'contain';
                 onPropChanged('stream');
                 onPropChanged('loaded');
                 onPropChanged('paused');
                 onPropChanged('time');
                 onPropChanged('duration');
+                onPropChanged('live');
                 onPropChanged('buffering');
                 onPropChanged('buffered');
                 onPropChanged('subtitlesTracks');
                 onPropChanged('selectedSubtitlesTrackId');
                 onPropChanged('audioTracks');
                 onPropChanged('selectedAudioTrackId');
+                onPropChanged('videoScale');
                 onPropChanged('fullscreen');
                 onPropChanged('pictureInPicturePossible');
                 onPropChanged('pictureInPictureActive');
@@ -735,6 +838,7 @@ function HTMLVideo(options) {
                 onPropChanged('subtitlesTextColor');
                 onPropChanged('subtitlesBackgroundColor');
                 onPropChanged('subtitlesOutlineColor');
+                onPropChanged('subtitlesBold');
                 onPropChanged('subtitlesOpacity');
                 onPropChanged('volume');
                 onPropChanged('muted');
@@ -746,6 +850,7 @@ function HTMLVideo(options) {
                 videoElement.onplay = null;
                 videoElement.ontimeupdate = null;
                 videoElement.ondurationchange = null;
+                videoElement.onprogress = null;
                 videoElement.onwaiting = null;
                 videoElement.onseeking = null;
                 videoElement.onseeked = null;
@@ -821,7 +926,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen', 'pictureInPicturePossible', 'pictureInPictureActive'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'live', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesBold', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen', 'pictureInPicturePossible', 'pictureInPictureActive'],
     commands: ['load', 'unload', 'destroy', 'enterPictureInPicture', 'exitPictureInPicture', 'togglePictureInPicture'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
