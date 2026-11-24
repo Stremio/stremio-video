@@ -108,8 +108,20 @@ function withHTMLSubtitles(Video) {
             var selectedTrack = tracks.find(function(track) { return track.id === selectedTrackId; });
             if (!selectedTrack) return false;
             var delayMs = delay || 0;
-            nativeTextTrack = videoElement.addTextTrack('subtitles', selectedTrack.label || selectedTrack.lang, selectedTrack.lang || '');
-            syntheticNativeTextTracks.push(nativeTextTrack);
+            var label = selectedTrack.label || selectedTrack.lang;
+            var language = selectedTrack.lang || '';
+            nativeTextTrack = syntheticNativeTextTracks.find(function(track) {
+                return track.label === label && track.language === language;
+            }) || null;
+            if (nativeTextTrack === null) {
+                nativeTextTrack = videoElement.addTextTrack('subtitles', label, language);
+                syntheticNativeTextTracks.push(nativeTextTrack);
+            } else {
+                nativeTextTrack.mode = 'hidden';
+                Array.from(nativeTextTrack.cues || []).forEach(function(cue) {
+                    nativeTextTrack.removeCue(cue);
+                });
+            }
             cuesByTime.times.forEach(function(time) {
                 cuesByTime[time].forEach(function(cue) {
                     if (cue.startTime !== time) return;
@@ -139,20 +151,23 @@ function withHTMLSubtitles(Video) {
             var index = parseInt(trackId.replace('EMBEDDED_', ''), 10);
             return isNaN(index) ? null : index;
         }
-        function isWebkitDisplayingFullscreen() {
-            return videoElement && videoElement.webkitDisplayingFullscreen === true;
+        function isVideoOutsidePage() {
+            return !!videoElement && (videoElement.webkitDisplayingFullscreen === true || document.pictureInPictureElement === videoElement);
         }
-        function onWebkitBeginFullscreen() {
+        function onVideoLeavePage() {
             createNativeTrack();
             subtitlesElement.style.display = 'none';
         }
-        function onWebkitEndFullscreen() {
+        function onVideoReturnToPage() {
             removeNativeTrack();
             subtitlesElement.style.display = '';
         }
         if (videoElement) {
-            videoElement.addEventListener('webkitbeginfullscreen', onWebkitBeginFullscreen);
-            videoElement.addEventListener('webkitendfullscreen', onWebkitEndFullscreen);
+            videoElement.addEventListener('webkitbeginfullscreen', onVideoLeavePage);
+            videoElement.addEventListener('webkitendfullscreen', onVideoReturnToPage);
+            videoElement.addEventListener('enterpictureinpicture', onVideoLeavePage);
+            videoElement.addEventListener('leavepictureinpicture', onVideoReturnToPage);
+            videoElement.addEventListener('timeupdate', onVideoTimeUpdate);
         }
 
         var videoState = {
@@ -164,6 +179,7 @@ function withHTMLSubtitles(Video) {
             playbackSpeed: 1
         };
         var rafId = null;
+        var rafWindow = window;
         var lastTimeIndex = null;
         var forceRender = false;
         var cuesByTime = null;
@@ -249,13 +265,25 @@ function withHTMLSubtitles(Video) {
             }
             (function loop() {
                 renderSubtitles();
-                rafId = requestAnimationFrame(loop);
+                rafWindow = getRenderWindow();
+                rafId = rafWindow.requestAnimationFrame(loop);
             })();
         }
         function stopRenderLoop() {
             if (rafId !== null) {
-                cancelAnimationFrame(rafId);
+                if (!rafWindow.closed) {
+                    rafWindow.cancelAnimationFrame(rafId);
+                }
                 rafId = null;
+            }
+        }
+        function getRenderWindow() {
+            return subtitlesElement.ownerDocument.defaultView || window;
+        }
+        function onVideoTimeUpdate() {
+            if (rafId !== null && rafWindow !== getRenderWindow()) {
+                stopRenderLoop();
+                startRenderLoop();
             }
         }
         function renderSubtitles() {
@@ -618,8 +646,8 @@ function withHTMLSubtitles(Video) {
                     cuesByTime = result;
                     startRenderLoop();
                     setPreview();
-                    if (isWebkitDisplayingFullscreen() && nativeTextTrack === null) {
-                        createNativeTrack();
+                    if (isVideoOutsidePage() && nativeTextTrack === null) {
+                        onVideoLeavePage();
                     }
                     events.emit('extraSubtitlesTrackLoaded', track);
                     return track;
@@ -1145,6 +1173,7 @@ function withHTMLSubtitles(Video) {
                         });
                     }
                     var currentRequestId = ++selectionRequestId;
+                    removeNativeTrack();
                     cuesByTime = null;
                     selectedTrackId = null;
                     selectedSubtitleText = null;
@@ -1191,6 +1220,9 @@ function withHTMLSubtitles(Video) {
                                 propName: 'subtitlesDelay',
                                 propValue: delay / 1000,
                             });
+                        }
+                        if (nativeTextTrack !== null) {
+                            createNativeTrack();
                         }
                         forceRender = true;
                         renderSubtitles();
@@ -1448,8 +1480,11 @@ function withHTMLSubtitles(Video) {
                     command('unload');
                     destroyed = true;
                     if (videoElement) {
-                        videoElement.removeEventListener('webkitbeginfullscreen', onWebkitBeginFullscreen);
-                        videoElement.removeEventListener('webkitendfullscreen', onWebkitEndFullscreen);
+                        videoElement.removeEventListener('webkitbeginfullscreen', onVideoLeavePage);
+                        videoElement.removeEventListener('webkitendfullscreen', onVideoReturnToPage);
+                        videoElement.removeEventListener('enterpictureinpicture', onVideoLeavePage);
+                        videoElement.removeEventListener('leavepictureinpicture', onVideoReturnToPage);
+                        videoElement.removeEventListener('timeupdate', onVideoTimeUpdate);
                     }
                     onPropChanged('subtitlesOffset');
                     onPropChanged('subtitlesOffsetMinimum');
