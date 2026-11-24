@@ -17,7 +17,7 @@ function HTMLVideo(options) {
 
     var styleElement = document.createElement('style');
     containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; font-weight: normal; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }');
+    styleElement.sheet.insertRule('video:not(.picture-in-picture)::cue { font-size: 4vmin; font-weight: normal; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }');
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -88,10 +88,15 @@ function HTMLVideo(options) {
         onPropChanged('buffering');
         onPropChanged('buffered');
     };
+    videoElement.onresize = function() {
+        onPropChanged('pictureInPicturePossible');
+    };
     videoElement.onenterpictureinpicture = function() {
+        videoElement.classList.add('picture-in-picture');
         onPropChanged('pictureInPictureActive');
     };
     videoElement.onleavepictureinpicture = function() {
+        videoElement.classList.remove('picture-in-picture');
         onPropChanged('pictureInPictureActive');
     };
     videoElement.onvolumechange = function() {
@@ -844,6 +849,7 @@ function HTMLVideo(options) {
                 videoElement.oncanplay = null;
                 videoElement.canplaythrough = null;
                 videoElement.onloadeddata = null;
+                videoElement.onresize = null;
                 videoElement.onenterpictureinpicture = null;
                 videoElement.onleavepictureinpicture = null;
                 videoElement.onvolumechange = null;
