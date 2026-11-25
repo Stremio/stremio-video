@@ -45,6 +45,25 @@ function versionGTE(a, b) {
     return versionA[1] >= versionB[1];
 }
 
+// Raw audio format of an mpv track-list entry, or null when mpv reports no codec.
+// mpv's own Matroska demuxer reports unnamed layouts as "unknownN" (N = channel count),
+// so those are dropped and only the count is kept.
+function getAudioFormat(track) {
+    if (typeof track.codec !== 'string' || track.codec.length === 0) {
+        return null;
+    }
+
+    var channels = track['demux-channels'];
+    var channelCount = track['demux-channel-count'];
+    var profile = track['codec-profile'];
+    return {
+        codec: track.codec,
+        profile: typeof profile === 'string' && profile.length > 0 ? profile : null,
+        channels: typeof channels === 'string' && channels.length > 0 && channels.indexOf('unknown') !== 0 ? channels : null,
+        channelCount: typeof channelCount === 'number' && channelCount > 0 ? channelCount : null,
+    };
+}
+
 function ShellVideo(options) {
     options = options || {};
 
@@ -288,6 +307,7 @@ function ShellVideo(options) {
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: x.id === props.aid ? 'showing' : 'disabled',
+                            format: getAudioFormat(x),
                         };
                     });
                 onPropChanged('audioTracks');
