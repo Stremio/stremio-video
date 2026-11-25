@@ -54,6 +54,33 @@ test('uses the cluster scan for a track absent from the subtitle index', async f
     assert.match(await tracks[0].loadWindow(0, 8000), /Second subtitle/);
 });
 
+test('finds unindexed subtitles in a cluster cued before the lookback', async function(t) {
+    var bytes = createFixture({ indexSubtitles: false, secondSubtitleStart: 20000 });
+    t.mock.method(globalThis, 'fetch', async function(_url, init) {
+        return partialResponse(new Headers(init.headers).get('Range'), bytes);
+    });
+    var tracks = await discoverEmbeddedASS(mediaURL);
+
+    var subtitles = await tracks[0].loadWindow(20000, 30000);
+    assert.deepEqual(subtitles.match(/^Dialogue:.*$/gm), [
+        'Dialogue: 0,0:00:20.00,0:00:22.00,Default,,0,0,0,,Second subtitle'
+    ]);
+    assert.doesNotMatch(await tracks[0].loadWindow(23000, 30000), /^Dialogue:/m);
+});
+
+test('scans a cluster only once when a window cue points to the predecessor cluster', async function(t) {
+    var bytes = createFixture({ indexSubtitles: false, secondSubtitleStart: 20000, duplicateClusterCue: true });
+    t.mock.method(globalThis, 'fetch', async function(_url, init) {
+        return partialResponse(new Headers(init.headers).get('Range'), bytes);
+    });
+    var tracks = await discoverEmbeddedASS(mediaURL);
+
+    var subtitles = await tracks[0].loadWindow(20000, 30000);
+    assert.deepEqual(subtitles.match(/^Dialogue:.*$/gm), [
+        'Dialogue: 0,0:00:20.00,0:00:22.00,Default,,0,0,0,,Second subtitle'
+    ]);
+});
+
 test('continues from the next byte when the origin returns only part of the requested range', async function(t) {
     var requests = [];
     t.mock.method(globalThis, 'fetch', async function(_url, init) {

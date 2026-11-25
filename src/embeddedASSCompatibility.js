@@ -174,11 +174,18 @@ async function discoverEmbeddedASS(mediaURL, options) {
                                 trackNumbers, timestampScale, 1);
                         }
                     } else {
-                        // Some muxers index video clusters only. Limit the scan to the requested time window.
-                        var windowCues = cues.filter(function(cue) {
+                        // A cluster cued before the lookback can still contain subtitles in the window.
+                        var predecessor;
+                        var windowCues = [];
+                        for (var cue of cues) {
                             var time = cue.time * cueMs;
-                            return time >= lookback && time < to;
-                        });
+                            if (time < lookback) {
+                                if (!predecessor || cue.time >= predecessor.time) predecessor = cue;
+                            } else if (time < to) {
+                                windowCues.push(cue);
+                            }
+                        }
+                        if (predecessor) windowCues.unshift(predecessor);
                         var positions = Array.from(new Set(windowCues.map(function(cue) { return cue.clusterPosition; })));
                         for (var position of positions) {
                             var next = cues.reduce(function(end, cue) {

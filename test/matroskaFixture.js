@@ -20,14 +20,14 @@ function caption(start, duration, order, text) {
     return element('a0', element('a1', header, order + ',0,Default,,0,0,0,,' + text), element('9b', uint(duration)));
 }
 
-function createFixture({ padding = 6200, indexSubtitles = true } = {}) {
+function createFixture({ padding = 6200, indexSubtitles = true, secondSubtitleStart = 5000, duplicateClusterCue = false } = {}) {
     var tracks = element('1654ae6b',
         element('ae', element('d7', uint(2)), element('83', uint(17)), element('86', 'S_TEXT/UTF8')),
         element('ae', element('d7', uint(3)), element('83', uint(17)), element('86', 'S_TEXT/ASS'),
             element('63a2', '[Script Info]\nScriptType: v4.00+\n'), element('22b59c', 'por')));
     var timestamp = element('e7', uint(0));
     var first = caption(1000, 3000, 0, 'First subtitle');
-    var second = caption(5000, 2000, 1, 'Second subtitle');
+    var second = caption(secondSubtitleStart, 2000, 1, 'Second subtitle');
     var firstCluster = element('1f43b675', timestamp, first, second);
     var voidElement = element('ec', Buffer.alloc(padding));
     var nextCluster = element('1f43b675', element('e7', uint(40000)));
@@ -42,8 +42,9 @@ function createFixture({ padding = 6200, indexSubtitles = true } = {}) {
         var entries = [cue(0, 1, firstOffset)];
         if (indexSubtitles) {
             entries.push(cue(1000, 3, firstOffset, timestamp.length, 3000));
-            entries.push(cue(5000, 3, firstOffset, timestamp.length + first.length, 2000));
+            entries.push(cue(secondSubtitleStart, 3, firstOffset, timestamp.length + first.length, 2000));
         }
+        if (duplicateClusterCue) entries.push(cue(10000, 1, firstOffset));
         entries.push(cue(40000, 1, nextOffset));
         return element('1c53bb6b', ...entries);
     }
