@@ -527,7 +527,7 @@ function ShellVideo(options) {
                 command('unload');
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     var generation = loadGeneration;
-                    props.mediaTitle = typeof commandArgs.mediaTitle === 'string' && commandArgs.mediaTitle.length > 0 ? commandArgs.mediaTitle : pendingMediaTitle;
+                    props.mediaTitle = pendingMediaTitle || (typeof commandArgs.mediaTitle === 'string' && commandArgs.mediaTitle.length > 0 ? commandArgs.mediaTitle : null);
                     waitForMPVVersion.then(function (mpvVersion) {
                         if (generation !== loadGeneration) return;
                         stream = commandArgs.stream;
