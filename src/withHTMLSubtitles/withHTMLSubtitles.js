@@ -100,11 +100,13 @@ function withHTMLSubtitles(Video) {
 
         var videoElement = containerElement.querySelector('video');
         var nativeTextTrack = null;
+        var nativeASSCues = null;
         var syntheticNativeTextTracks = [];
 
         function createNativeTrack() {
             removeNativeTrack();
-            if (cuesByTime === null || selectedTrackId === null) return false;
+            var nativeCues = cuesByTime || nativeASSCues;
+            if (nativeCues === null || selectedTrackId === null) return false;
             var selectedTrack = tracks.find(function(track) { return track.id === selectedTrackId; });
             if (!selectedTrack) return false;
             var delayMs = delay || 0;
@@ -122,8 +124,8 @@ function withHTMLSubtitles(Video) {
                     nativeTextTrack.removeCue(cue);
                 });
             }
-            cuesByTime.times.forEach(function(time) {
-                cuesByTime[time].forEach(function(cue) {
+            nativeCues.times.forEach(function(time) {
+                nativeCues[time].forEach(function(cue) {
                     if (cue.startTime !== time) return;
                     var start = (cue.startTime + delayMs) / 1000;
                     var end = (cue.endTime + delayMs) / 1000;
@@ -155,8 +157,27 @@ function withHTMLSubtitles(Video) {
             return !!videoElement && (videoElement.webkitDisplayingFullscreen === true || document.pictureInPictureElement === videoElement);
         }
         function onVideoLeavePage() {
-            createNativeTrack();
             subtitlesElement.style.display = 'none';
+            if (createNativeTrack() || !usingASSRenderer || selectedTrackId === null || selectedSubtitleText === null) {
+                return;
+            }
+
+            // Native video cannot display the page's styled ASS overlay.
+            var requestId = selectionRequestId;
+            var text = selectedSubtitleText;
+            Promise.resolve()
+                .then(function() {
+                    return subtitlesParser.parse(subtitlesConverter.convertASS(text));
+                })
+                .then(function(cues) {
+                    if (requestId === selectionRequestId && usingASSRenderer && isVideoOutsidePage() && nativeTextTrack === null) {
+                        nativeASSCues = cues;
+                        createNativeTrack();
+                    }
+                })
+                .catch(function(error) {
+                    console.warn('Failed to convert ASS subtitles for native playback', error);
+                });
         }
         function onVideoReturnToPage() {
             removeNativeTrack();
@@ -816,6 +837,9 @@ function withHTMLSubtitles(Video) {
             assRenderer.setDelay(delay);
             assRenderer.setOpacity(opacity);
             startRenderLoop();
+            if (isVideoOutsidePage()) {
+                onVideoLeavePage();
+            }
 
             return assRenderer.load(track, text)
                 .then(function(loadedTrack) {
@@ -1160,6 +1184,7 @@ function withHTMLSubtitles(Video) {
                     }
                     var currentRequestId = ++selectionRequestId;
                     removeNativeTrack();
+                    nativeASSCues = null;
                     cuesByTime = null;
                     selectedTrackId = null;
                     selectedSubtitleText = null;
@@ -1438,6 +1463,7 @@ function withHTMLSubtitles(Video) {
                     abandonedNativeAssTitles = [];
                     removingNativeAssTrackIds = [];
                     removeNativeTrack();
+                    nativeASSCues = null;
                     stopRenderLoop();
                     lastTimeIndex = null;
                     cuesByTime = null;
