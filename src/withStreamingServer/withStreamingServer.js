@@ -53,7 +53,7 @@ function withStreamingServer(Video) {
             });
     }
     function canPlayProbe(probe, options) {
-        var isFormatSupported = options.formats.some(function(format) {
+        var isFormatSupported = probe.format.name === 'hls' || options.formats.some(function(format) {
             return probe.format.name.indexOf(format) !== -1;
         });
 
