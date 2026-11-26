@@ -17,7 +17,15 @@ function HTMLVideo(options) {
 
     var styleElement = document.createElement('style');
     containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video::cue { font-size: 4vmin; font-weight: normal; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }');
+    styleElement.textContent = 'video:not(.picture-in-picture)::cue { font-size: 4vmin; font-weight: normal; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }';
+    function getCueStyle() {
+        return styleElement.sheet.cssRules[0].style;
+    }
+    function setCueStyle(name, value) {
+        var rule = styleElement.sheet.cssRules[0];
+        rule.style[name] = value;
+        styleElement.textContent = rule.cssText;
+    }
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -82,10 +90,22 @@ function HTMLVideo(options) {
     };
     videoElement.onloadedmetadata = function() {
         onPropChanged('loaded');
+        onPropChanged('pictureInPicturePossible');
     };
     videoElement.onloadeddata = function() {
         onPropChanged('buffering');
         onPropChanged('buffered');
+    };
+    videoElement.onresize = function() {
+        onPropChanged('pictureInPicturePossible');
+    };
+    videoElement.onenterpictureinpicture = function() {
+        videoElement.classList.add('picture-in-picture');
+        onPropChanged('pictureInPictureActive');
+    };
+    videoElement.onleavepictureinpicture = function() {
+        videoElement.classList.remove('picture-in-picture');
+        onPropChanged('pictureInPictureActive');
     };
     videoElement.onvolumechange = function() {
         onPropChanged('volume');
@@ -141,7 +161,9 @@ function HTMLVideo(options) {
         muted: false,
         playbackSpeed: false,
         videoScale: false,
-        fullscreen: false
+        fullscreen: false,
+        pictureInPicturePossible: false,
+        pictureInPictureActive: false
     };
 
     function getProp(propName) {
@@ -278,35 +300,35 @@ function HTMLVideo(options) {
                     return null;
                 }
 
-                return parseInt(styleElement.sheet.cssRules[0].style.fontSize, 10) * 25;
+                return parseInt(getCueStyle().fontSize, 10) * 25;
             }
             case 'subtitlesTextColor': {
                 if (destroyed) {
                     return null;
                 }
 
-                return styleElement.sheet.cssRules[0].style.color;
+                return getCueStyle().color;
             }
             case 'subtitlesBackgroundColor': {
                 if (destroyed) {
                     return null;
                 }
 
-                return styleElement.sheet.cssRules[0].style.backgroundColor;
+                return getCueStyle().backgroundColor;
             }
             case 'subtitlesOutlineColor': {
                 if (destroyed) {
                     return null;
                 }
 
-                return styleElement.sheet.cssRules[0].style.textShadow.slice(0, styleElement.sheet.cssRules[0].style.textShadow.indexOf(')') + 1);
+                return getCueStyle().textShadow.slice(0, getCueStyle().textShadow.indexOf(')') + 1);
             }
             case 'subtitlesBold': {
                 if (destroyed) {
                     return null;
                 }
 
-                return styleElement.sheet.cssRules[0].style.fontWeight === 'bold';
+                return getCueStyle().fontWeight === 'bold';
             }
             case 'subtitlesOpacity': {
                 if (destroyed) {
@@ -389,6 +411,19 @@ function HTMLVideo(options) {
                     return null;
                 }
                 return videoElement.webkitDisplayingFullscreen === true || document.fullscreenElement === videoElement;
+            }
+            case 'pictureInPicturePossible': {
+                if (stream === null) {
+                    return null;
+                }
+                return document.pictureInPictureEnabled === true && !videoElement.disablePictureInPicture &&
+                    videoElement.readyState >= videoElement.HAVE_METADATA && videoElement.videoWidth > 0;
+            }
+            case 'pictureInPictureActive': {
+                if (stream === null) {
+                    return null;
+                }
+                return document.pictureInPictureElement === videoElement;
             }
             default: {
                 return null;
@@ -509,7 +544,7 @@ function HTMLVideo(options) {
             }
             case 'subtitlesSize': {
                 if (propValue !== null && isFinite(propValue)) {
-                    styleElement.sheet.cssRules[0].style.fontSize = Math.floor(Math.max(0, parseInt(propValue, 10)) / 25) + 'vmin';
+                    setCueStyle('fontSize', Math.floor(Math.max(0, parseInt(propValue, 10)) / 25) + 'vmin');
                     onPropChanged('subtitlesSize');
                 }
 
@@ -518,7 +553,7 @@ function HTMLVideo(options) {
             case 'subtitlesTextColor': {
                 if (typeof propValue === 'string') {
                     try {
-                        styleElement.sheet.cssRules[0].style.color = Color(propValue).rgb().string();
+                        setCueStyle('color', Color(propValue).rgb().string());
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
@@ -532,7 +567,7 @@ function HTMLVideo(options) {
             case 'subtitlesBackgroundColor': {
                 if (typeof propValue === 'string') {
                     try {
-                        styleElement.sheet.cssRules[0].style.backgroundColor = Color(propValue).rgb().string();
+                        setCueStyle('backgroundColor', Color(propValue).rgb().string());
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
@@ -547,7 +582,7 @@ function HTMLVideo(options) {
                 if (typeof propValue === 'string') {
                     try {
                         var outlineColor = Color(propValue).rgb().string();
-                        styleElement.sheet.cssRules[0].style.textShadow = '-0.15rem -0.15rem 0.15rem ' + outlineColor + ', 0px -0.15rem 0.15rem ' + outlineColor + ', 0.15rem -0.15rem 0.15rem ' + outlineColor + ', -0.15rem 0px 0.15rem ' + outlineColor + ', 0.15rem 0px 0.15rem ' + outlineColor + ', -0.15rem 0.15rem 0.15rem ' + outlineColor + ', 0px 0.15rem 0.15rem ' + outlineColor + ', 0.15rem 0.15rem 0.15rem ' + outlineColor;
+                        setCueStyle('textShadow', '-0.15rem -0.15rem 0.15rem ' + outlineColor + ', 0px -0.15rem 0.15rem ' + outlineColor + ', 0.15rem -0.15rem 0.15rem ' + outlineColor + ', -0.15rem 0px 0.15rem ' + outlineColor + ', 0.15rem 0px 0.15rem ' + outlineColor + ', -0.15rem 0.15rem 0.15rem ' + outlineColor + ', 0px 0.15rem 0.15rem ' + outlineColor + ', 0.15rem 0.15rem 0.15rem ' + outlineColor);
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
@@ -560,7 +595,7 @@ function HTMLVideo(options) {
             }
             case 'subtitlesBold': {
                 if (typeof propValue === 'boolean') {
-                    styleElement.sheet.cssRules[0].style.fontWeight = propValue ? 'bold' : 'normal';
+                    setCueStyle('fontWeight', propValue ? 'bold' : 'normal');
                     onPropChanged('subtitlesBold');
                 }
 
@@ -570,7 +605,7 @@ function HTMLVideo(options) {
                 if (typeof propValue === 'number') {
                     try {
                         subtitlesOpacity = Math.min(Math.max(propValue / 100, 0), 1);
-                        styleElement.sheet.cssRules[0].style.opacity = subtitlesOpacity + '';
+                        setCueStyle('opacity', subtitlesOpacity + '');
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('VVideo with HTML Subtitles', error);
@@ -649,7 +684,21 @@ function HTMLVideo(options) {
                 }
                 break;
             }
+            case 'pictureInPictureActive': {
+                if (propValue && getProp('pictureInPicturePossible') && !getProp('pictureInPictureActive')) {
+                    videoElement.requestPictureInPicture().catch(pictureInPictureError);
+                } else if (!propValue && document.pictureInPictureElement === videoElement) {
+                    document.exitPictureInPicture().catch(pictureInPictureError);
+                }
+                break;
+            }
         }
+    }
+    function pictureInPictureError(error) {
+        events.emit('error', Object.assign({}, ERROR.HTML_VIDEO.PICTURE_IN_PICTURE_FAILED, {
+            critical: false,
+            error: error
+        }));
     }
     function command(commandName, commandArgs) {
         switch (commandName) {
@@ -671,6 +720,8 @@ function HTMLVideo(options) {
                     onPropChanged('audioTracks');
                     onPropChanged('selectedAudioTrackId');
                     onPropChanged('fullscreen');
+                    onPropChanged('pictureInPicturePossible');
+                    onPropChanged('pictureInPictureActive');
                     getContentType(stream)
                         .then(function(contentType) {
                             if (stream !== commandArgs.stream) {
@@ -745,6 +796,7 @@ function HTMLVideo(options) {
                 break;
             }
             case 'unload': {
+                setProp('pictureInPictureActive', false);
                 stream = null;
                 liveDetails = null;
                 Array.from(videoElement.textTracks).forEach(function(track) {
@@ -772,6 +824,8 @@ function HTMLVideo(options) {
                 onPropChanged('selectedAudioTrackId');
                 onPropChanged('videoScale');
                 onPropChanged('fullscreen');
+                onPropChanged('pictureInPicturePossible');
+                onPropChanged('pictureInPictureActive');
                 break;
             }
             case 'destroy': {
@@ -803,6 +857,9 @@ function HTMLVideo(options) {
                 videoElement.oncanplay = null;
                 videoElement.canplaythrough = null;
                 videoElement.onloadeddata = null;
+                videoElement.onresize = null;
+                videoElement.onenterpictureinpicture = null;
+                videoElement.onleavepictureinpicture = null;
                 videoElement.onvolumechange = null;
                 videoElement.onratechange = null;
                 videoElement.textTracks.onchange = null;
@@ -868,7 +925,7 @@ HTMLVideo.canPlayStream = function(stream) {
 HTMLVideo.manifest = {
     name: 'HTMLVideo',
     external: false,
-    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'live', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesBold', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen'],
+    props: ['stream', 'loaded', 'paused', 'time', 'duration', 'live', 'buffering', 'buffered', 'audioTracks', 'selectedAudioTrackId', 'subtitlesTracks', 'selectedSubtitlesTrackId', 'subtitlesOffset', 'subtitlesSize', 'subtitlesTextColor', 'subtitlesBackgroundColor', 'subtitlesOutlineColor', 'subtitlesBold', 'subtitlesOpacity', 'volume', 'muted', 'playbackSpeed', 'videoScale', 'fullscreen', 'pictureInPicturePossible', 'pictureInPictureActive'],
     commands: ['load', 'unload', 'destroy'],
     events: ['propValue', 'propChanged', 'ended', 'error', 'subtitlesTrackLoaded', 'audioTrackLoaded']
 };
