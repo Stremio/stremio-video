@@ -63,6 +63,10 @@ var ERROR = {
         CONVERT_FAILED: {
             code: 60,
             message: 'Your device does not support the stream'
+        },
+        TORRENT_CREATE_FAILED: {
+            code: 61,
+            message: 'Unable to prepare the torrent. Please try again or choose another stream.'
         }
     },
     UNKNOWN_ERROR: {

@@ -443,7 +443,10 @@ function withStreamingServer(Video) {
                                     return;
                                 }
 
-                                onError(Object.assign({}, ERROR.WITH_STREAMING_SERVER.CONVERT_FAILED, {
+                                var definition = error && error.name === 'TorrentCreateError' ?
+                                    ERROR.WITH_STREAMING_SERVER.TORRENT_CREATE_FAILED :
+                                    ERROR.WITH_STREAMING_SERVER.CONVERT_FAILED;
+                                onError(Object.assign({}, definition, {
                                     error: error,
                                     critical: true,
                                     stream: commandArgs.stream,
