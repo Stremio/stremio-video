@@ -167,7 +167,6 @@ function withHTMLSubtitles(Video) {
             videoElement.addEventListener('webkitendfullscreen', onVideoReturnToPage);
             videoElement.addEventListener('enterpictureinpicture', onVideoLeavePage);
             videoElement.addEventListener('leavepictureinpicture', onVideoReturnToPage);
-            videoElement.addEventListener('timeupdate', onVideoTimeUpdate);
         }
 
         var videoState = {
@@ -179,7 +178,6 @@ function withHTMLSubtitles(Video) {
             playbackSpeed: 1
         };
         var rafId = null;
-        var rafWindow = window;
         var lastTimeIndex = null;
         var forceRender = false;
         var cuesByTime = null;
@@ -265,25 +263,13 @@ function withHTMLSubtitles(Video) {
             }
             (function loop() {
                 renderSubtitles();
-                rafWindow = getRenderWindow();
-                rafId = rafWindow.requestAnimationFrame(loop);
+                rafId = requestAnimationFrame(loop);
             })();
         }
         function stopRenderLoop() {
             if (rafId !== null) {
-                if (!rafWindow.closed) {
-                    rafWindow.cancelAnimationFrame(rafId);
-                }
+                cancelAnimationFrame(rafId);
                 rafId = null;
-            }
-        }
-        function getRenderWindow() {
-            return subtitlesElement.ownerDocument.defaultView || window;
-        }
-        function onVideoTimeUpdate() {
-            if (rafId !== null && rafWindow !== getRenderWindow()) {
-                stopRenderLoop();
-                startRenderLoop();
             }
         }
         function renderSubtitles() {
@@ -1484,7 +1470,6 @@ function withHTMLSubtitles(Video) {
                         videoElement.removeEventListener('webkitendfullscreen', onVideoReturnToPage);
                         videoElement.removeEventListener('enterpictureinpicture', onVideoLeavePage);
                         videoElement.removeEventListener('leavepictureinpicture', onVideoReturnToPage);
-                        videoElement.removeEventListener('timeupdate', onVideoTimeUpdate);
                     }
                     onPropChanged('subtitlesOffset');
                     onPropChanged('subtitlesOffsetMinimum');
