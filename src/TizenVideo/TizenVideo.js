@@ -12,6 +12,7 @@ function TizenVideo(options) {
 
     var isBuffering = true;
     var videoSpeed = 1;
+    var avplayError = null;
     var currentSubTrack = null;
     var currentAudioTrack = null;
 
@@ -115,6 +116,24 @@ function TizenVideo(options) {
         },
         onstreamcompleted: function() {
             onEnded();
+        },
+        onerror: function(errorCode) {
+            if (destroyed || stream === null || !/^PLAYER_ERROR_[A-Z0-9_]+$/.test(errorCode)) {
+                return;
+            }
+
+            avplayError = errorCode;
+            console.warn('Tizen AVPlay', isLoaded ? 'playback' : 'prepare', errorCode);
+            if (isLoaded) {
+                var definition = errorCode === 'PLAYER_ERROR_CONNECTION_FAILED' ?
+                    ERROR.HTML_VIDEO.MEDIA_ERR_NETWORK :
+                    ERROR.STREAM_FAILED_TO_LOAD;
+                onError(Object.assign({}, definition, {
+                    critical: true,
+                    stream: stream,
+                    avplayError: errorCode
+                }));
+            }
         }
     });
 
@@ -626,6 +645,8 @@ function TizenVideo(options) {
             case 'load': {
                 if (commandArgs && commandArgs.stream && typeof commandArgs.stream.url === 'string') {
                     stream = commandArgs.stream;
+                    isLoaded = false;
+                    avplayError = null;
 
                     if (stream !== commandArgs.stream) {
                         return;
@@ -677,6 +698,7 @@ function TizenVideo(options) {
                                 critical: true,
                                 stream: commandArgs ? commandArgs.stream : null,
                                 error: error,
+                                avplayError: avplayError,
                             }));
                         }
                     }
