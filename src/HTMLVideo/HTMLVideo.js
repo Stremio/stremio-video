@@ -17,7 +17,15 @@ function HTMLVideo(options) {
 
     var styleElement = document.createElement('style');
     containerElement.appendChild(styleElement);
-    styleElement.sheet.insertRule('video:not(.picture-in-picture)::cue { font-size: 4vmin; font-weight: normal; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }');
+    styleElement.textContent = 'video:not(.picture-in-picture)::cue { font-size: 4vmin; font-weight: normal; color: rgb(255, 255, 255); background-color: rgba(0, 0, 0, 0); text-shadow: -0.15rem -0.15rem 0.15rem rgb(34, 34, 34), 0px -0.15rem 0.15rem rgb(34, 34, 34), 0.15rem -0.15rem 0.15rem rgb(34, 34, 34), -0.15rem 0px 0.15rem rgb(34, 34, 34), 0.15rem 0px 0.15rem rgb(34, 34, 34), -0.15rem 0.15rem 0.15rem rgb(34, 34, 34), 0px 0.15rem 0.15rem rgb(34, 34, 34), 0.15rem 0.15rem 0.15rem rgb(34, 34, 34); }';
+    function getCueStyle() {
+        return styleElement.sheet.cssRules[0].style;
+    }
+    function setCueStyle(name, value) {
+        var rule = styleElement.sheet.cssRules[0];
+        rule.style[name] = value;
+        styleElement.textContent = rule.cssText;
+    }
     var videoElement = document.createElement('video');
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
@@ -292,35 +300,35 @@ function HTMLVideo(options) {
                     return null;
                 }
 
-                return parseInt(styleElement.sheet.cssRules[0].style.fontSize, 10) * 25;
+                return parseInt(getCueStyle().fontSize, 10) * 25;
             }
             case 'subtitlesTextColor': {
                 if (destroyed) {
                     return null;
                 }
 
-                return styleElement.sheet.cssRules[0].style.color;
+                return getCueStyle().color;
             }
             case 'subtitlesBackgroundColor': {
                 if (destroyed) {
                     return null;
                 }
 
-                return styleElement.sheet.cssRules[0].style.backgroundColor;
+                return getCueStyle().backgroundColor;
             }
             case 'subtitlesOutlineColor': {
                 if (destroyed) {
                     return null;
                 }
 
-                return styleElement.sheet.cssRules[0].style.textShadow.slice(0, styleElement.sheet.cssRules[0].style.textShadow.indexOf(')') + 1);
+                return getCueStyle().textShadow.slice(0, getCueStyle().textShadow.indexOf(')') + 1);
             }
             case 'subtitlesBold': {
                 if (destroyed) {
                     return null;
                 }
 
-                return styleElement.sheet.cssRules[0].style.fontWeight === 'bold';
+                return getCueStyle().fontWeight === 'bold';
             }
             case 'subtitlesOpacity': {
                 if (destroyed) {
@@ -536,7 +544,7 @@ function HTMLVideo(options) {
             }
             case 'subtitlesSize': {
                 if (propValue !== null && isFinite(propValue)) {
-                    styleElement.sheet.cssRules[0].style.fontSize = Math.floor(Math.max(0, parseInt(propValue, 10)) / 25) + 'vmin';
+                    setCueStyle('fontSize', Math.floor(Math.max(0, parseInt(propValue, 10)) / 25) + 'vmin');
                     onPropChanged('subtitlesSize');
                 }
 
@@ -545,7 +553,7 @@ function HTMLVideo(options) {
             case 'subtitlesTextColor': {
                 if (typeof propValue === 'string') {
                     try {
-                        styleElement.sheet.cssRules[0].style.color = Color(propValue).rgb().string();
+                        setCueStyle('color', Color(propValue).rgb().string());
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
@@ -559,7 +567,7 @@ function HTMLVideo(options) {
             case 'subtitlesBackgroundColor': {
                 if (typeof propValue === 'string') {
                     try {
-                        styleElement.sheet.cssRules[0].style.backgroundColor = Color(propValue).rgb().string();
+                        setCueStyle('backgroundColor', Color(propValue).rgb().string());
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
@@ -574,7 +582,7 @@ function HTMLVideo(options) {
                 if (typeof propValue === 'string') {
                     try {
                         var outlineColor = Color(propValue).rgb().string();
-                        styleElement.sheet.cssRules[0].style.textShadow = '-0.15rem -0.15rem 0.15rem ' + outlineColor + ', 0px -0.15rem 0.15rem ' + outlineColor + ', 0.15rem -0.15rem 0.15rem ' + outlineColor + ', -0.15rem 0px 0.15rem ' + outlineColor + ', 0.15rem 0px 0.15rem ' + outlineColor + ', -0.15rem 0.15rem 0.15rem ' + outlineColor + ', 0px 0.15rem 0.15rem ' + outlineColor + ', 0.15rem 0.15rem 0.15rem ' + outlineColor;
+                        setCueStyle('textShadow', '-0.15rem -0.15rem 0.15rem ' + outlineColor + ', 0px -0.15rem 0.15rem ' + outlineColor + ', 0.15rem -0.15rem 0.15rem ' + outlineColor + ', -0.15rem 0px 0.15rem ' + outlineColor + ', 0.15rem 0px 0.15rem ' + outlineColor + ', -0.15rem 0.15rem 0.15rem ' + outlineColor + ', 0px 0.15rem 0.15rem ' + outlineColor + ', 0.15rem 0.15rem 0.15rem ' + outlineColor);
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('HTMLVideo', error);
@@ -587,7 +595,7 @@ function HTMLVideo(options) {
             }
             case 'subtitlesBold': {
                 if (typeof propValue === 'boolean') {
-                    styleElement.sheet.cssRules[0].style.fontWeight = propValue ? 'bold' : 'normal';
+                    setCueStyle('fontWeight', propValue ? 'bold' : 'normal');
                     onPropChanged('subtitlesBold');
                 }
 
@@ -597,7 +605,7 @@ function HTMLVideo(options) {
                 if (typeof propValue === 'number') {
                     try {
                         subtitlesOpacity = Math.min(Math.max(propValue / 100, 0), 1);
-                        styleElement.sheet.cssRules[0].style.opacity = subtitlesOpacity + '';
+                        setCueStyle('opacity', subtitlesOpacity + '');
                     } catch (error) {
                         // eslint-disable-next-line no-console
                         console.error('VVideo with HTML Subtitles', error);
