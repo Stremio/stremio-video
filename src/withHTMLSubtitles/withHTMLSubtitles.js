@@ -314,6 +314,8 @@ function withHTMLSubtitles(Video) {
                 cueNode.style.display = 'inline-block';
                 cueNode.style.padding = '0.2em';
                 cueNode.style.whiteSpace = 'pre-wrap';
+                cueNode.style.maxWidth = '80%';
+                cueNode.style.maxWidth = 'min(80%, 36ch)';
                 var fontSizeMultiplier = window.screen720p ? 1.538 : 1;
                 cueNode.style.fontSize = Math.floor((size / 25) * fontSizeMultiplier) + 'vmin';
                 cueNode.style.color = textColor;
