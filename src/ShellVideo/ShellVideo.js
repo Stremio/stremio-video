@@ -2,6 +2,7 @@ var EventEmitter = require('eventemitter3');
 var cloneDeep = require('lodash.clonedeep');
 var deepFreeze = require('deep-freeze');
 var ERROR = require('../error');
+var getAudioFormat = require('./getAudioFormat');
 
 var SUBS_SCALE_FACTOR = 0.0066;
 var EOF_END_TOLERANCE = 60000;
@@ -288,6 +289,7 @@ function ShellVideo(options) {
                             origin: 'EMBEDDED',
                             embedded: true,
                             mode: x.id === props.aid ? 'showing' : 'disabled',
+                            format: getAudioFormat(x),
                         };
                     });
                 onPropChanged('audioTracks');
