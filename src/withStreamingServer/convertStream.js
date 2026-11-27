@@ -4,7 +4,10 @@ var buildProxyUrl = require('./buildProxyUrl');
 
 function convertStream(streamingServerURL, stream, seriesInfo, streamingServerSettings) {
     return new Promise(function(resolve, reject) {
-        if (typeof stream.url === 'string') {
+        var needsEpisodeLookup = seriesInfo && typeof stream.infoHash === 'string' &&
+            (stream.fileIdx === null || typeof stream.fileIdx === 'undefined') &&
+            !(stream.fileMustInclude && stream.fileMustInclude.length);
+        if (typeof stream.url === 'string' && !needsEpisodeLookup) {
             if (stream.url.indexOf('magnet:') === 0) {
                 var parsedMagnetURI;
                 try {
