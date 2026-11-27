@@ -10,7 +10,8 @@
         "url": "https://github.com/Stremio/stremio-video"
     },
     "scripts": {
-        "lint": "eslint src"
+        "lint": "eslint src",
+        "test": "jest"
     },
     "dependencies": {
         "@stremio/libass-wasm": "https://github.com/Stremio/JavascriptSubtitlesOctopus/releases/download/v4.2.7/stremio-libass-wasm-4.2.7.tgz",
@@ -27,6 +28,7 @@
         "vtt.js": "github:jaruba/vtt.js#84d33d157848407d790d78423dacc41a096294f0"
     },
     "devDependencies": {
-        "eslint": "9.39.2"
+        "eslint": "9.39.2",
+        "jest": "29.7.0"
     }
 }
